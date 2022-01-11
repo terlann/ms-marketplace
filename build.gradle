@@ -1,0 +1,119 @@
+plugins {
+    id 'org.springframework.boot' version '2.4.5'
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'java'
+    id 'org.sonarqube' version '3.0'
+    id 'jacoco'
+    id 'checkstyle'
+}
+
+group = 'az.kapitalbank.ms'
+version = "0.0.1-SNAPSHOT"
+sourceCompatibility = 11
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    if (!hasProperty('jenkins')) {
+        mavenLocal()
+        mavenCentral()
+        maven { url 'https://repo.spring.io/milestone' }
+    }
+    maven { url "https://nexus.kblab.local/repository/maven-public" }
+}
+
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:2020.0.1"
+    }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-web-services'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.cloud:spring-cloud-starter-config'
+    implementation 'org.springframework.cloud:spring-cloud-starter-consul-config'
+    implementation 'org.springframework.cloud:spring-cloud-starter-vault-config'
+    implementation 'org.springframework.cloud:spring-cloud-starter-sleuth:2.2.6.RELEASE'
+
+    implementation "io.springfox:springfox-swagger-ui:2.9.2"
+    implementation "io.springfox:springfox-swagger2:2.9.2"
+    implementation "io.springfox:springfox-bean-validators:2.9.2"
+
+    implementation 'org.hibernate:hibernate-validator:6.1.6.Final'
+    implementation "net.logstash.logback:logstash-logback-encoder:6.0"
+    implementation 'ch.qos.logback:logback-classic'
+
+    implementation "io.github.openfeign:feign-okhttp:11.0"
+    implementation "io.github.openfeign:feign-gson:11.0"
+
+    implementation "junit:junit:4.13"
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
+    implementation 'org.apache.commons:commons-lang3'
+
+    runtimeOnly('com.h2database:h2')
+    developmentOnly 'org.springframework.boot:spring-boot-devtools'
+
+    implementation "org.mapstruct:mapstruct:1.4.1.Final"
+    annotationProcessor "org.mapstruct:mapstruct-processor:1.4.1.Final"
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
+
+    testCompile 'org.powermock:powermock-api-mockito2:2.0.7'
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
+    }
+}
+
+bootJar {
+    archiveName 'app.jar'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+sonarqube {
+    properties {
+        property "sonar.java.coveragePlugin", "jacoco"
+        property "sonar.jacoco.reportPath", "build/jacoco/test.exec"
+        property "sonar.junit.reportsPath", "build/test-results/test"
+        property "sonar.projectKey", rootProject.name
+        property "sonar.host.url", "https://sonarqube.kapitalbank.az"
+        property "sonar.scm.forceReloadAll", "true"
+        property "sonar.java.checkstyle.reportPaths", "build/reports/checkstyle/main.xml"
+        property "sonar.coverage.exclusions", "**/az/kapitalbank/ms/***"
+        property "sonar.cpd.exclusions", "**/az/kapitalbank/ms/**"
+    }
+}
+jacoco {
+    toolVersion = "0.8.5"
+    reportsDir = file("build/reports/jacoco")
+}
+
+jacocoTestReport {
+    reports {
+        xml.enabled true
+        csv.enabled false
+    }
+}
+
+checkstyle {
+    toolVersion = "8.15"
+    configFile = file("${rootProject.projectDir}/checkstyle/checkstyle.xml")
+    ignoreFailures = false
+}
+
+tasks.withType(Checkstyle) {
+    reports {
+        xml.enabled true
+        html.enabled true
+    }
+}
