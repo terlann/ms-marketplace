@@ -1,13 +1,15 @@
 plugins {
     id 'org.springframework.boot' version "$springBootPluginVersion"
     id 'io.spring.dependency-management' version "$springDependencyVersion"
-    id 'checkstyle'
     id 'java'
+    id 'org.sonarqube' version '3.0'
+    id 'jacoco'
+    id 'checkstyle'
 }
 
-group = 'az.kapitalbank'
-version = '0.0.1'
-sourceCompatibility = '11'
+group = 'az.kapitalbank.ms'
+version = "0.0.1-SNAPSHOT"
+sourceCompatibility = 11
 
 configurations {
     compileOnly {
@@ -78,6 +80,16 @@ dependencyManagement {
     }
 }
 
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:2020.0.1"
+    }
+}
+
+bootJar {
+    archiveName 'app.jar'
+}
+
 test {
     useJUnitPlatform()
 }
@@ -93,4 +105,39 @@ checkstyleMain {
 
 checkstyleTest {
     source = 'src/test/java'
+}
+
+sonarqube {
+    properties {
+        property "sonar.java.coveragePlugin", "jacoco"
+        property "sonar.jacoco.reportPath", "build/jacoco/test.exec"
+        property "sonar.junit.reportsPath", "build/test-results/test"
+        property "sonar.projectKey", rootProject.name
+        property "sonar.host.url", "https://sonarqube.kapitalbank.az"
+        property "sonar.scm.forceReloadAll", "true"
+        property "sonar.java.checkstyle.reportPaths", "build/reports/checkstyle/main.xml"
+        property "sonar.coverage.exclusions", "**/az/kapitalbank/ms/***"
+        property "sonar.cpd.exclusions", "**/az/kapitalbank/ms/**"
+    }
+}
+jacoco {
+    toolVersion = "0.8.5"
+    reportsDir = file("build/reports/jacoco")
+}
+
+jacocoTestReport {
+    reports {
+        xml.enabled true
+        csv.enabled false
+    }
+}
+
+
+
+tasks.withType(Checkstyle) {
+    reports {
+        xml.enabled true
+        html.enabled true
+    }
+
 }

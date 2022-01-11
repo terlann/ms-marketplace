@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 pluginManagement {
     repositories {
         maven { url 'https://repo.spring.io/milestone' }
@@ -7,3 +8,6 @@ pluginManagement {
 }
 
 rootProject.name = 'ms-marketplace'
+=======
+rootProject.name = '{{ appname.stdout }}'
+>>>>>>> 9edc1e9211148ef5b0da80573a06b4b70cf77b34
