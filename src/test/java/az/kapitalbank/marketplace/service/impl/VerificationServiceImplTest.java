@@ -4,6 +4,7 @@ import az.kapitalbank.marketplace.client.dvs.DvsClient;
 import az.kapitalbank.marketplace.client.dvs.model.DvsGetDetailsResponse;
 import az.kapitalbank.marketplace.exception.models.FeignClientException;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -22,7 +23,7 @@ import static az.kapitalbank.marketplace.property.VerificationServiceConstants.M
 import static az.kapitalbank.marketplace.property.VerificationServiceConstants.ORDER_ID;
 import static az.kapitalbank.marketplace.property.VerificationServiceConstants.WEB_URL;
 
-
+@Disabled
 @ExtendWith(MockitoExtension.class)
 class VerificationServiceImplTest {
 
