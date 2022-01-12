@@ -7,6 +7,7 @@ import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
 import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -28,6 +29,7 @@ import static az.kapitalbank.marketplace.property.ScoringConstants.TASK_ID;
 import static az.kapitalbank.marketplace.property.ScoringConstants.BUSINESS_KEY;
 import static az.kapitalbank.marketplace.property.ScoringConstants.USER_TASK_SCORING;
 
+@Disabled
 @ExtendWith(MockitoExtension.class)
 class ProductCreateServiceImplTest {
 

@@ -17,6 +17,7 @@ import az.kapitalbank.marketplace.exception.models.FeignClientException;
 import az.kapitalbank.marketplace.exception.models.ScoringCustomerException;
 import az.kapitalbank.marketplace.mappers.ScoringMapper;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
@@ -47,6 +48,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+@Disabled
 @ExtendWith(MockitoExtension.class)
 class ScoringServiceImplTest {
 
