@@ -4,5 +4,5 @@ WORKDIR /app
 ENV TZ Asia/Baku
 COPY *.*ar .
 RUN ln -sfn *.*ar app
-ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75", "-jar", "./app", "--spring.profiles.active=${DEPLOY_ENV}"]
+ENTRYPOINT ["java", "-XX:+UseContainerSupport", "-XX:MaxRAMPercentage=75", "-jar", "app", "--spring.profiles.active=${DEPLOY_ENV}"]
 CMD [""]
