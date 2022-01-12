@@ -39,7 +39,6 @@ spring:
           group: marketplace-dvs
           destination: mp-order-dvs
 
-
 optimus:
   process:
     key: process_credit_online

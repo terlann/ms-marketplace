@@ -6,12 +6,3 @@ spring:
       enabled: false
     vault:
       enabled: false
-
-
-
-
-
-
-
-
-

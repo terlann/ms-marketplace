@@ -72,11 +72,7 @@ case "`uname`" in
   Darwin* )
     darwin=true
     ;;
-<<<<<<< HEAD
-  MSYS* | MINGW* )
-=======
   MINGW* )
->>>>>>> 9edc1e9211148ef5b0da80573a06b4b70cf77b34
     msys=true
     ;;
   NONSTOP* )

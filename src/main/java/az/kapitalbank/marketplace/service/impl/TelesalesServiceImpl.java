@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.Optional;
 
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -28,7 +27,6 @@ public class TelesalesServiceImpl implements TelesalesService {
     OrderRepository orderRepository;
     CustomerRepository customerRepository;
     FraudRepository fraudRepository;
-
 
     @Override
     public Optional<String> sendLead(String trackId) {
