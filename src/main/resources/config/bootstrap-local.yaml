@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: ms-order-marketplace
+  cloud:
+    consul:
+      enabled: false
+    vault:
+      enabled: false

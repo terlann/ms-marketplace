@@ -1,0 +1,63 @@
+spring:
+  datasource:
+    hikari:
+      pool-name: order-marketplace-pool
+  profiles:
+    active: ${DEPLOY_ENV}
+  cloud:
+    function:
+      definition: checkFraud;checkFraudResult;startScoringResult
+    stream:
+      binders:
+        kafka-bpm:
+          type: kafka
+          environment.spring.cloud.stream.kafka.binder:
+            brokers: 10.0.80.75
+        kafka-mp:
+          type: kafka
+          environment.spring.cloud.stream.kafka.binder:
+            brokers: localhost:9092
+      bindings:
+        startScoringResult-in-0:
+          binder: kafka-bpm
+          contentType: application/json
+          destination: bpm-market-place-online-state
+        checkFraudResult-in-0:
+          binder: kafka-mp
+          contentType: application/json
+          group: marketplace-fraud-result
+          destination: mp-customer-validation-result
+        checkFraud-out-0:
+          binder: kafka-mp
+          contentType: application/json
+          group: marketplace-fraud
+          destination: mp-customer-validation
+
+
+optimus:
+  process:
+    key: process_credit_online
+    product-type: CONSUMER_LOAN_MARKET_PLACE_ONLINE
+
+client:
+  zeus:
+    domain: http://testzeusws.kapitalcard.az
+  ete:
+    domain: http://testsrsws.kapitalcard.az
+  umico:
+    domain: https://broker-dev.umico.az
+  customer-check:
+    domain: https://dev.ms-customer-check.kapitalbank.az
+  adp-optimus:
+    domain: https://pre.adp-optimus.kapitalbank.az/
+  adp-dvs:
+    domain: https://pre.adp-dvs.kapitalbank.az/
+feign:
+  httpclient:
+    disable-ssl-validation: true
+    enabled: false
+  okhttp:
+    enabled: true
+
+server:
+  port: 8087
