@@ -1,7 +1,7 @@
 spring:
   datasource:
     hikari:
-      pool-name: order-marketplace-pool
+      pool-name: marketplace-pool
     url: jdbc:oracle:thin:@//10.0.32.202:1521/onboard
     username: onboard
     password: onboard12345
