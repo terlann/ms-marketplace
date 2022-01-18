@@ -35,8 +35,13 @@ https://semver.org/
 <img src="https://bitbucket.kapitalbank.az/superman-images/say-devops.png" width="140">  ***If something goes wrong, just text to me via Slack's `devops-team` channel.I'll assist you*** :fire:
 
 ## :question: ***How to Check App?***
+- :globe_with_meridians: Development URL: https://dev.ms-marketplace.kapitalbank.az
+- :globe_with_meridians: Preproduction URL: https://pre.ms-marketplace.kapitalbank.az
+- :globe_with_meridians: Production URL: https://ms-marketplace.kapitalbank.az
+
 - :white_check_mark: With Kibana UI
 - :white_check_mark: With `kubectl` (Use your Kubernetes Config File)
+
 ## :question: ***How to Check Builds?***
 - :sparkles: Jenkins URL: https://jenkins.kapitalbank.az/job/marketplace/job/ms-marketplace
 <img src="https://bitbucket.kapitalbank.az/superman-images/batman.gif" width="500">
