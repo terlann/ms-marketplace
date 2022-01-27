@@ -1,5 +1,8 @@
 package az.kapitalbank.marketplace.messaging.listener;
 
+import java.util.Objects;
+import java.util.function.Consumer;
+
 import az.kapitalbank.marketplace.repository.OrderRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AccessLevel;
@@ -8,9 +11,6 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
-
-import java.util.Objects;
-import java.util.function.Consumer;
 
 @Slf4j
 @Component
@@ -25,6 +25,11 @@ public class OrderDvsStatusListener {
     public Consumer<String> orderDvsStatus() {
         return message -> {
             if (Objects.nonNull(message)) {
+
+                // TODO call completeScoring
+                // TODO send desicion to umico (umico callback url)
+                // TODO purchase fimi call
+
                 /*try {
                     OrderDvsStatusEvent orderDvsStatusEvent = objectMapper
                       .readValue(message, OrderDvsStatusEvent.class);

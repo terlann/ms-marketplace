@@ -1,5 +1,7 @@
 package az.kapitalbank.marketplace.messaging.event;
 
+import java.util.UUID;
+
 import az.kapitalbank.marketplace.constants.FraudResultStatus;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -12,6 +14,6 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class FraudCheckResultEvent {
-    String trackId;
+    UUID trackId;
     FraudResultStatus fraudResultStatus;
 }

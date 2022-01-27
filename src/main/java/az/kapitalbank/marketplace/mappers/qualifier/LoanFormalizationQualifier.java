@@ -1,13 +1,13 @@
 package az.kapitalbank.marketplace.mappers.qualifier;
 
-import org.mapstruct.Named;
-import org.springframework.stereotype.Component;
-
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+
+import org.mapstruct.Named;
+import org.springframework.stereotype.Component;
 
 
 @Component

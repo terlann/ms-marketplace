@@ -1,5 +1,8 @@
 package az.kapitalbank.marketplace.messaging.sender;
 
+import java.util.LinkedList;
+import java.util.function.Supplier;
+
 import az.kapitalbank.marketplace.messaging.event.FraudCheckEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,9 +13,6 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
-
-import java.util.LinkedList;
-import java.util.function.Supplier;
 
 @Slf4j
 @Component

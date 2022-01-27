@@ -1,5 +1,8 @@
 package az.kapitalbank.marketplace.messaging.listener;
 
+import java.util.Objects;
+import java.util.function.Consumer;
+
 import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
 import az.kapitalbank.marketplace.service.ProductCreateService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -10,9 +13,6 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
-
-import java.util.Objects;
-import java.util.function.Consumer;
 
 @Slf4j
 @Component

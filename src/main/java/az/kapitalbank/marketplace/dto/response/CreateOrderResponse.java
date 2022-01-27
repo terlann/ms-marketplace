@@ -1,5 +1,7 @@
 package az.kapitalbank.marketplace.dto.response;
 
+import java.util.UUID;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
@@ -19,5 +21,5 @@ import lombok.experimental.FieldDefaults;
 public class CreateOrderResponse {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     String eteOrderId;
-    final String marketplaceTrackId;
+    final UUID trackId;
 }

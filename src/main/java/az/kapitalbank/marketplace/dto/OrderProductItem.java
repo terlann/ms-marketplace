@@ -2,6 +2,7 @@ package az.kapitalbank.marketplace.dto;
 
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
+import java.math.BigDecimal;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
@@ -19,7 +20,7 @@ import lombok.experimental.FieldDefaults;
 public class OrderProductItem {
     @NotNull
     @JsonProperty("product_amount")
-    Integer productAmount;
+    BigDecimal productAmount;
     @NotEmpty
     @JsonProperty("product_id")
     String productId;

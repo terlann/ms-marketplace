@@ -1,14 +1,14 @@
 package az.kapitalbank.marketplace.mappers.qualifier;
 
-import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
-import az.kapitalbank.marketplace.utils.AmountUtil;
-import org.mapstruct.Named;
-import org.springframework.stereotype.Component;
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
+import az.kapitalbank.marketplace.utils.AmountUtil;
+import org.mapstruct.Named;
+import org.springframework.stereotype.Component;
 
 
 @Component

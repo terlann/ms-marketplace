@@ -2,6 +2,7 @@ package az.kapitalbank.marketplace.controller;
 
 import javax.validation.Valid;
 
+import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
 import az.kapitalbank.marketplace.service.CheckOrderService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -20,9 +21,9 @@ public class CheckOrderController {
 
     CheckOrderService service;
 
-    @PostMapping
-    public ResponseEntity<?> checkOrder(@Valid @RequestParam("eteOrderId") String eteOrderId) {
-        return service.checkOrder(eteOrderId);
+    @PostMapping //
+    public ResponseEntity<CheckOrderResponseDto> checkOrder(@Valid @RequestParam("eteOrderId") String eteOrderId) {
+        return ResponseEntity.ok(service.checkOrder(eteOrderId));
     }
 
 }
