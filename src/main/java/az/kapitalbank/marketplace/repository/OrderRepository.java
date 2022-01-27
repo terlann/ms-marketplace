@@ -1,13 +1,14 @@
 package az.kapitalbank.marketplace.repository;
 
+import java.util.Optional;
+import java.util.UUID;
+
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
-
 @Repository
-public interface OrderRepository extends JpaRepository<OrderEntity, String> {
+public interface OrderRepository extends JpaRepository<OrderEntity, UUID> {
 
     Optional<OrderEntity> findByEteOrderId(String eteOrderId);
 

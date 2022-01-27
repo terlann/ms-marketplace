@@ -18,7 +18,7 @@ public interface LoanFormalizeMapper {
     @Mapping(source = "customerEntity.fullName", target = "fullName")
     @Mapping(source = "customerEntity.email", target = "email")
     @Mapping(source = "customerEntity.mobileNumber", target = "mobile")
-    @Mapping(source = "customerEntity.identityNumber", target = "pin")
+    @Mapping(source = "customerEntity.pin", target = "pin")
     @Mapping(source = "processResponse.variables.cif", target = "cif")
     @Mapping(source = "processResponse.variables.cashCreditContractNumber", target = "cashContract")
     @Mapping(source = "processResponse.taskId", target = "processId")

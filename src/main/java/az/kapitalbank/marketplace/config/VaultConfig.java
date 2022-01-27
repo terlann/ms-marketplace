@@ -17,7 +17,7 @@ import static az.kapitalbank.marketplace.constants.ApplicationProfiles.PROD;
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
-@Profile(value = {DEV, PRE_PROD,PROD})
+@Profile(value = {DEV, PRE_PROD, PROD})
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class VaultConfig implements VaultConfigurer {
 

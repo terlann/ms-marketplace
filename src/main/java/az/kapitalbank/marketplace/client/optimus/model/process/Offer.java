@@ -1,10 +1,10 @@
 package az.kapitalbank.marketplace.client.optimus.model.process;
 
+import java.math.BigDecimal;
+
 import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
-
-import java.math.BigDecimal;
 
 import static lombok.AccessLevel.PRIVATE;
 

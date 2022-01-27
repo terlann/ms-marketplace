@@ -2,6 +2,7 @@ package az.kapitalbank.marketplace.dto.response;
 
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -23,8 +24,7 @@ public class CheckOrderResponseDto {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     String eteOrderId;
     @NotNull
-    String trackId;
+    UUID trackId;
     @NotNull
     BigDecimal totalAmount;
-
 }

@@ -7,6 +7,7 @@ import az.kapitalbank.marketplace.service.ScoringService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -21,8 +22,10 @@ public class ScoringController {
 
     ScoringService service;
 
+    // TODO update customer,operation after telesales scoring and dvs
     @PostMapping
-    public ResponseEntity<?> scoringOrder(@Valid @RequestBody ScoringOrderRequestDto request) {
-        return service.scoringOrder(request);
+    public ResponseEntity<Void> scoringOrder(@Valid @RequestBody ScoringOrderRequestDto request) {
+        service.scoringOrder(request);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }
