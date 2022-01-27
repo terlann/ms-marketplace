@@ -25,17 +25,17 @@ public class VaultConfig implements VaultConfigurer {
 
     @Override
     public void addSecretBackends(SecretBackendConfigurer configurer) {
-        final var backend = vaultKeyValueBackendProperties.getBackend();
-        final var contextPath = vaultKeyValueBackendProperties.getDefaultContext();
-        final var applicationName = vaultKeyValueBackendProperties.getApplicationName();
-        final var profileSeparator = vaultKeyValueBackendProperties.getProfileSeparator();
-        final var profile = vaultKeyValueBackendProperties.getProfiles().get(0);
+        var backend = vaultKeyValueBackendProperties.getBackend();
+        var contextPath = vaultKeyValueBackendProperties.getDefaultContext();
+        var applicationName = vaultKeyValueBackendProperties.getApplicationName();
+        var profileSeparator = vaultKeyValueBackendProperties.getProfileSeparator();
+        var profile = vaultKeyValueBackendProperties.getProfiles().get(0);
 
-        String path = String.join(profileSeparator, backend, contextPath, applicationName, profile);
-
+        var path = String.join(profileSeparator, backend, contextPath, applicationName, profile);
         log.info("vault path: {}", path);
-
         configurer.add(path);
+
+        configurer.registerDefaultKeyValueSecretBackends(false);
         configurer.registerDefaultDiscoveredSecretBackends(true);
     }
 }

@@ -1,6 +1,6 @@
 spring:
   application:
-    name: ms-order-marketplace
+    name: ms-marketplace
   cloud:
     consul:
       enabled: false

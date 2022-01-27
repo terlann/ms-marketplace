@@ -17,12 +17,8 @@ configurations {
     }
 }
 
-bootJar {
-    enabled = false
-}
-
 jar {
-    enabled = true
+    enabled = false
 }
 
 
@@ -77,10 +73,6 @@ dependencyManagement {
     imports {
         mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudDependencyVersion}"
     }
-}
-
-bootJar {
-    archiveName 'app.jar'
 }
 
 test {
