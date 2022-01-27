@@ -4,6 +4,8 @@ import javax.validation.Valid;
 import java.util.UUID;
 
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
+import az.kapitalbank.marketplace.dto.request.PurchaseRequestDto;
+import az.kapitalbank.marketplace.dto.request.ReverseRequestDto;
 import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
 import az.kapitalbank.marketplace.service.OrderService;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -30,12 +32,24 @@ public class OrderController {
 
     @PostMapping
     public ResponseEntity<CreateOrderResponse> createOrder(@Valid @RequestBody CreateOrderRequestDto request) {
-        return new ResponseEntity<>(service.createOrder(request), HttpStatus.OK);
+        return new ResponseEntity<>(service.createOrder(request), HttpStatus.CREATED);
     }
 
     @DeleteMapping("/{trackId}")
     public ResponseEntity<Void> deleteOrder(@Valid @PathVariable UUID trackId) {
         service.deleteOrder(trackId);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PostMapping("/purchase")
+    public ResponseEntity<Void> purchase(@Valid @RequestBody PurchaseRequestDto request) {
+        service.purchase(request);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PostMapping("/reverse")
+    public ResponseEntity<Void> reverse(@Valid @RequestBody ReverseRequestDto request) {
+        service.reverse(request);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

@@ -8,9 +8,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
 import az.kapitalbank.marketplace.dto.OrderProductItem;
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
+import az.kapitalbank.marketplace.dto.request.PurchaseRequestDto;
+import az.kapitalbank.marketplace.dto.request.ReverseRequestDto;
 import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
@@ -44,6 +47,7 @@ public class OrderService {
     CreateOrderMapper createOrderMapper;
     CustomerRepository customerRepository;
     FraudCheckSender customerOrderProducer;
+    AtlasClient atlasClient;
 
 
     @Transactional
@@ -129,5 +133,15 @@ public class OrderService {
         log.info("delete operation finish ... track_id - [{}]", trackId);
     }
 
+    public void purchase(PurchaseRequestDto request) {
+        //TODO PurchaseRequestDto map to PurchaseRequest
+        var purchaseResponse = atlasClient.purchase(null);
+        //TODO insert or update purchaseEntity
+    }
 
+    public void reverse(ReverseRequestDto request) {
+        //TODO ReverseRequestDto map to ReversPurchaseRequest
+        var reverseResponse = atlasClient.reverse(null);
+        //TODO insert or update purchaseEntity
+    }
 }

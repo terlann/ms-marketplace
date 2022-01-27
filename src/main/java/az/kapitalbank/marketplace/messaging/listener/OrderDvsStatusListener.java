@@ -3,7 +3,13 @@ package az.kapitalbank.marketplace.messaging.listener;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-import az.kapitalbank.marketplace.repository.OrderRepository;
+import az.kapitalbank.marketplace.client.atlas.AtlasClient;
+import az.kapitalbank.marketplace.dto.CompleteScoring;
+import az.kapitalbank.marketplace.entity.OrderEntity;
+import az.kapitalbank.marketplace.messaging.event.OrderDvsStatusEvent;
+import az.kapitalbank.marketplace.repository.OperationRepository;
+import az.kapitalbank.marketplace.service.ScoringService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -18,30 +24,45 @@ import org.springframework.stereotype.Component;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class OrderDvsStatusListener {
 
+    AtlasClient atlasClient;
     ObjectMapper objectMapper;
-    OrderRepository orderRepository;
+    ScoringService scoringService;
+    OperationRepository operationRepository;
 
     @Bean
     public Consumer<String> orderDvsStatus() {
         return message -> {
             if (Objects.nonNull(message)) {
-
-                // TODO call completeScoring
-                // TODO send desicion to umico (umico callback url)
-                // TODO purchase fimi call
-
-                /*try {
+                try {
                     OrderDvsStatusEvent orderDvsStatusEvent = objectMapper
-                      .readValue(message, OrderDvsStatusEvent.class);
+                            .readValue(message, OrderDvsStatusEvent.class);
                     log.info("order dvs status consumer. Message - [{}]", orderDvsStatusEvent);
-                    if (orderDvsStatusEvent != null)
-                        //orderRepository.updateOrderStatusByOrderId(orderDvsStatusEvent.getStatus(),
-                                                    orderDvsStatusEvent.getOrderId());
+                    if (orderDvsStatusEvent != null) {
+                        var operationEntityOptional = operationRepository.findByDvsOrderId(
+                                orderDvsStatusEvent.getOrderId());
+                        if (operationEntityOptional.isPresent()) {
+                            var operationEntity = operationEntityOptional.get();
+                            var customerEntity = operationEntity.getCustomer();
+                            var completeScoring = CompleteScoring.builder()
+                                    .trackId(operationEntity.getId())
+                                    .businessKey(operationEntity.getBusinessKey())
+                                    .additionalNumber1(customerEntity.getAdditionalPhoneNumber1())
+                                    .additionalNumber2(customerEntity.getAdditionalPhoneNumber2())
+                                    .build();
+                            scoringService.completeScoring(completeScoring);
+                            var orders = operationEntity.getOrders();
+                            //TODO mapper for atlasClient
+                            for (OrderEntity orderEntity : orders) {
+                                atlasClient.purchase(null);
+                            }
+                            // TODO send desicion to umico (umico callback url)
+                        }
+                    }
                 } catch (JsonProcessingException j) {
                     log.error("order dvs status consume.Message - [{}], JsonProcessingException - {}",
-                     message,
-                     j.getMessage());
-                }*/
+                            message,
+                            j.getMessage());
+                }
             }
         };
     }
