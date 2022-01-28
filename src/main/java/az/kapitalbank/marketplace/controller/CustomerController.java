@@ -32,8 +32,8 @@ public class CustomerController {
 
     @GetMapping("/balance")
     public ResponseEntity<BalanceResponseDto> getBalance(@Valid
-                                                         @RequestParam("umico_user_id") String umicoUserId,
-                                                         @RequestParam("customer_id") UUID customerId) {
+                                                         @RequestParam String umicoUserId,
+                                                         @RequestParam UUID customerId) {
         return ResponseEntity.ok(customerService.getBalance(umicoUserId, customerId));
     }
 }

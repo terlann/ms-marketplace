@@ -14,7 +14,6 @@ import lombok.experimental.FieldDefaults;
 
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class ScoringOrderRequestDto {
     @NotEmpty
     String eteOrderId;
