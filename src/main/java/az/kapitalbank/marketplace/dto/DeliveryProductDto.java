@@ -21,5 +21,5 @@ public class DeliveryProductDto {
     @NotEmpty
     String itemType;
     @NotNull
-    BigDecimal lastAmount;
+    BigDecimal orderLastAmount;
 }

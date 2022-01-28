@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
         configuration = UmicoClient.FeignConfiguration.class)
 public interface UmicoClient {
 
-    @PostMapping("/api/v1/application_offers")
+    @PostMapping("/api/v1/orders/result")
     UmicoScoringDecisionResponse sendDecisionScoring(@RequestBody UmicoScoringDecisionRequest request,
                                                      @RequestHeader("ApiKey") String apiKey);
 

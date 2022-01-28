@@ -1,6 +1,10 @@
 package az.kapitalbank.marketplace.service;
 
+import java.util.UUID;
+
+import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.checker.CheckerClient;
+import az.kapitalbank.marketplace.dto.response.BalanceResponseDto;
 import az.kapitalbank.marketplace.exception.PinCodeInCorrectException;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import feign.FeignException;
@@ -17,18 +21,28 @@ import org.springframework.stereotype.Service;
 public class CustomerService {
 
     CheckerClient checkerClient;
+    AtlasClient atlasClient;
     CustomerRepository customerRepository;
 
-    public void checkPinCode(String pinCode) {
-        log.info("check customer pin-code service start... pin_code - [{}]", pinCode);
+    public void checkPin(String pin) {
+        log.info("check customer pin-code service start... pin_code - [{}]", pin);
         try {
-            boolean result = checkerClient.checkPinCode(pinCode);
-            log.info("check customer pin-code service.pin_code - [{}], Response - {}", pinCode, result);
+            boolean result = checkerClient.checkPinCode(pin);
+            log.info("check customer pin-code service.pin_code - [{}], Response - {}", pin, result);
             if (!result)
                 throw new PinCodeInCorrectException("this pin code is incorrect");
         } catch (FeignException f) {
-            log.error("check customer pin-code service.pin_code - [{}], FeignException - {}", pinCode, f.getMessage());
+            log.error("check customer pin-code service.pin_code - [{}], FeignException - {}", pin, f.getMessage());
         }
-        log.info("check customer pin-code service finish.. pin_code - [{}]", pinCode);
+        log.info("check customer pin-code service finish.. pin_code - [{}]", pin);
+    }
+
+
+    public BalanceResponseDto getBalance(String umicoUserId, UUID customerId) {
+// TODO learn what some fields means in BalanceResponseDto
+        var cardUUID = customerRepository.findById(customerId).get().getCardUUID();
+        var balanceResponse = atlasClient.balance(cardUUID);
+//TODO balanceResponse map to BalanceResponseDto and return
+        return null;
     }
 }

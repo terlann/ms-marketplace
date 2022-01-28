@@ -7,7 +7,6 @@ import javax.persistence.Table;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 
 import az.kapitalbank.marketplace.constants.CustomerStatus;
 import az.kapitalbank.marketplace.constants.LoanStatus;
@@ -38,7 +37,7 @@ public class CustomerEntity extends BaseEntity {
     String additionalPhoneNumber1;
     String additionalPhoneNumber2;
     LocalDate birthday;
-    UUID cardUUID;
+    String cardUUID;
     CustomerStatus status;
     LoanStatus loanStatus;
 
