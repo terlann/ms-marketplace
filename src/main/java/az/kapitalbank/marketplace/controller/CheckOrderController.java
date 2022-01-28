@@ -21,7 +21,7 @@ public class CheckOrderController {
 
     CheckOrderService service;
 
-    @PostMapping //
+    @PostMapping
     public ResponseEntity<CheckOrderResponseDto> checkOrder(@Valid @RequestParam("eteOrderId") String eteOrderId) {
         return ResponseEntity.ok(service.checkOrder(eteOrderId));
     }

@@ -54,8 +54,10 @@ client:
     url: http://testsrsws.kapitalcard.az
   umico:
     url: https://broker-dev.umico.az
-  customer-check:
-    url: https://pre.ms-customer-check.kapitalbank.az
+  checker:
+    url: https://dev.ms-checker.kapitalbank.az
+  adp-atlas:
+    url: https://dev.adp-atlas.kapitalbank.az
   adp-optimus:
     url: https://dev.adp-optimus.kapitalbank.az/
   adp-dvs:
