@@ -29,7 +29,7 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "OPERATION")
+@Table(name = "KB_MARKETPLACE_OPERATION")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OperationEntity extends BaseEntity {
     String eteOrderId;

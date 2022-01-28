@@ -40,6 +40,7 @@ import az.kapitalbank.marketplace.repository.OrderRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -60,6 +61,7 @@ public class OrderService {
     OrderMapper orderMapper;
     OrderRepository orderRepository;
 
+    @NonFinal
     @Value("${purchase.terminal-name}")
     String terminalName;
 
@@ -213,7 +215,7 @@ public class OrderService {
         var reversPurchaseRequest = ReversPurchaseRequest.builder()
                 .description("nese")  //TODO generate rrn different
                 .build();
-        var reverseResponse = atlasClient.reverse(orderEntity.getTransactionId(),reversPurchaseRequest);
+        var reverseResponse = atlasClient.reverse(orderEntity.getTransactionId(), reversPurchaseRequest);
         orderEntity.setTransactionId(reverseResponse.getId());
         orderEntity.setTransactionStatus(TransactionStatus.COMPLETED);
         orderRepository.save(orderEntity);

@@ -29,7 +29,7 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "ORDER")
+@Table(name = "KB_MARKETPLACE_ORDER")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OrderEntity extends BaseEntity {
     BigDecimal orderLastAmount;

@@ -30,7 +30,7 @@ public interface AtlasClient {
     PurchaseCompleteResponse complete(@RequestBody PurchaseCompleteRequest request);
 
     @PutMapping("/api/v1/transfers/{id}/reverse")
-    ReverseResponse reverse(@PathVariable String id,@RequestBody ReversPurchaseRequest request);
+    ReverseResponse reverse(@PathVariable String id, @RequestBody ReversPurchaseRequest request);
 
     @GetMapping("/api/v1/cards/{uid}/balance")
     BalanceResponse balance(@PathVariable String uid);
