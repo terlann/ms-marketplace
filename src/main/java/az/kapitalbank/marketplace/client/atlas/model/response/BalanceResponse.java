@@ -1,5 +1,7 @@
 package az.kapitalbank.marketplace.client.atlas.model.response;
 
+import java.math.BigDecimal;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -10,7 +12,7 @@ import lombok.Data;
 public class BalanceResponse {
 
     String accountNumber;
-    String availableBalance;
+    BigDecimal availableBalance;
     int currency;
     int overdraftLimit;
 

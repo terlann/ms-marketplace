@@ -1,10 +1,16 @@
 spring:
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: create
+    generate-ddl: true
+    show-sql: true
   datasource:
     hikari:
       pool-name: marketplace-pool
-    url: jdbc:oracle:thin:@//10.0.32.202:1521/onboard
-    username: onboard
-    password: onboard12345
+    url: jdbc:oracle:thin:@//10.0.32.28:1521/onboard
+    username: umico
+    password: Z3]:Fnd!j9=2.u9/?P)8
   cloud:
     function:
       definition: checkFraud;checkFraudResult;startScoringResult;orderDvsStatus

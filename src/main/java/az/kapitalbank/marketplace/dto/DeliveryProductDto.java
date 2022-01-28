@@ -12,7 +12,6 @@ import lombok.experimental.FieldDefaults;
 
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@JsonNaming(PropertyNamingStrategy.SnakeCaseStrategy.class)
 public class DeliveryProductDto {
     @NotEmpty
     String orderNo;

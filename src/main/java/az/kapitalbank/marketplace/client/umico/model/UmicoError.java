@@ -12,7 +12,6 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @ToString
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class UmicoError extends RuntimeException {
     String status;
     String httpStatus;

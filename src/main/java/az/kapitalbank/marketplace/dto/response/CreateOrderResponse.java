@@ -17,7 +17,6 @@ import lombok.experimental.FieldDefaults;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @AllArgsConstructor(staticName = "of")
 @RequiredArgsConstructor(staticName = "of")
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CreateOrderResponse {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     String eteOrderId;

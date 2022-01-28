@@ -12,7 +12,6 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class UmicoScoringTrancheRequest {
     String productId;
 }

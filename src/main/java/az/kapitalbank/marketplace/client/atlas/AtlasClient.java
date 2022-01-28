@@ -12,8 +12,10 @@ import feign.Logger;
 import feign.codec.ErrorDecoder;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.context.annotation.Bean;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 @FeignClient(name = "adp-atlas",
@@ -24,13 +26,13 @@ public interface AtlasClient {
     @PostMapping("/api/v1/transfers/purchase")
     PurchaseResponse purchase(@RequestBody PurchaseRequest request);
 
-    @PostMapping("/api/v1/transfers/complete")
+    @PutMapping("/api/v1/transfers/complete")
     PurchaseCompleteResponse complete(@RequestBody PurchaseCompleteRequest request);
 
-    @PostMapping("/api/v1/transfers/reverse")
-    ReverseResponse reverse(@RequestBody ReversPurchaseRequest request);
+    @PutMapping("/api/v1/transfers/{id}/reverse")
+    ReverseResponse reverse(@PathVariable String id,@RequestBody ReversPurchaseRequest request);
 
-    @PostMapping("/api/v1/cards/{uid}/balance")
+    @GetMapping("/api/v1/cards/{uid}/balance")
     BalanceResponse balance(@PathVariable String uid);
 
     class FeignConfiguration {

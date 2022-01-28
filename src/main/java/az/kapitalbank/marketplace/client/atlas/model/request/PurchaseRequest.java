@@ -17,9 +17,11 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PurchaseRequest {
-
     BigDecimal amount;
-    String cardUid;
+    Integer currency;
+    String pan;
     String rrn;
-
+    String uid;
+    String description;
+    String terminalName;
 }

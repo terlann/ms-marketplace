@@ -19,7 +19,6 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class CheckOrderResponseDto {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     String eteOrderId;

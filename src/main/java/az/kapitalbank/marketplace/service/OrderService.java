@@ -9,11 +9,16 @@ import java.util.List;
 import java.util.UUID;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
+import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteRequest;
+import az.kapitalbank.marketplace.client.atlas.model.request.ReversPurchaseRequest;
+import az.kapitalbank.marketplace.constants.TransactionStatus;
+import az.kapitalbank.marketplace.dto.DeliveryProductDto;
 import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
 import az.kapitalbank.marketplace.dto.OrderProductItem;
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
 import az.kapitalbank.marketplace.dto.request.PurchaseRequestDto;
 import az.kapitalbank.marketplace.dto.request.ReverseRequestDto;
+import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
 import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
@@ -21,18 +26,22 @@ import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.entity.ProductEntity;
 import az.kapitalbank.marketplace.exception.LoanAmountIncorrectException;
 import az.kapitalbank.marketplace.exception.OrderAlreadyScoringException;
+import az.kapitalbank.marketplace.exception.OrderIsInactiveException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.mappers.CreateOrderMapper;
 import az.kapitalbank.marketplace.mappers.CustomerMapper;
 import az.kapitalbank.marketplace.mappers.OperationMapper;
+import az.kapitalbank.marketplace.mappers.OrderMapper;
 import az.kapitalbank.marketplace.messaging.event.FraudCheckEvent;
 import az.kapitalbank.marketplace.messaging.sender.FraudCheckSender;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
+import az.kapitalbank.marketplace.repository.OrderRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -48,7 +57,11 @@ public class OrderService {
     CustomerRepository customerRepository;
     FraudCheckSender customerOrderProducer;
     AtlasClient atlasClient;
+    OrderMapper orderMapper;
+    OrderRepository orderRepository;
 
+    @Value("${purchase.terminal-name}")
+    String terminalName;
 
     @Transactional
     public CreateOrderResponse createOrder(CreateOrderRequestDto request) {
@@ -64,6 +77,7 @@ public class OrderService {
         List<ProductEntity> productEntities = new ArrayList<>();
         for (OrderProductDeliveryInfo deliveryInfo : request.getDeliveryInfo()) {
             OrderEntity orderEntity = OrderEntity.builder()
+                    .totalAmount(deliveryInfo.getTotalAmount())
                     .orderNo(deliveryInfo.getOrderNo())
                     .deliveryAddress(deliveryInfo.getDeliveryAddress())
                     .operation(operationEntity)
@@ -112,6 +126,28 @@ public class OrderService {
         }
     }
 
+    //TODO Optimus call before score
+    public CheckOrderResponseDto checkOrder(String eteOrderId) {
+        log.info("check order start... ete_order_id  - [{}]", eteOrderId);
+        var operationEntityOptional = operationRepository.findByEteOrderId(eteOrderId);
+
+        var exceptionMessage = String.format("ete_order_id - [%s]", eteOrderId);
+        var operationEntity = operationEntityOptional.orElseThrow(
+                () -> new OrderNotFoundException(exceptionMessage));
+
+        if (operationEntity.getDeletedAt() != null)
+            throw new OrderIsInactiveException(exceptionMessage);
+
+        var scoringStatus = operationEntity.getScoringStatus();
+        if (scoringStatus != null)
+            throw new OrderAlreadyScoringException(eteOrderId);
+
+        CheckOrderResponseDto orderResponseDto = orderMapper.entityToDto(operationEntity);
+        log.info("check order finish... ete_order_id - [{}]", eteOrderId);
+        return orderResponseDto;
+
+    }
+
     // TODO umico call this
     @Transactional
     public void deleteOrder(UUID trackId) {
@@ -134,14 +170,52 @@ public class OrderService {
     }
 
     public void purchase(PurchaseRequestDto request) {
-        //TODO PurchaseRequestDto map to PurchaseRequest
-        var purchaseResponse = atlasClient.purchase(null);
-        //TODO insert or update purchaseEntity
+        var customerEntityOptional = customerRepository.findById(request.getCustomerId());
+        if (customerEntityOptional.isPresent()) {
+            var cardUUID = customerEntityOptional.get().getCardUUID();
+            for (DeliveryProductDto deliveryProductDto : request.getDeliveryOrders()) {
+                var optionalOrderEntity = orderRepository.findByOrderNo(deliveryProductDto.getOrderNo());
+                if (optionalOrderEntity.isPresent()) {
+                    var orderEntity = optionalOrderEntity.get();
+                    if (!orderEntity.getOrderNo().equals(deliveryProductDto.getOrderNo()) ||
+                            orderEntity.getTotalAmount().compareTo(deliveryProductDto.getOrderLastAmount()) == -1) {
+                        throw new RuntimeException("Order or amount isn't equals");
+                    }
+                    var purchaseCompleteRequest = PurchaseCompleteRequest.builder()
+                            .id(Integer.valueOf(orderEntity.getTransactionId()))
+                            .uid(cardUUID)
+                            .amount(deliveryProductDto.getOrderLastAmount())
+                            .approvalCode(orderEntity.getApprovalCode())
+                            .currency(944)
+                            .description("Umico marketplace, order was delivered")
+                            .rrn("BB") //TODO generate rrn different
+                            .terminalName(terminalName)
+                            .build();
+
+                    var purchaseResponse = atlasClient.complete(purchaseCompleteRequest);
+                    orderEntity.setTransactionId(purchaseResponse.getId());
+                    orderEntity.setTransactionStatus(TransactionStatus.COMPLETED);
+                    orderRepository.save(orderEntity);
+                }
+            }
+        } else
+            throw new RuntimeException("Customer not found");
     }
 
+    @Transactional
     public void reverse(ReverseRequestDto request) {
-        //TODO ReverseRequestDto map to ReversPurchaseRequest
-        var reverseResponse = atlasClient.reverse(null);
-        //TODO insert or update purchaseEntity
+        customerRepository.findById(request.getCustomerId())
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
+
+        var orderEntity = orderRepository.findByOrderNo(request.getOrderNo())
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        var reversPurchaseRequest = ReversPurchaseRequest.builder()
+                .description("nese")  //TODO generate rrn different
+                .build();
+        var reverseResponse = atlasClient.reverse(orderEntity.getTransactionId(),reversPurchaseRequest);
+        orderEntity.setTransactionId(reverseResponse.getId());
+        orderEntity.setTransactionStatus(TransactionStatus.COMPLETED);
+        orderRepository.save(orderEntity);
     }
 }

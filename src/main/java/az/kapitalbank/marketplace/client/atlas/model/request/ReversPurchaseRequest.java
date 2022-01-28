@@ -11,8 +11,5 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ReversPurchaseRequest {
-
-    String id;
-    String rrn;
-
+    String description;
 }

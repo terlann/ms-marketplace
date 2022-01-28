@@ -2,6 +2,8 @@ package az.kapitalbank.marketplace.entity;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
@@ -12,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import az.kapitalbank.marketplace.constants.TransactionStatus;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -30,11 +33,17 @@ import lombok.experimental.SuperBuilder;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OrderEntity extends BaseEntity {
     BigDecimal orderLastAmount;
+    BigDecimal totalAmount;
     String orderNo;
     Integer deliveryStatus;
     LocalDateTime deliveryDate;
     String deliveryAddress;
     BigDecimal commission;
+    String transactionId;
+    String rrn;
+    String approvalCode;
+    @Enumerated(EnumType.STRING)
+    TransactionStatus transactionStatus;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "operation_id", nullable = false, updatable = false)
