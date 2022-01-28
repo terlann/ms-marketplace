@@ -24,7 +24,7 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "CUSTOMER")
+@Table(name = "KB_MARKETPLACE_CUSTOMER")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CustomerEntity extends BaseEntity {
     String email;

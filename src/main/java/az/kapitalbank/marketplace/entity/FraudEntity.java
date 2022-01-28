@@ -22,7 +22,7 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "FRAUD")
+@Table(name = "KB_MARKETPLACE_FRAUD")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class FraudEntity extends BaseEntity {
     UUID trackId;

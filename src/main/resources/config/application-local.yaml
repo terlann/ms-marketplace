@@ -1,14 +1,14 @@
 spring:
   jpa:
-    open-in-view: false
+    show-sql: false
     hibernate:
-      ddl-auto: create
-    generate-ddl: true
-    show-sql: true
+      ddl-auto: update
+    open-in-view: false
+    database-platform: org.hibernate.dialect.Oracle12cDialect
   datasource:
     hikari:
       pool-name: marketplace-pool
-    url: jdbc:oracle:thin:@//10.0.32.28:1521/onboard
+    url: jdbc:oracle:thin:@//10.0.32.28:1521/umico
     username: umico
     password: Z3]:Fnd!j9=2.u9/?P)8
   cloud:
@@ -78,3 +78,5 @@ feign:
 server:
   port: 8080
 
+purchase:
+  terminal-name: R1020002

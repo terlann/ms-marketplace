@@ -6,8 +6,6 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import az.kapitalbank.marketplace.constants.ScoringStatus;
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;

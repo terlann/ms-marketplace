@@ -4,7 +4,6 @@ import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -19,21 +18,15 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OrderProductItem {
     @NotNull
-    @JsonProperty("product_amount")
     BigDecimal productAmount;
     @NotEmpty
-    @JsonProperty("product_id")
     String productId;
     @NotEmpty
-    @JsonProperty("product_name")
     String productName;
     @NotEmpty
-    @JsonProperty("order_no")
     String orderNo;
     @NotEmpty
-    @JsonProperty("item_type")
     String itemType;
     @NotEmpty
-    @JsonProperty("partner_cms_id")
     String partnerCmsId;
 }

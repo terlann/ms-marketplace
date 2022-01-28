@@ -21,7 +21,7 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "PRODUCT")
+@Table(name = "KB_MARKETPLACE_PRODUCT")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ProductEntity extends BaseEntity {
     String productId;

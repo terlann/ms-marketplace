@@ -215,7 +215,7 @@ public class OrderService {
         var reversPurchaseRequest = ReversPurchaseRequest.builder()
                 .description("nese")  //TODO generate rrn different
                 .build();
-        var reverseResponse = atlasClient.reverse(orderEntity.getTransactionId(),reversPurchaseRequest);
+        var reverseResponse = atlasClient.reverse(orderEntity.getTransactionId(), reversPurchaseRequest);
         orderEntity.setTransactionId(reverseResponse.getId());
         orderEntity.setTransactionStatus(TransactionStatus.COMPLETED);
         orderRepository.save(orderEntity);
