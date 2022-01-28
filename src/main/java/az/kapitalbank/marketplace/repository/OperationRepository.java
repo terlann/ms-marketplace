@@ -15,5 +15,4 @@ public interface OperationRepository extends JpaRepository<OperationEntity, UUID
     Optional<OperationEntity> findByBusinessKey(String businessKey);
 
     Optional<OperationEntity> findByDvsOrderId(String dvsOrderId);
-
 }

@@ -50,6 +50,9 @@ public class OrderDvsStatusListener {
                                     .additionalNumber2(customerEntity.getAdditionalPhoneNumber2())
                                     .build();
                             scoringService.completeScoring(completeScoring);
+
+                            operationEntity.setDvsOrderStatus(orderDvsStatusEvent.getStatus());
+                            operationRepository.save(operationEntity);
                             var orders = operationEntity.getOrders();
                             //TODO mapper for atlasClient
                             for (OrderEntity orderEntity : orders) {
