@@ -113,11 +113,14 @@ public class ProductCreateService {
                     Optional<DvsCreateOrderResponse> dvsCreateOrderResponse = verificationService
                             .createOrder(dvsCreateOrderRequest, trackId);
                     String dvsId = String.valueOf(processData.getDvsOrderId());
+                    var oper = operationEntity.get();
+                    oper.setDvsOrderId(dvsId); //TODO dvsId where can we get from ? optimus or dvs response
+                    operationRepository.save(oper);
                     Optional<DvsGetDetailsResponse> dvsGetDetailsResponse = verificationService.getDetails(trackId,
                             processResponse.get().getTaskId(),
                             dvsId);
                     if (dvsGetDetailsResponse.isPresent()) {
-                        sendDecision(ScoringStatus.APPROVED,
+                        sendDecision(ScoringStatus.PREAPPROVED,
                                 trackId,
                                 dvsId,
                                 dvsGetDetailsResponse.get().getWebUrl());
