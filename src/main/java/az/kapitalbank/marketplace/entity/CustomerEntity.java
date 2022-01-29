@@ -42,5 +42,5 @@ public class CustomerEntity extends BaseEntity {
     LoanStatus loanStatus;
 
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
-    List<OperationEntity> operations = new ArrayList<>();
+    private List<OperationEntity> operations = new ArrayList<>();
 }

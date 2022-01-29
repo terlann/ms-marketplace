@@ -50,5 +50,5 @@ public class OrderEntity extends BaseEntity {
     OperationEntity operation;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
-    List<ProductEntity> products = new ArrayList<>();
+    private List<ProductEntity> products = new ArrayList<>();
 }

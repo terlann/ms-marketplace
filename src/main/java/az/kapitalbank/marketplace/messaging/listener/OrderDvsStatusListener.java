@@ -4,17 +4,27 @@ import java.util.Objects;
 import java.util.function.Consumer;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
+import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
+import az.kapitalbank.marketplace.client.optimus.OptimusClient;
+import az.kapitalbank.marketplace.client.umico.UmicoClient;
+import az.kapitalbank.marketplace.client.umico.model.UmicoScoringDecisionRequest;
+import az.kapitalbank.marketplace.constants.ScoringStatus;
+import az.kapitalbank.marketplace.constants.TransactionStatus;
 import az.kapitalbank.marketplace.dto.CompleteScoring;
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.messaging.event.OrderDvsStatusEvent;
+import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.service.ScoringService;
+import az.kapitalbank.marketplace.utils.GenerateUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
@@ -28,6 +38,17 @@ public class OrderDvsStatusListener {
     ObjectMapper objectMapper;
     ScoringService scoringService;
     OperationRepository operationRepository;
+    OptimusClient optimusClient;
+    CustomerRepository customerRepository;
+    UmicoClient umicoClient;
+
+    @NonFinal
+    @Value("${purchase.terminal-name}")
+    String terminalName;
+
+    @NonFinal
+    @Value("${umico.api-key}")
+    String apiKey;
 
     @Bean
     public Consumer<String> orderDvsStatus() {
@@ -54,11 +75,33 @@ public class OrderDvsStatusListener {
                             operationEntity.setDvsOrderStatus(orderDvsStatusEvent.getStatus());
                             operationRepository.save(operationEntity);
                             var orders = operationEntity.getOrders();
-                            //TODO mapper for atlasClient
+                            var cardPan = optimusClient.getProcessVariable(operationEntity.getBusinessKey(), "pan");
+                            var cardUid = atlasClient.findByPan(cardPan).getUid();
+                            customerEntity.setCardUUID(cardUid);
+                            customerRepository.save(customerEntity);
                             for (OrderEntity orderEntity : orders) {
-                                atlasClient.purchase(null);
+                                var rrn = GenerateUtil.rrn();
+                                var purchaseRequest = PurchaseRequest.builder()
+                                        .rrn(rrn)
+                                        .amount(orderEntity.getTotalAmount())
+                                        .description("purchase") //TODO text ?
+                                        .currency(944)
+                                        .terminalName(terminalName)
+                                        .uid(cardUid)
+                                        .build();
+                                var purchaseResponse = atlasClient.purchase(purchaseRequest);
+                                orderEntity.setRrn(rrn);
+                                orderEntity.setTransactionId(purchaseResponse.getId());
+                                orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
+                                orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
                             }
-                            // TODO send desicion to umico (umico callback url)
+                            UmicoScoringDecisionRequest umicoScoringDecisionRequest = UmicoScoringDecisionRequest.builder()
+                                    .trackId(operationEntity.getId())
+                                    .scoringStatus(ScoringStatus.APPROVED.name())
+                                    .loanTerm(operationEntity.getLoanTerm())
+                                    .customerId(customerEntity.getId())
+                                    .build();
+                            umicoClient.sendDecisionScoring(umicoScoringDecisionRequest, apiKey);
                         }
                     }
                 } catch (JsonProcessingException j) {

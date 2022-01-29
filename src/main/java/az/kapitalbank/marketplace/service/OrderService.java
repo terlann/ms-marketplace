@@ -37,6 +37,7 @@ import az.kapitalbank.marketplace.messaging.sender.FraudCheckSender;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
+import az.kapitalbank.marketplace.utils.GenerateUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -183,19 +184,21 @@ public class OrderService {
                             orderEntity.getTotalAmount().compareTo(deliveryProductDto.getOrderLastAmount()) == -1) {
                         throw new RuntimeException("Order or amount isn't equals");
                     }
+                    var rrn = GenerateUtil.rrn();
                     var purchaseCompleteRequest = PurchaseCompleteRequest.builder()
                             .id(Integer.valueOf(orderEntity.getTransactionId()))
                             .uid(cardUUID)
                             .amount(deliveryProductDto.getOrderLastAmount())
                             .approvalCode(orderEntity.getApprovalCode())
                             .currency(944)
-                            .description("Umico marketplace, order was delivered")
-                            .rrn("BB") //TODO generate rrn different
+                            .description("Umico marketplace, order was delivered")//TODO text ok?
+                            .rrn(rrn)
                             .terminalName(terminalName)
                             .build();
 
                     var purchaseResponse = atlasClient.complete(purchaseCompleteRequest);
                     orderEntity.setTransactionId(purchaseResponse.getId());
+                    orderEntity.setRrn(rrn);
                     orderEntity.setTransactionStatus(TransactionStatus.COMPLETED);
                     orderRepository.save(orderEntity);
                 }
@@ -213,11 +216,11 @@ public class OrderService {
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
         var reversPurchaseRequest = ReversPurchaseRequest.builder()
-                .description("nese")  //TODO generate rrn different
+                .description("everything will be okay")  //TODO text ok?)
                 .build();
         var reverseResponse = atlasClient.reverse(orderEntity.getTransactionId(), reversPurchaseRequest);
         orderEntity.setTransactionId(reverseResponse.getId());
-        orderEntity.setTransactionStatus(TransactionStatus.COMPLETED);
+        orderEntity.setTransactionStatus(TransactionStatus.REVERSED);
         orderRepository.save(orderEntity);
     }
 }
