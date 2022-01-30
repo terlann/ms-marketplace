@@ -5,7 +5,7 @@ import java.util.UUID;
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.checker.CheckerClient;
 import az.kapitalbank.marketplace.dto.response.BalanceResponseDto;
-import az.kapitalbank.marketplace.exception.PinCodeInCorrectException;
+import az.kapitalbank.marketplace.exception.PinNotFoundException;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import feign.FeignException;
 import lombok.AccessLevel;
@@ -30,7 +30,7 @@ public class CustomerService {
             boolean result = checkerClient.checkPinCode(pin);
             log.info("check customer pin-code service.pin_code - [{}], Response - {}", pin, result);
             if (!result)
-                throw new PinCodeInCorrectException("this pin code is incorrect");
+                throw new PinNotFoundException(pin);
         } catch (FeignException f) {
             log.error("check customer pin-code service.pin_code - [{}], FeignException - {}", pin, f.getMessage());
         }
@@ -39,10 +39,12 @@ public class CustomerService {
 
 
     public BalanceResponseDto getBalance(String umicoUserId, UUID customerId) {
-// TODO learn what some fields means in BalanceResponseDto
-        var cardUUID = customerRepository.findById(customerId).get().getCardUUID();
+        var customerEntity = customerRepository.findById(customerId).orElseThrow(() -> new RuntimeException("Customer not found"));
+        var cardUUID = customerEntity.getCardUUID();
         var balanceResponse = atlasClient.balance(cardUUID);
-//TODO balanceResponse map to BalanceResponseDto and return
-        return null;
+        //TODO just some fields isn't exact in response
+        return BalanceResponseDto.builder()
+                .loanAvailable(balanceResponse.getAvailableBalance())
+                .build();
     }
 }

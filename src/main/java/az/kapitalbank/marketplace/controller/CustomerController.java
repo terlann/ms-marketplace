@@ -24,7 +24,7 @@ public class CustomerController {
 
     CustomerService customerService;
 
-    @GetMapping("/{pin}")
+    @GetMapping("/check/{pin}")
     public ResponseEntity<Void> checkPin(@Valid @PathVariable String pin) {
         customerService.checkPin(pin);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);

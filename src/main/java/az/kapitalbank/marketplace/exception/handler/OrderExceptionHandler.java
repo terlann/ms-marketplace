@@ -8,6 +8,7 @@ import az.kapitalbank.marketplace.exception.LoanAmountIncorrectException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.PhoneNumberInvalidException;
 import az.kapitalbank.marketplace.exception.PinCodeInCorrectException;
+import az.kapitalbank.marketplace.exception.PinNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -36,6 +37,15 @@ public class OrderExceptionHandler extends ResponseEntityExceptionHandler {
         var message = ErrorCode.INCORRECT_PIN.getMessage();
         var wrapperResponseDto = WrapperResponseDto.of(code, message);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(wrapperResponseDto);
+    }
+
+    @ExceptionHandler(PinNotFoundException.class)
+    public ResponseEntity<ErrorResponseDto> pinNotFound(PinNotFoundException ex) {
+        log.error("Exception: {}", ex);
+        var code = ErrorCode.PIN_NOT_FOUND.getCode();
+        var message = String.format(ErrorCode.PIN_NOT_FOUND.getMessage(), ex.getMessage());
+        var errorResponseDto = new ErrorResponseDto(code, message);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponseDto);
     }
 
     @ExceptionHandler(CreateTelesalesOrderException.class)
