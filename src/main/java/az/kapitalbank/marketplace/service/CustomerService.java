@@ -39,7 +39,8 @@ public class CustomerService {
 
 
     public BalanceResponseDto getBalance(String umicoUserId, UUID customerId) {
-        var customerEntity = customerRepository.findById(customerId).orElseThrow(() -> new RuntimeException("Customer not found"));
+        var customerEntity = customerRepository.findById(customerId)
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
         var cardUUID = customerEntity.getCardUUID();
         var balanceResponse = atlasClient.balance(cardUUID);
         //TODO just some fields isn't exact in response
