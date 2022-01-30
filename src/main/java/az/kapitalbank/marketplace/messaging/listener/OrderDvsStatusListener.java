@@ -95,7 +95,7 @@ public class OrderDvsStatusListener {
                                 orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
                                 orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
                             }
-                            UmicoScoringDecisionRequest umicoScoringDecisionRequest = UmicoScoringDecisionRequest.builder()
+                            var umicoScoringDecisionRequest = UmicoScoringDecisionRequest.builder()
                                     .trackId(operationEntity.getId())
                                     .scoringStatus(ScoringStatus.APPROVED.name())
                                     .loanTerm(operationEntity.getLoanTerm())
