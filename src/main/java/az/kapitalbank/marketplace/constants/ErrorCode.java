@@ -21,7 +21,8 @@ public enum ErrorCode {
     ORDER_ALREADY_DEACTIVATED("E117", "Order already have been deactivated"),
     CREATE_TELESALES_ORDER("E118", "Cannot create telesales order.Please try after a while"),
     PRODUCT_AMOUNT_INCORRECT("E119", "The price of product is incorrect"),
-    LOAN_AMOUNT_INCORRECT("E120", "The loan amount is incorrect");
+    LOAN_AMOUNT_INCORRECT("E120", "The loan amount is incorrect"),
+    PIN_NOT_FOUND("E121", "Pin not found : %s");
 
     String code;
     String message;
