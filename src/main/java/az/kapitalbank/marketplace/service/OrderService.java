@@ -65,6 +65,7 @@ public class OrderService {
     @Value("${purchase.terminal-name}")
     String terminalName;
 
+    @Transactional
     public CreateOrderResponse createOrder(CreateOrderRequestDto request) {
         log.info("create loan process start... Request - [{}]", request);
         validateOrderAmount(request);
@@ -102,14 +103,11 @@ public class OrderService {
             orderEntity.setProducts(productEntities);
         }
         operationEntity.setOrders(orderEntities);
-        log.info("Before save " + customerEntity.toString());
-        var customerForLog = customerRepository.saveAndFlush(customerEntity);
-        log.info("Customer saved " + customerForLog);
+        customerRepository.save(customerEntity);
         var trackId = operationEntity.getId();
         FraudCheckEvent fraudCheckEvent = createOrderMapper.toOrderEvent(request);
         fraudCheckEvent.setTrackId(trackId);
         customerOrderProducer.sendMessage(fraudCheckEvent);
-        log.info("After kafka");
         return CreateOrderResponse.of(trackId);
     }
 

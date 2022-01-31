@@ -1,10 +1,5 @@
 package az.kapitalbank.marketplace.service;
 
-import javax.transaction.Transactional;
-import java.time.LocalDateTime;
-import java.util.Optional;
-import java.util.UUID;
-
 import az.kapitalbank.marketplace.client.dvs.model.DvsCreateOrderRequest;
 import az.kapitalbank.marketplace.client.dvs.model.DvsCreateOrderResponse;
 import az.kapitalbank.marketplace.client.dvs.model.DvsGetDetailsResponse;
@@ -28,6 +23,10 @@ import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.UUID;
+import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -44,7 +43,7 @@ public class ProductCreateService {
     @Value("${umico.api-key}")
     String apiKey;
 
-    OperationRepository operationRepository;
+    final OperationRepository operationRepository;
     final OrderRepository orderRepository;
     final CustomerRepository customerRepository;
 
