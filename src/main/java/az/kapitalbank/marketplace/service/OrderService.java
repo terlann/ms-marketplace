@@ -103,7 +103,7 @@ public class OrderService {
             orderEntity.setProducts(productEntities);
         }
         operationEntity.setOrders(orderEntities);
-        log.info("Before save "+customerEntity.toString());
+        log.info("Before save " + customerEntity.toString());
         var customerForLog = customerRepository.save(customerEntity);
         log.info("Customer saved " + customerForLog);
         var trackId = operationEntity.getId();
