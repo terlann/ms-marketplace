@@ -2,6 +2,7 @@ package az.kapitalbank.marketplace.service;
 
 import javax.transaction.Transactional;
 import java.math.BigDecimal;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -66,7 +67,7 @@ public class OrderService {
     @Value("${purchase.terminal-name}")
     String terminalName;
 
-    @Transactional
+    @Transactional(rollbackOn = SQLException.class)
     public CreateOrderResponse createOrder(CreateOrderRequestDto request) {
         log.info("create loan process start... Request - [{}]", request);
         validateOrderAmount(request);

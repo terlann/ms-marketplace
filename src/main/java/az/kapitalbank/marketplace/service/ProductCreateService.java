@@ -31,6 +31,7 @@ import az.kapitalbank.marketplace.repository.OrderRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -38,23 +39,23 @@ import org.springframework.stereotype.Service;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE)
+@FieldDefaults(level = AccessLevel.PRIVATE,makeFinal = true)
 public class ProductCreateService {
 
+    @NonFinal
     @Value("${umico.api-key}")
     String apiKey;
 
-    final OperationRepository operationRepository;
-    final OrderRepository orderRepository;
-    final CustomerRepository customerRepository;
+    OperationRepository operationRepository;
+    CustomerRepository customerRepository;
 
-    final ScoringService scoringService;
-    final VerificationService verificationService;
-    final TelesalesService telesalesService;
+    ScoringService scoringService;
+    VerificationService verificationService;
+    TelesalesService telesalesService;
 
-    final UmicoClient umicoClient;
+    UmicoClient umicoClient;
 
-    final LoanFormalizeMapper loanFormalizeMapper;
+    LoanFormalizeMapper loanFormalizeMapper;
 
 
     @Transactional

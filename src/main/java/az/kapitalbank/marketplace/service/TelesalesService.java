@@ -25,8 +25,6 @@ public class TelesalesService {
 
     TelesalesMapper telesalesMapper;
 
-    OrderRepository orderRepository;
-    CustomerRepository customerRepository;
     FraudRepository fraudRepository;
     OperationRepository operationRepository;
 
