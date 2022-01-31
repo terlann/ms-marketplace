@@ -1,5 +1,10 @@
 package az.kapitalbank.marketplace.service;
 
+import javax.transaction.Transactional;
+import java.time.LocalDateTime;
+import java.util.Optional;
+import java.util.UUID;
+
 import az.kapitalbank.marketplace.client.dvs.model.DvsCreateOrderRequest;
 import az.kapitalbank.marketplace.client.dvs.model.DvsCreateOrderResponse;
 import az.kapitalbank.marketplace.client.dvs.model.DvsGetDetailsResponse;
@@ -23,10 +28,6 @@ import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
-import java.time.LocalDateTime;
-import java.util.Optional;
-import java.util.UUID;
-import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -77,7 +78,7 @@ public class ProductCreateService {
                         customerEntity.getMobileNumber());
                 if (businessKey.isPresent()) {
                     operationEntity.setBusinessKey(businessKey.get());
-                    operationRepository.save(operationEntity);
+                    operationRepository.saveAndFlush(operationEntity);
                     log.info("product create start-scoring. track_id - [{}], business_key - [{}]",
                             trackId,
                             businessKey);
@@ -114,7 +115,7 @@ public class ProductCreateService {
                     String dvsId = String.valueOf(processData.getDvsOrderId());
                     var oper = operationEntity.get();
                     oper.setDvsOrderId(dvsId); //TODO dvsId where can we get from ? optimus or dvs response
-                    operationRepository.save(oper);
+                    operationRepository.saveAndFlush(oper);
                     Optional<DvsGetDetailsResponse> dvsGetDetailsResponse = verificationService.getDetails(trackId,
                             processResponse.get().getTaskId(),
                             dvsId);
