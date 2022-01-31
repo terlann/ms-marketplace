@@ -65,7 +65,6 @@ public class OrderService {
     @Value("${purchase.terminal-name}")
     String terminalName;
 
-    @Transactional
     public CreateOrderResponse createOrder(CreateOrderRequestDto request) {
         log.info("create loan process start... Request - [{}]", request);
         validateOrderAmount(request);
