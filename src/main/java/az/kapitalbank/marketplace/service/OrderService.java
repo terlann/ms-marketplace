@@ -103,7 +103,7 @@ public class OrderService {
         }
         operationEntity.setOrders(orderEntities);
         log.info("Before save " + customerEntity.toString());
-        var customerForLog = customerRepository.save(customerEntity);
+        var customerForLog = customerRepository.saveAndFlush(customerEntity);
         log.info("Customer saved " + customerForLog);
         var trackId = operationEntity.getId();
         FraudCheckEvent fraudCheckEvent = createOrderMapper.toOrderEvent(request);
