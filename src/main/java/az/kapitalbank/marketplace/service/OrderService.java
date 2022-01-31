@@ -67,7 +67,7 @@ public class OrderService {
     @Value("${purchase.terminal-name}")
     String terminalName;
 
-    @Transactional(rollbackOn = SQLException.class)
+    @Transactional(rollbackOn = SQLException.class, value = Transactional.TxType.MANDATORY)
     public CreateOrderResponse createOrder(CreateOrderRequestDto request) {
         log.info("create loan process start... Request - [{}]", request);
         validateOrderAmount(request);
