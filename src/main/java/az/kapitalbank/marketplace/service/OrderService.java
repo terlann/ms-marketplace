@@ -1,5 +1,13 @@
 package az.kapitalbank.marketplace.service;
 
+import javax.transaction.Transactional;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.UUID;
+
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.ReversPurchaseRequest;
@@ -30,13 +38,6 @@ import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
 import az.kapitalbank.marketplace.utils.GenerateUtil;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
-import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -103,7 +104,7 @@ public class OrderService {
             orderEntity.setProducts(productEntities);
         }
         operationEntity.setOrders(orderEntities);
-        customerRepository.save(customerEntity);
+        customerRepository.saveAndFlush(customerEntity);
         var trackId = operationEntity.getId();
         FraudCheckEvent fraudCheckEvent = createOrderMapper.toOrderEvent(request);
         fraudCheckEvent.setTrackId(trackId);
@@ -167,7 +168,7 @@ public class OrderService {
         }
 
         operation.setDeletedAt(LocalDateTime.now());
-        operationRepository.save(operation);
+        operationRepository.saveAndFlush(operation);
         log.info("delete operation finish ... track_id - [{}]", trackId);
     }
 
@@ -199,7 +200,7 @@ public class OrderService {
                     orderEntity.setTransactionId(purchaseResponse.getId());
                     orderEntity.setRrn(rrn);
                     orderEntity.setTransactionStatus(TransactionStatus.COMPLETED);
-                    orderRepository.save(orderEntity);
+                    orderRepository.saveAndFlush(orderEntity);
                 }
             }
         } else
@@ -220,6 +221,6 @@ public class OrderService {
         var reverseResponse = atlasClient.reverse(orderEntity.getTransactionId(), reversPurchaseRequest);
         orderEntity.setTransactionId(reverseResponse.getId());
         orderEntity.setTransactionStatus(TransactionStatus.REVERSED);
-        orderRepository.save(orderEntity);
+        orderRepository.saveAndFlush(orderEntity);
     }
 }
