@@ -17,6 +17,7 @@ import java.util.List;
 import az.kapitalbank.marketplace.constants.TransactionStatus;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -49,6 +50,18 @@ public class OrderEntity extends BaseEntity {
     @JoinColumn(name = "operation_id", nullable = false, updatable = false)
     OperationEntity operation;
 
+    @Builder.Default
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ProductEntity> products = new ArrayList<>();
+
+    @Override
+    public String toString() {
+        return "OrderEntity{" +
+                "orderLastAmount=" + orderLastAmount +
+                ", totalAmount=" + totalAmount +
+                ", orderNo='" + orderNo + '\'' +
+                ", deliveryStatus=" + deliveryStatus +
+                ", products=" + products +
+                '}';
+    }
 }

@@ -24,7 +24,6 @@ import az.kapitalbank.marketplace.mappers.CreateOrderMapper;
 import az.kapitalbank.marketplace.mappers.CustomerMapper;
 import az.kapitalbank.marketplace.mappers.OperationMapper;
 import az.kapitalbank.marketplace.mappers.OrderMapper;
-import az.kapitalbank.marketplace.messaging.event.FraudCheckEvent;
 import az.kapitalbank.marketplace.messaging.sender.FraudCheckSender;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
@@ -72,7 +71,6 @@ public class OrderService {
 // TODO calculate commission for every order and set orderEntity
         CustomerEntity customerEntity = customerMapper.toCustomerEntity(request.getCustomerInfo());
         OperationEntity operationEntity = operationMapper.toOperationEntity(request);
-        customerEntity.setOperations(Collections.singletonList(operationEntity));
         operationEntity.setCustomer(customerEntity);
 
         List<OrderEntity> orderEntities = new ArrayList<>();
@@ -103,11 +101,15 @@ public class OrderService {
             orderEntity.setProducts(productEntities);
         }
         operationEntity.setOrders(orderEntities);
+        customerEntity.setOperations(Collections.singletonList(operationEntity));
         customerRepository.save(customerEntity);
+        log.info("saved Customer " + customerEntity);
         var trackId = operationEntity.getId();
+        /*
         FraudCheckEvent fraudCheckEvent = createOrderMapper.toOrderEvent(request);
         fraudCheckEvent.setTrackId(trackId);
         customerOrderProducer.sendMessage(fraudCheckEvent);
+         */
         return CreateOrderResponse.of(trackId);
     }
 

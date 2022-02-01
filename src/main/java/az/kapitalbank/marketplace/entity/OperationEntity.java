@@ -17,6 +17,7 @@ import az.kapitalbank.marketplace.constants.OperationStatus;
 import az.kapitalbank.marketplace.constants.ScoringStatus;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -54,6 +55,16 @@ public class OperationEntity extends BaseEntity {
     @JoinColumn(name = "customer_id", nullable = false, updatable = false)
     CustomerEntity customer;
 
+    @Builder.Default
     @OneToMany(mappedBy = "operation", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderEntity> orders = new ArrayList<>();
+
+    @Override
+    public String toString() {
+        return "OperationEntity{" +
+                "eteOrderId='" + eteOrderId + '\'' +
+                ", totalAmount=" + totalAmount +
+                ", orders=" + orders +
+                '}';
+    }
 }
