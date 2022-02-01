@@ -32,6 +32,7 @@ import az.kapitalbank.marketplace.mappers.CreateOrderMapper;
 import az.kapitalbank.marketplace.mappers.CustomerMapper;
 import az.kapitalbank.marketplace.mappers.OperationMapper;
 import az.kapitalbank.marketplace.mappers.OrderMapper;
+import az.kapitalbank.marketplace.messaging.event.FraudCheckEvent;
 import az.kapitalbank.marketplace.messaging.sender.FraudCheckSender;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
@@ -65,6 +66,7 @@ public class OrderService {
     @Value("${purchase.terminal-name}")
     String terminalName;
 
+    @Transactional
     public CreateOrderResponse createOrder(CreateOrderRequestDto request) {
         log.info("create loan process start... Request - [{}]", request);
         validateOrderAmount(request);
@@ -103,13 +105,10 @@ public class OrderService {
         operationEntity.setOrders(orderEntities);
         customerEntity.setOperations(Collections.singletonList(operationEntity));
         customerRepository.saveAndFlush(customerEntity);
-        log.info("saved Customer " + customerEntity);
         var trackId = operationEntity.getId();
-        /*
         FraudCheckEvent fraudCheckEvent = createOrderMapper.toOrderEvent(request);
         fraudCheckEvent.setTrackId(trackId);
         customerOrderProducer.sendMessage(fraudCheckEvent);
-         */
         return CreateOrderResponse.of(trackId);
     }
 

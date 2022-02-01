@@ -34,14 +34,4 @@ public class ProductEntity extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false, updatable = false)
     OrderEntity order;
-
-    @Override
-    public String toString() {
-        return "ProductEntity{" +
-                "productId='" + productId + '\'' +
-                ", productAmount=" + productAmount +
-                ", productName='" + productName + '\'' +
-                ", orderNo='" + orderNo + '\'' +
-                '}';
-    }
 }
