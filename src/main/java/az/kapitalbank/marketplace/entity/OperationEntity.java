@@ -58,13 +58,4 @@ public class OperationEntity extends BaseEntity {
     @Builder.Default
     @OneToMany(mappedBy = "operation", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderEntity> orders = new ArrayList<>();
-
-    @Override
-    public String toString() {
-        return "OperationEntity{" +
-                "eteOrderId='" + eteOrderId + '\'' +
-                ", totalAmount=" + totalAmount +
-                ", orders=" + orders +
-                '}';
-    }
 }
