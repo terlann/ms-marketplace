@@ -64,7 +64,6 @@ public class OrderService {
     @Value("${purchase.terminal-name}")
     String terminalName;
 
-    @Transactional
     public CreateOrderResponse createOrder(CreateOrderRequestDto request) {
         log.info("create loan process start... Request - [{}]", request);
         validateOrderAmount(request);
@@ -102,7 +101,7 @@ public class OrderService {
         }
         operationEntity.setOrders(orderEntities);
         customerEntity.setOperations(Collections.singletonList(operationEntity));
-        customerRepository.save(customerEntity);
+        customerRepository.saveAndFlush(customerEntity);
         log.info("saved Customer " + customerEntity);
         var trackId = operationEntity.getId();
         /*
@@ -169,7 +168,7 @@ public class OrderService {
         }
 
         operation.setDeletedAt(LocalDateTime.now());
-        operationRepository.save(operation);
+        operationRepository.saveAndFlush(operation);
         log.info("delete operation finish ... track_id - [{}]", trackId);
     }
 
@@ -201,7 +200,7 @@ public class OrderService {
                     orderEntity.setTransactionId(purchaseResponse.getId());
                     orderEntity.setRrn(rrn);
                     orderEntity.setTransactionStatus(TransactionStatus.COMPLETED);
-                    orderRepository.save(orderEntity);
+                    orderRepository.saveAndFlush(orderEntity);
                 }
             }
         } else
@@ -222,6 +221,6 @@ public class OrderService {
         var reverseResponse = atlasClient.reverse(orderEntity.getTransactionId(), reversPurchaseRequest);
         orderEntity.setTransactionId(reverseResponse.getId());
         orderEntity.setTransactionStatus(TransactionStatus.REVERSED);
-        orderRepository.save(orderEntity);
+        orderRepository.saveAndFlush(orderEntity);
     }
 }

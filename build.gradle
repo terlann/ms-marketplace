@@ -50,10 +50,6 @@ dependencies {
     implementation "io.springfox:springfox-bean-validators:$beanValidatorVersion"
     implementation "io.github.openfeign:feign-jackson:$openFeignVersion"
     implementation "io.github.openfeign:feign-annotation-error-decoder:$openFeignVersion"
-    implementation 'io.github.openfeign:feign-httpclient:9.4.0'
-    implementation "org.springframework.boot:spring-boot-starter-aop:$springBootVersion"
-    implementation "org.apache.poi:poi:$apachePoiVersion"
-    implementation "org.apache.poi:poi-ooxml:$apachePoiVersion"
     implementation "org.mapstruct:mapstruct:$mapStructversion"
     implementation 'org.junit.jupiter:junit-jupiter:5.7.0'
     annotationProcessor "org.mapstruct:mapstruct-processor:$mapStructversion"
