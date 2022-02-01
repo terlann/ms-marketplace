@@ -11,6 +11,7 @@ import lombok.experimental.FieldDefaults;
 public enum ScoringStatus {
     APPROVED(1),
     REJECTED(0),
+    PENDING(-2),
     PREAPPROVED(-1);
 
     final int status;

@@ -71,9 +71,9 @@ public class ProductCreateService {
 
         if (fraudResultStatus == FraudResultStatus.SUSPICIOUS || fraudResultStatus == FraudResultStatus.WARNING) {
             log.info("product create fraud case was found in order. track_id - [{}]", trackId);
-            telesalesService.sendLead(trackId);
-            //TODO get sendLead() response and update eteOrderId and status in operation
-            //TODO send decision to umico PENDING
+            var eteOrderId = telesalesService.sendLead(trackId);
+            updateOperationEteOrderId(trackId, eteOrderId);
+            sendDecision(ScoringStatus.PENDING, trackId, "", "");
             return;
         }
 
@@ -94,7 +94,9 @@ public class ProductCreateService {
                 }
             } catch (ScoringCustomerException e) {
                 log.error("product create complete-scoring finish. Redirect to telesales track_id - [{}]", trackId);
-                telesalesService.sendLead(trackId);
+                var eteOrderId = telesalesService.sendLead(trackId);
+                updateOperationEteOrderId(trackId, eteOrderId);
+                sendDecision(ScoringStatus.PENDING, trackId, "", "");
             }
         }
 
@@ -139,7 +141,9 @@ public class ProductCreateService {
                     }
                 }
             } else if (scoringResultEvent.getProcessStatus().equals(ProcessStatus.INCIDENT_HAPPENED)) {
-                telesalesService.sendLead(trackId);
+                var eteOrderId = telesalesService.sendLead(trackId);
+                updateOperationEteOrderId(trackId, eteOrderId);
+                sendDecision(ScoringStatus.PENDING, trackId, "", "");
             }
         }
 
@@ -163,7 +167,9 @@ public class ProductCreateService {
             }
         } catch (ScoringCustomerException e) {
             log.error("product create create-scoring finish. Redirect to telesales track_id - [{}]", trackId);
-            telesalesService.sendLead(trackId);
+            var eteOrderId = telesalesService.sendLead(trackId);
+            updateOperationEteOrderId(trackId, eteOrderId);
+            sendDecision(ScoringStatus.PENDING, trackId, "", "");
         }
     }
 
@@ -197,6 +203,15 @@ public class ProductCreateService {
                         trackId,
                         e.getMessage());
             }
+        }
+    }
+
+    @Transactional
+     void updateOperationEteOrderId(UUID trackId, Optional<String> eteOrderId) {
+        var operationEntityOptional = operationRepository.findById(trackId);
+        if (operationEntityOptional.isPresent() && eteOrderId.isPresent()) {
+            operationEntityOptional.get().setEteOrderId(eteOrderId.get());
+            operationRepository.save(operationEntityOptional.get());
         }
     }
 }
