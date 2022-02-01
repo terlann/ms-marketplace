@@ -12,6 +12,7 @@ import az.kapitalbank.marketplace.constants.CustomerStatus;
 import az.kapitalbank.marketplace.constants.LoanStatus;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -43,6 +44,7 @@ public class CustomerEntity extends BaseEntity {
     CustomerStatus status;
     LoanStatus loanStatus;
 
+    @Builder.Default
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OperationEntity> operations = new ArrayList<>();
 }
