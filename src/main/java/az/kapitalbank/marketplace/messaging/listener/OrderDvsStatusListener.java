@@ -73,12 +73,12 @@ public class OrderDvsStatusListener {
                             scoringService.completeScoring(completeScoring);
 
                             operationEntity.setDvsOrderStatus(orderDvsStatusEvent.getStatus());
-                            operationRepository.saveAndFlush(operationEntity);
+                            operationRepository.save(operationEntity);
                             var orders = operationEntity.getOrders();
                             var cardPan = optimusClient.getProcessVariable(operationEntity.getBusinessKey(), "pan");
                             var cardUid = atlasClient.findByPan(cardPan).getUid();
                             customerEntity.setCardUUID(cardUid);
-                            customerRepository.saveAndFlush(customerEntity);
+                            customerRepository.save(customerEntity);
                             for (OrderEntity orderEntity : orders) {
                                 var rrn = GenerateUtil.rrn();
                                 var purchaseRequest = PurchaseRequest.builder()

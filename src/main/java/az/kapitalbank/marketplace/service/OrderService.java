@@ -104,7 +104,7 @@ public class OrderService {
         }
         operationEntity.setOrders(orderEntities);
         customerEntity.setOperations(Collections.singletonList(operationEntity));
-        customerRepository.saveAndFlush(customerEntity);
+        customerRepository.save(customerEntity);
         var trackId = operationEntity.getId();
         FraudCheckEvent fraudCheckEvent = createOrderMapper.toOrderEvent(request);
         fraudCheckEvent.setTrackId(trackId);
@@ -168,7 +168,7 @@ public class OrderService {
         }
 
         operation.setDeletedAt(LocalDateTime.now());
-        operationRepository.saveAndFlush(operation);
+        operationRepository.save(operation);
         log.info("delete operation finish ... track_id - [{}]", trackId);
     }
 
@@ -200,7 +200,7 @@ public class OrderService {
                     orderEntity.setTransactionId(purchaseResponse.getId());
                     orderEntity.setRrn(rrn);
                     orderEntity.setTransactionStatus(TransactionStatus.COMPLETED);
-                    orderRepository.saveAndFlush(orderEntity);
+                    orderRepository.save(orderEntity);
                 }
             }
         } else
@@ -221,6 +221,6 @@ public class OrderService {
         var reverseResponse = atlasClient.reverse(orderEntity.getTransactionId(), reversPurchaseRequest);
         orderEntity.setTransactionId(reverseResponse.getId());
         orderEntity.setTransactionStatus(TransactionStatus.REVERSED);
-        orderRepository.saveAndFlush(orderEntity);
+        orderRepository.save(orderEntity);
     }
 }

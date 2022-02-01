@@ -61,10 +61,19 @@ public class ProductCreateService {
     public void startScoring(FraudCheckResultEvent fraudCheckResultEvent) {
         log.info("product create start... message - {}", fraudCheckResultEvent);
         var trackId = fraudCheckResultEvent.getTrackId();
+        var fraudResultStatus = fraudCheckResultEvent.getFraudResultStatus();
 
-        if (fraudCheckResultEvent.getFraudResultStatus() == FraudResultStatus.BLACKLIST) {
+        if (fraudResultStatus == FraudResultStatus.BLACKLIST) {
             log.info("product create customer is at blacklist. track_id - [{}]", trackId);
             sendDecision(ScoringStatus.REJECTED, trackId, "", "");
+            return;
+        }
+
+        if (fraudResultStatus == FraudResultStatus.SUSPICIOUS || fraudResultStatus == FraudResultStatus.WARNING) {
+            log.info("product create fraud case was found in order. track_id - [{}]", trackId);
+            telesalesService.sendLead(trackId);
+            //TODO get sendLead() response and update eteOrderId and status in operation
+            //TODO send decision to umico PENDING
             return;
         }
 
@@ -78,7 +87,7 @@ public class ProductCreateService {
                         customerEntity.getMobileNumber());
                 if (businessKey.isPresent()) {
                     operationEntity.setBusinessKey(businessKey.get());
-                    operationRepository.saveAndFlush(operationEntity);
+                    operationRepository.save(operationEntity);
                     log.info("product create start-scoring. track_id - [{}], business_key - [{}]",
                             trackId,
                             businessKey);
@@ -96,7 +105,8 @@ public class ProductCreateService {
         var businessKey = scoringResultEvent.getBusinessKey();
         var operationEntity = operationRepository.findByBusinessKey(businessKey);
         if (operationEntity.isPresent()) {
-            var trackId = operationEntity.get().getId();
+            var operation = operationEntity.get();
+            var trackId = operation.getId();
             CustomerEntity customerEntity = operationEntity.get().getCustomer();
             if (scoringResultEvent.getProcessStatus().equals(ProcessStatus.IN_USER_ACTIVITY)) {
                 InUserActivityData inUserActivityData = (InUserActivityData) scoringResultEvent.getData();
@@ -107,15 +117,17 @@ public class ProductCreateService {
                 if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SCORING)) {
                     scoringService.createScoring(trackId, taskId,
                             processData.getSelectedOffer().getCashOffer().getAvailableLoanAmount());
+                    operation.setTaskId(taskId);
+                    operationRepository.save(operation);
                 } else if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SIGN_DOCUMENTS)) {
                     DvsCreateOrderRequest dvsCreateOrderRequest = loanFormalizeMapper
                             .toDvsCreateOrderRequest(customerEntity, processResponse.get());
                     Optional<DvsCreateOrderResponse> dvsCreateOrderResponse = verificationService
                             .createOrder(dvsCreateOrderRequest, trackId);
                     String dvsId = String.valueOf(processData.getDvsOrderId());
-                    var oper = operationEntity.get();
-                    oper.setDvsOrderId(dvsId); //TODO dvsId where can we get from ? optimus or dvs response
-                    operationRepository.saveAndFlush(oper);
+
+                    operation.setDvsOrderId(dvsId); //TODO dvsId where can we get from ? optimus or dvs response
+                    operationRepository.save(operation);
                     Optional<DvsGetDetailsResponse> dvsGetDetailsResponse = verificationService.getDetails(trackId,
                             processResponse.get().getTaskId(),
                             dvsId);

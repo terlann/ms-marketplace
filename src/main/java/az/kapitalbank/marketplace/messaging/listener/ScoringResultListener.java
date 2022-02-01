@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class CustomerScoringResultListener {
+public class ScoringResultListener {
 
     ObjectMapper objectMapper;
     ProductCreateService productCreateService;
