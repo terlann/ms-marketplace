@@ -2,6 +2,7 @@ package az.kapitalbank.marketplace.service;
 
 import javax.transaction.Transactional;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,6 +12,7 @@ import java.util.UUID;
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.ReversPurchaseRequest;
+import az.kapitalbank.marketplace.config.CommissionProperties;
 import az.kapitalbank.marketplace.constants.TransactionStatus;
 import az.kapitalbank.marketplace.dto.DeliveryProductDto;
 import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
@@ -28,6 +30,7 @@ import az.kapitalbank.marketplace.exception.LoanAmountIncorrectException;
 import az.kapitalbank.marketplace.exception.OrderAlreadyScoringException;
 import az.kapitalbank.marketplace.exception.OrderIsInactiveException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
+import az.kapitalbank.marketplace.exception.UnknownLoanTerm;
 import az.kapitalbank.marketplace.mappers.CreateOrderMapper;
 import az.kapitalbank.marketplace.mappers.CustomerMapper;
 import az.kapitalbank.marketplace.mappers.OperationMapper;
@@ -61,6 +64,7 @@ public class OrderService {
     AtlasClient atlasClient;
     OrderMapper orderMapper;
     OrderRepository orderRepository;
+    CommissionProperties commissionProperties;
 
     @NonFinal
     @Value("${purchase.terminal-name}")
@@ -70,7 +74,6 @@ public class OrderService {
     public CreateOrderResponse createOrder(CreateOrderRequestDto request) {
         log.info("create loan process start... Request - [{}]", request);
         validateOrderAmount(request);
-// TODO calculate commission for every order and set orderEntity
         CustomerEntity customerEntity = customerMapper.toCustomerEntity(request.getCustomerInfo());
         OperationEntity operationEntity = operationMapper.toOperationEntity(request);
         operationEntity.setCustomer(customerEntity);
@@ -80,6 +83,7 @@ public class OrderService {
         for (OrderProductDeliveryInfo deliveryInfo : request.getDeliveryInfo()) {
             OrderEntity orderEntity = OrderEntity.builder()
                     .totalAmount(deliveryInfo.getTotalAmount())
+                    .commission(getCommission(deliveryInfo.getTotalAmount(), request.getLoanTerm()))
                     .orderNo(deliveryInfo.getOrderNo())
                     .deliveryAddress(deliveryInfo.getDeliveryAddress())
                     .operation(operationEntity)
@@ -112,6 +116,15 @@ public class OrderService {
         return CreateOrderResponse.of(trackId);
     }
 
+    private BigDecimal getCommission(BigDecimal orderAmount, int loanTerm) {
+        BigDecimal percent = commissionProperties.getValues().get(loanTerm);
+        if (percent == null) {
+            throw new UnknownLoanTerm(loanTerm);
+        }
+        return orderAmount
+                .multiply(percent)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+    }
 
     private void validateOrderAmount(CreateOrderRequestDto createOrderRequestDto) {
         var loanAmount = createOrderRequestDto.getTotalAmount();
