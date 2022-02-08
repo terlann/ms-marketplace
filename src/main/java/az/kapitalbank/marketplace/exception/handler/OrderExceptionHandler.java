@@ -9,6 +9,7 @@ import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.PhoneNumberInvalidException;
 import az.kapitalbank.marketplace.exception.PinCodeInCorrectException;
 import az.kapitalbank.marketplace.exception.PinNotFoundException;
+import az.kapitalbank.marketplace.exception.UnknownLoanTerm;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -71,6 +72,15 @@ public class OrderExceptionHandler extends ResponseEntityExceptionHandler {
         log.error("Exception: {}", e);
         var errorResponseDto = new ErrorResponseDto(ErrorCode.LOAN_AMOUNT_INCORRECT);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(UnknownLoanTerm.class)
+    public ResponseEntity<WrapperResponseDto<?>> loanAmountIncorrect(Exception ex) {
+        log.error("Exception: {}", ex);
+        var code = HttpStatus.NOT_FOUND.value();
+        var message = ex.getMessage();
+        var wrapperResponseDto = WrapperResponseDto.of(String.valueOf(code), message);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(wrapperResponseDto);
     }
 
 }
