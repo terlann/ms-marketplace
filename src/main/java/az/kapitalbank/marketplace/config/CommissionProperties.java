@@ -22,7 +22,7 @@ import org.springframework.stereotype.Component;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class CommissionProperties {
 
-     Map<Integer, BigDecimal> values=new HashMap<>();
+    Map<Integer, BigDecimal> values = new HashMap<>();
 
     @EventListener(RefreshScopeRefreshedEvent.class)
     public void onRefresh(RefreshScopeRefreshedEvent event) {
