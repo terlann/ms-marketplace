@@ -75,6 +75,7 @@ public class OrderService {
     public CreateOrderResponse createOrder(CreateOrderRequestDto request) {
         log.info("create loan process start... Request - [{}]", request);
         validateOrderAmount(request);
+        // TODO: validate only first loan
         validatePurchaseAmountLimit(request);
         CustomerEntity customerEntity = customerMapper.toCustomerEntity(request.getCustomerInfo());
         OperationEntity operationEntity = operationMapper.toOperationEntity(request);
