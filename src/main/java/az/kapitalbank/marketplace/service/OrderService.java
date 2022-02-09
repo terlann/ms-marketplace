@@ -30,6 +30,7 @@ import az.kapitalbank.marketplace.exception.LoanAmountIncorrectException;
 import az.kapitalbank.marketplace.exception.OrderAlreadyScoringException;
 import az.kapitalbank.marketplace.exception.OrderIsInactiveException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
+import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
 import az.kapitalbank.marketplace.exception.UnknownLoanTerm;
 import az.kapitalbank.marketplace.mappers.CreateOrderMapper;
 import az.kapitalbank.marketplace.mappers.CustomerMapper;
@@ -74,6 +75,7 @@ public class OrderService {
     public CreateOrderResponse createOrder(CreateOrderRequestDto request) {
         log.info("create loan process start... Request - [{}]", request);
         validateOrderAmount(request);
+        validatePurchaseAmountLimit(request);
         CustomerEntity customerEntity = customerMapper.toCustomerEntity(request.getCustomerInfo());
         OperationEntity operationEntity = operationMapper.toOperationEntity(request);
         operationEntity.setCustomer(customerEntity);
@@ -139,6 +141,24 @@ public class OrderService {
                     loanAmount,
                     totalOrderAmount);
             throw new LoanAmountIncorrectException(totalOrderAmount);
+        }
+    }
+
+    private void validatePurchaseAmountLimit(CreateOrderRequestDto request) {
+        BigDecimal totalAmount = request.getTotalAmount();
+        BigDecimal totalCommission = BigDecimal.ZERO;
+
+        for (var order : request.getDeliveryInfo()) {
+            BigDecimal commission = getCommission(order.getTotalAmount(), request.getLoanTerm());
+            totalCommission = totalCommission.add(commission);
+        }
+        var purchaseAmount = totalAmount.add(totalCommission);
+
+        var minLimit = BigDecimal.valueOf(50);
+        var maxLimit = BigDecimal.valueOf(20000);
+
+        if (purchaseAmount.compareTo(minLimit) < 0 || purchaseAmount.compareTo(maxLimit) > 0) {
+            throw new TotalAmountLimitException(String.valueOf(totalAmount), String.valueOf(totalCommission));
         }
     }
 

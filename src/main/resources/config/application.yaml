@@ -1,13 +1,3 @@
 spring:
   banner:
     location: classpath:banner/banner.txt
-
-commission:
-  values:
-    1: 2.50
-    2: 3.50
-    3: 5.00
-    6: 7.50
-    12: 13.50
-    18: 18.50
-    24: 23.50
