@@ -8,6 +8,7 @@ import java.util.UUID;
 import az.kapitalbank.marketplace.client.dvs.model.DvsCreateOrderRequest;
 import az.kapitalbank.marketplace.client.dvs.model.DvsCreateOrderResponse;
 import az.kapitalbank.marketplace.client.dvs.model.DvsGetDetailsResponse;
+import az.kapitalbank.marketplace.client.optimus.OptimusClient;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessData;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
 import az.kapitalbank.marketplace.client.umico.UmicoClient;
@@ -53,6 +54,7 @@ public class ProductCreateService {
     TelesalesService telesalesService;
 
     UmicoClient umicoClient;
+    OptimusClient optimusClient;
 
     LoanFormalizeMapper loanFormalizeMapper;
 
@@ -141,6 +143,7 @@ public class ProductCreateService {
                     }
                 }
             } else if (scoringResultEvent.getProcessStatus().equals(ProcessStatus.INCIDENT_HAPPENED)) {
+                optimusClient.deleteLoan(businessKey);
                 var telesalesOrderId = telesalesService.sendLead(trackId);
                 updateOperationTelesalesOrderId(trackId, telesalesOrderId);
                 sendDecision(ScoringStatus.PENDING, trackId, "", "");
