@@ -8,6 +8,7 @@ import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringRespo
 import feign.Logger;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.context.annotation.Bean;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,6 +34,9 @@ public interface OptimusClient {
 
     @GetMapping("/api/v1/process/loan/{business-key}/variables")
     String getProcessVariable(@PathVariable("business-key") String businessKey, @RequestParam String variableName);
+
+    @DeleteMapping("/api/v1/process/loan/{business-key}")
+    void  deleteLoan(@PathVariable("business-key") String businessKey);
 
     class FeignConfiguration {
         @Bean
