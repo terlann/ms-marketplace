@@ -14,7 +14,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ScoringOrderRequestDto {
     @NotEmpty
-    String eteOrderId;
+    String telesalesOrderId;
     @NotNull
     ScoringStatus scoringStatus;
     LocalDate loanStartDate;

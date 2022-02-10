@@ -10,6 +10,7 @@ import java.util.UUID;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteRequest;
+import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.ReversPurchaseRequest;
 import az.kapitalbank.marketplace.constants.TransactionStatus;
 import az.kapitalbank.marketplace.dto.DeliveryProductDto;
@@ -26,7 +27,6 @@ import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.entity.ProductEntity;
 import az.kapitalbank.marketplace.exception.LoanAmountIncorrectException;
 import az.kapitalbank.marketplace.exception.OrderAlreadyScoringException;
-import az.kapitalbank.marketplace.exception.OrderIsInactiveException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.mappers.CreateOrderMapper;
 import az.kapitalbank.marketplace.mappers.CustomerMapper;
@@ -71,7 +71,20 @@ public class OrderService {
         log.info("create loan process start... Request - [{}]", request);
         validateOrderAmount(request);
 // TODO calculate commission for every order and set orderEntity
-        CustomerEntity customerEntity = customerMapper.toCustomerEntity(request.getCustomerInfo());
+
+        var customerId = request.getCustomerInfo().getCustomerId();
+        CustomerEntity customerEntity = null;
+        if (customerId == null) {
+            var pin = request.getCustomerInfo().getPin();
+            var operationCount = operationRepository.operationCountByPinAndDecisionStatus(pin);
+            if (operationCount != 0)
+                throw new RuntimeException("This customer havent finished process" + pin);
+            customerEntity = customerMapper.toCustomerEntity(request.getCustomerInfo());
+        } else
+            customerEntity = customerRepository.findById(customerId).orElseThrow(
+                    () -> new RuntimeException("Customer not found : " + customerId));
+
+
         OperationEntity operationEntity = operationMapper.toOperationEntity(request);
         operationEntity.setCustomer(customerEntity);
 
@@ -104,14 +117,34 @@ public class OrderService {
         }
         operationEntity.setOrders(orderEntities);
         customerEntity.setOperations(Collections.singletonList(operationEntity));
-        customerRepository.save(customerEntity);
         var trackId = operationEntity.getId();
-        FraudCheckEvent fraudCheckEvent = createOrderMapper.toOrderEvent(request);
-        fraudCheckEvent.setTrackId(trackId);
-        customerOrderProducer.sendMessage(fraudCheckEvent);
+        if (customerId == null) {
+            FraudCheckEvent fraudCheckEvent = createOrderMapper.toOrderEvent(request);
+            fraudCheckEvent.setTrackId(trackId);
+            customerOrderProducer.sendMessage(fraudCheckEvent);
+        } else {
+            var cardUid = customerEntity.getCardUUID();
+            for (OrderEntity orderEntity : orderEntities) {
+                var rrn = GenerateUtil.rrn();
+                var purchaseRequest = PurchaseRequest.builder()
+                        .rrn(rrn)
+                        .amount(orderEntity.getTotalAmount())
+                        .description("purchase") //TODO text ?
+                        .currency(944)
+                        .terminalName(terminalName)
+                        .uid(cardUid)
+                        .build();
+                var purchaseResponse = atlasClient.purchase(purchaseRequest);
+                orderEntity.setRrn(rrn);
+                orderEntity.setTransactionId(purchaseResponse.getId());
+                orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
+                orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
+                orderEntities.add(orderEntity);
+            }
+        }
+        customerRepository.save(customerEntity);
         return CreateOrderResponse.of(trackId);
     }
-
 
     private void validateOrderAmount(CreateOrderRequestDto createOrderRequestDto) {
         var loanAmount = createOrderRequestDto.getTotalAmount();
@@ -130,23 +163,20 @@ public class OrderService {
     }
 
     //TODO Optimus call before score
-    public CheckOrderResponseDto checkOrder(String eteOrderId) {
-        log.info("check order start... ete_order_id  - [{}]", eteOrderId);
-        var operationEntityOptional = operationRepository.findByEteOrderId(eteOrderId);
+    public CheckOrderResponseDto checkOrder(String telesalesOrderId) {
+        log.info("check order start... telesales_order_id  - [{}]", telesalesOrderId);
+        var operationEntityOptional = operationRepository.findByTelesalesOrderId(telesalesOrderId);
 
-        var exceptionMessage = String.format("ete_order_id - [%s]", eteOrderId);
+        var exceptionMessage = String.format("telesales_order_id - [%s]", telesalesOrderId);
         var operationEntity = operationEntityOptional.orElseThrow(
                 () -> new OrderNotFoundException(exceptionMessage));
 
-        if (operationEntity.getDeletedAt() != null)
-            throw new OrderIsInactiveException(exceptionMessage);
-
         var scoringStatus = operationEntity.getScoringStatus();
         if (scoringStatus != null)
-            throw new OrderAlreadyScoringException(eteOrderId);
+            throw new OrderAlreadyScoringException(telesalesOrderId);
 
         CheckOrderResponseDto orderResponseDto = orderMapper.entityToDto(operationEntity);
-        log.info("check order finish... ete_order_id - [{}]", eteOrderId);
+        log.info("check order finish... telesales_order_id - [{}]", telesalesOrderId);
         return orderResponseDto;
 
     }
@@ -164,7 +194,7 @@ public class OrderService {
             return;
 
         if (operation.getScoringStatus() != null) {
-            throw new OrderAlreadyScoringException(operation.getEteOrderId());
+            throw new OrderAlreadyScoringException(operation.getTelesalesOrderId());
         }
 
         operation.setDeletedAt(LocalDateTime.now());

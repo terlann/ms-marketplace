@@ -7,7 +7,7 @@ plugins {
     id 'checkstyle'
 }
 
-group = 'az.kapitalbank.ms'
+group = 'az.kapitalbank.marketplace'
 version = "0.0.1-SNAPSHOT"
 sourceCompatibility = 11
 

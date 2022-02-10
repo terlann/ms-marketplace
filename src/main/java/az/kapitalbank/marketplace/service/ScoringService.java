@@ -65,21 +65,22 @@ public class ScoringService {
 
     @Transactional
     public void scoringOrder(ScoringOrderRequestDto request) {
-        String eteOrderId = request.getEteOrderId().trim();
-        log.info("scoring order start... ete_order_id - [{}]", eteOrderId);
-        var exceptionMessage = String.format("ete_order_id - [%S]", eteOrderId);
-        var operationEntityOptional = operationRepository.findByEteOrderId(eteOrderId);
+        String telesalesOrderId = request.getTelesalesOrderId().trim();
+        log.info("scoring order start... telesales_order_id - [{}]", telesalesOrderId);
+        var exceptionMessage = String.format("telesales_order_id - [%S]", telesalesOrderId);
+        var operationEntityOptional = operationRepository.findByTelesalesOrderId(telesalesOrderId);
         operationEntityOptional.orElseThrow(() -> new OrderNotFoundException(exceptionMessage));
-        log.info("scoring order find order in db. ete_order_id - [{}]", eteOrderId);
+        log.info("scoring order find order in db. telesales_order_id - [{}]", telesalesOrderId);
         operationEntityOptional
                 .filter(o -> {
                     if (o.getDeletedAt() != null) {
-                        log.error("scoring order is inactive. ete_order_id - [{}]", eteOrderId);
+                        log.error("scoring order is inactive. telesales_order_id - [{}]", telesalesOrderId);
                         throw new OrderIsInactiveException(exceptionMessage);
                     }
                     if (o.getScoringStatus() != null) {
-                        log.error("scoring order is already have been score. ete_order_id - [{}]", eteOrderId);
-                        throw new OrderAlreadyScoringException(eteOrderId);
+                        log.error("scoring order is already have been score. telesales_order_id - [{}]",
+                                telesalesOrderId);
+                        throw new OrderAlreadyScoringException(telesalesOrderId);
                     }
                     return true;
                 });
@@ -97,20 +98,21 @@ public class ScoringService {
 
         try {
             //TODO purchase all orders
-            sendDecisionScoring(operationEntity, eteOrderId, request.getScoringStatus().getStatus());
+            sendDecisionScoring(operationEntity, telesalesOrderId, request.getScoringStatus().getStatus());
         } catch (Exception e) {
-            log.error("scoring order dont send the decision to umico. ete_order_id - [{}],Exception - ", eteOrderId, e);
+            log.error("scoring order dont send the decision to umico. ete_order_id - [{}],Exception - ",
+                    telesalesOrderId, e);
         }
 
         log.info("scoring order saving the result. ete_order_id - [{}],track_id - [{}]",
-                eteOrderId,
+                telesalesOrderId,
                 operationEntityOptional.get().getId());
-        log.info("scoring order find finish... ete_order_id - [{}]", eteOrderId);
+        log.info("scoring order find finish... ete_order_id - [{}]", telesalesOrderId);
     }
 
 
     @Transactional
-    public void sendDecisionScoring(OperationEntity operationEntity, String eteOrderId, Integer result) {
+    public void sendDecisionScoring(OperationEntity operationEntity, String telesalesOrderId, Integer result) {
         try {
             var status = result == 1 ? UmicoOrderStatus.APPROVED : UmicoOrderStatus.DECLINED;
             var trackId = operationEntity.getId();
@@ -125,10 +127,10 @@ public class ScoringService {
                     .sendDecisionScoring(umicoScoringDecisionRequest, apiKey);
             log.info("scoring order send decision to umico. Response - [{}] , ete_order_id - [{}]",
                     umicoScoringDecisionResponse.toString(),
-                    eteOrderId);
+                    telesalesOrderId);
         } catch (FeignClientException e) {
             log.error("send decision scoring to umico. ete_order_id - [{}] " +
-                    ",FeignException - {}", eteOrderId, e.getMessage());
+                    ",FeignException - {}", telesalesOrderId, e.getMessage());
         }
     }
 

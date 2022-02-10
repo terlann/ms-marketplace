@@ -19,7 +19,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CheckOrderResponseDto {
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    String eteOrderId;
+    String telesalesOrderId;
     @NotNull
     UUID trackId;
     @NotNull

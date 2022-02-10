@@ -8,6 +8,6 @@ import lombok.experimental.UtilityClass;
 public class GenerateUtil {
 
     public static String rrn() {
-        return "umico" + UUID.randomUUID().toString().substring(8);
+        return "K-U-M" + UUID.randomUUID().toString().substring(8);
     }
 }

@@ -71,8 +71,8 @@ public class ProductCreateService {
 
         if (fraudResultStatus == FraudResultStatus.SUSPICIOUS || fraudResultStatus == FraudResultStatus.WARNING) {
             log.info("product create fraud case was found in order. track_id - [{}]", trackId);
-            var eteOrderId = telesalesService.sendLead(trackId);
-            updateOperationEteOrderId(trackId, eteOrderId);
+            var telesalesOrderId = telesalesService.sendLead(trackId);
+            updateOperationTelesalesOrderId(trackId, telesalesOrderId);
             sendDecision(ScoringStatus.PENDING, trackId, "", "");
             return;
         }
@@ -94,8 +94,8 @@ public class ProductCreateService {
                 }
             } catch (ScoringCustomerException e) {
                 log.error("product create complete-scoring finish. Redirect to telesales track_id - [{}]", trackId);
-                var eteOrderId = telesalesService.sendLead(trackId);
-                updateOperationEteOrderId(trackId, eteOrderId);
+                var telesalesOrderId = telesalesService.sendLead(trackId);
+                updateOperationTelesalesOrderId(trackId, telesalesOrderId);
                 sendDecision(ScoringStatus.PENDING, trackId, "", "");
             }
         }
@@ -141,8 +141,8 @@ public class ProductCreateService {
                     }
                 }
             } else if (scoringResultEvent.getProcessStatus().equals(ProcessStatus.INCIDENT_HAPPENED)) {
-                var eteOrderId = telesalesService.sendLead(trackId);
-                updateOperationEteOrderId(trackId, eteOrderId);
+                var telesalesOrderId = telesalesService.sendLead(trackId);
+                updateOperationTelesalesOrderId(trackId, telesalesOrderId);
                 sendDecision(ScoringStatus.PENDING, trackId, "", "");
             }
         }
@@ -167,8 +167,8 @@ public class ProductCreateService {
             }
         } catch (ScoringCustomerException e) {
             log.error("product create create-scoring finish. Redirect to telesales track_id - [{}]", trackId);
-            var eteOrderId = telesalesService.sendLead(trackId);
-            updateOperationEteOrderId(trackId, eteOrderId);
+            var telesalesOrderId = telesalesService.sendLead(trackId);
+            updateOperationTelesalesOrderId(trackId, telesalesOrderId);
             sendDecision(ScoringStatus.PENDING, trackId, "", "");
         }
     }
@@ -207,10 +207,10 @@ public class ProductCreateService {
     }
 
     @Transactional
-     void updateOperationEteOrderId(UUID trackId, Optional<String> eteOrderId) {
+    void updateOperationTelesalesOrderId(UUID trackId, Optional<String> telesalesOrderId) {
         var operationEntityOptional = operationRepository.findById(trackId);
-        if (operationEntityOptional.isPresent() && eteOrderId.isPresent()) {
-            operationEntityOptional.get().setEteOrderId(eteOrderId.get());
+        if (operationEntityOptional.isPresent() && telesalesOrderId.isPresent()) {
+            operationEntityOptional.get().setTelesalesOrderId(telesalesOrderId.get());
             operationRepository.save(operationEntityOptional.get());
         }
     }
