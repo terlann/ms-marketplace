@@ -2,6 +2,7 @@ package az.kapitalbank.marketplace.service;
 
 import javax.transaction.Transactional;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,6 +13,7 @@ import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.ReversPurchaseRequest;
+import az.kapitalbank.marketplace.config.CommissionProperties;
 import az.kapitalbank.marketplace.constants.TransactionStatus;
 import az.kapitalbank.marketplace.dto.DeliveryProductDto;
 import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
@@ -28,6 +30,8 @@ import az.kapitalbank.marketplace.entity.ProductEntity;
 import az.kapitalbank.marketplace.exception.LoanAmountIncorrectException;
 import az.kapitalbank.marketplace.exception.OrderAlreadyScoringException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
+import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
+import az.kapitalbank.marketplace.exception.UnknownLoanTerm;
 import az.kapitalbank.marketplace.mappers.CreateOrderMapper;
 import az.kapitalbank.marketplace.mappers.CustomerMapper;
 import az.kapitalbank.marketplace.mappers.OperationMapper;
@@ -61,6 +65,7 @@ public class OrderService {
     AtlasClient atlasClient;
     OrderMapper orderMapper;
     OrderRepository orderRepository;
+    CommissionProperties commissionProperties;
 
     @NonFinal
     @Value("${purchase.terminal-name}")
@@ -85,6 +90,9 @@ public class OrderService {
                     () -> new RuntimeException("Customer not found : " + customerId));
 
 
+        // TODO: validate only first loan
+        validatePurchaseAmountLimit(request);
+        CustomerEntity customerEntity = customerMapper.toCustomerEntity(request.getCustomerInfo());
         OperationEntity operationEntity = operationMapper.toOperationEntity(request);
         operationEntity.setCustomer(customerEntity);
 
@@ -93,6 +101,7 @@ public class OrderService {
         for (OrderProductDeliveryInfo deliveryInfo : request.getDeliveryInfo()) {
             OrderEntity orderEntity = OrderEntity.builder()
                     .totalAmount(deliveryInfo.getTotalAmount())
+                    .commission(getCommission(deliveryInfo.getTotalAmount(), request.getLoanTerm()))
                     .orderNo(deliveryInfo.getOrderNo())
                     .deliveryAddress(deliveryInfo.getDeliveryAddress())
                     .operation(operationEntity)
@@ -146,6 +155,16 @@ public class OrderService {
         return CreateOrderResponse.of(trackId);
     }
 
+    private BigDecimal getCommission(BigDecimal orderAmount, int loanTerm) {
+        BigDecimal percent = commissionProperties.getValues().get(loanTerm);
+        if (percent == null) {
+            throw new UnknownLoanTerm(loanTerm);
+        }
+        return orderAmount
+                .multiply(percent)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+    }
+
     private void validateOrderAmount(CreateOrderRequestDto createOrderRequestDto) {
         var loanAmount = createOrderRequestDto.getTotalAmount();
         var totalOrderAmount = createOrderRequestDto.getDeliveryInfo().stream()
@@ -159,6 +178,24 @@ public class OrderService {
                     loanAmount,
                     totalOrderAmount);
             throw new LoanAmountIncorrectException(totalOrderAmount);
+        }
+    }
+
+    private void validatePurchaseAmountLimit(CreateOrderRequestDto request) {
+        BigDecimal totalAmount = request.getTotalAmount();
+        BigDecimal totalCommission = BigDecimal.ZERO;
+
+        for (var order : request.getDeliveryInfo()) {
+            BigDecimal commission = getCommission(order.getTotalAmount(), request.getLoanTerm());
+            totalCommission = totalCommission.add(commission);
+        }
+        var purchaseAmount = totalAmount.add(totalCommission);
+
+        var minLimit = BigDecimal.valueOf(50);
+        var maxLimit = BigDecimal.valueOf(20000);
+
+        if (purchaseAmount.compareTo(minLimit) < 0 || purchaseAmount.compareTo(maxLimit) > 0) {
+            throw new TotalAmountLimitException(String.valueOf(totalAmount), String.valueOf(totalCommission));
         }
     }
 
