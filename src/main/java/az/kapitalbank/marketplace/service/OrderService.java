@@ -75,11 +75,10 @@ public class OrderService {
     public CreateOrderResponse createOrder(CreateOrderRequestDto request) {
         log.info("create loan process start... Request - [{}]", request);
         validateOrderAmount(request);
-// TODO calculate commission for every order and set orderEntity
-
         var customerId = request.getCustomerInfo().getCustomerId();
         CustomerEntity customerEntity = null;
         if (customerId == null) {
+            validatePurchaseAmountLimit(request);
             var pin = request.getCustomerInfo().getPin();
             var operationCount = operationRepository.operationCountByPinAndDecisionStatus(pin);
             if (operationCount != 0)
@@ -89,10 +88,6 @@ public class OrderService {
             customerEntity = customerRepository.findById(customerId).orElseThrow(
                     () -> new RuntimeException("Customer not found : " + customerId));
 
-
-        // TODO: validate only first loan
-        validatePurchaseAmountLimit(request);
-        CustomerEntity customerEntity = customerMapper.toCustomerEntity(request.getCustomerInfo());
         OperationEntity operationEntity = operationMapper.toOperationEntity(request);
         operationEntity.setCustomer(customerEntity);
 
