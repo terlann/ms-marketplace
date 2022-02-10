@@ -10,9 +10,9 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ChangeScoringStatusException extends RuntimeException {
 
-    static final String MESSAGE = "Scoring status couldn't change. ete_order_id - [%s]";
+    static final String MESSAGE = "Scoring status couldn't change. telesales_order_id - [%s]";
 
-    public ChangeScoringStatusException(String eteOrderId) {
-        super(String.format(MESSAGE, eteOrderId));
+    public ChangeScoringStatusException(String telesalesOrderId) {
+        super(String.format(MESSAGE, telesalesOrderId));
     }
 }

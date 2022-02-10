@@ -6,9 +6,11 @@ import java.util.UUID;
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
 import az.kapitalbank.marketplace.dto.request.PurchaseRequestDto;
 import az.kapitalbank.marketplace.dto.request.ReverseRequestDto;
+import az.kapitalbank.marketplace.dto.request.ScoringOrderRequestDto;
 import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
 import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
 import az.kapitalbank.marketplace.service.OrderService;
+import az.kapitalbank.marketplace.service.ScoringService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -19,7 +21,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -29,15 +30,24 @@ import org.springframework.web.bind.annotation.RestController;
 public class OrderController {
 
     OrderService service;
+    ScoringService scoringService;
 
     @PostMapping
     public ResponseEntity<CreateOrderResponse> createOrder(@Valid @RequestBody CreateOrderRequestDto request) {
         return new ResponseEntity<>(service.createOrder(request), HttpStatus.CREATED);
     }
 
-    @PostMapping("/check")
-    public ResponseEntity<CheckOrderResponseDto> checkOrder(@Valid @RequestParam("eteOrderId") String eteOrderId) {
-        return ResponseEntity.ok(service.checkOrder(eteOrderId));
+    @PostMapping("/check/{telesales-order-id}") //TODO optimus check order
+    public ResponseEntity<CheckOrderResponseDto> checkOrder(@PathVariable("telesales-order-id")
+                                                                    String telesalesOrderId) {
+        return ResponseEntity.ok(service.checkOrder(telesalesOrderId));
+    }
+
+    // TODO update customer,operation after telesales scoring and dvs
+    @PostMapping("/scoring")
+    public ResponseEntity<Void> scoringOrder(@Valid @RequestBody ScoringOrderRequestDto request) {
+        scoringService.scoringOrder(request);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @DeleteMapping("/{trackId}")

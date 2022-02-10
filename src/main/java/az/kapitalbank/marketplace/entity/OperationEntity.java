@@ -2,6 +2,8 @@ package az.kapitalbank.marketplace.entity;
 
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
@@ -15,6 +17,7 @@ import java.util.List;
 
 import az.kapitalbank.marketplace.constants.OperationStatus;
 import az.kapitalbank.marketplace.constants.ScoringStatus;
+import az.kapitalbank.marketplace.constants.UmicoDecisionStatus;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -33,7 +36,7 @@ import lombok.experimental.SuperBuilder;
 @Table(name = "KB_MARKETPLACE_OPERATION")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OperationEntity extends BaseEntity {
-    String eteOrderId;
+    String telesalesOrderId;
     BigDecimal totalAmount;
     Integer loanTerm;
     OperationStatus status;
@@ -50,6 +53,8 @@ public class OperationEntity extends BaseEntity {
     LocalDate loanEndDate;
     String dvsOrderId;
     String dvsOrderStatus;
+    @Enumerated(EnumType.STRING)
+    UmicoDecisionStatus umicoDecisionStatus;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false, updatable = false)

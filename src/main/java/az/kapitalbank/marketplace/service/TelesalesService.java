@@ -20,9 +20,7 @@ import org.springframework.stereotype.Service;
 public class TelesalesService {
 
     TelesalesClient telesalesClient;
-
     TelesalesMapper telesalesMapper;
-
     FraudRepository fraudRepository;
     OperationRepository operationRepository;
 

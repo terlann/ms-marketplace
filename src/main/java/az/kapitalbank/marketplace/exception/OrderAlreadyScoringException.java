@@ -10,9 +10,9 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OrderAlreadyScoringException extends RuntimeException {
 
-    static final String MESSAGE = "This scoring has already been scoring. ete_order_id - [%s]";
+    static final String MESSAGE = "This scoring has already been scoring. telesales_order_id - [%s]";
 
-    public OrderAlreadyScoringException(String eteOrderId) {
-        super(String.format(MESSAGE, eteOrderId));
+    public OrderAlreadyScoringException(String telesalesOrderId) {
+        super(String.format(MESSAGE, telesalesOrderId));
     }
 }
