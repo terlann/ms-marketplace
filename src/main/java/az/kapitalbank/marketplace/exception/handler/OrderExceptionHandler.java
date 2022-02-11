@@ -4,6 +4,7 @@ import az.kapitalbank.marketplace.constants.ErrorCode;
 import az.kapitalbank.marketplace.dto.ErrorResponseDto;
 import az.kapitalbank.marketplace.exception.CreateTelesalesOrderException;
 import az.kapitalbank.marketplace.exception.LoanAmountIncorrectException;
+import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.PhoneNumberInvalidException;
 import az.kapitalbank.marketplace.exception.PinCodeInCorrectException;
@@ -74,8 +75,14 @@ public class OrderExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(TotalAmountLimitException.class)
     public ResponseEntity<ErrorResponseDto> exceedTotalAmountLimit(TotalAmountLimitException ex) {
         log.error("Exception: {}", ex);
-        var errorResponseDto = new ErrorResponseDto(ErrorCode.TOTAL_AMOUNT_LIMIT);
+        var errorResponseDto = new ErrorResponseDto(ErrorCode.PURCHASE_AMOUNT_LIMIT);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
+    @ExceptionHandler(NoEnoughBalanceException.class)
+    public ResponseEntity<ErrorResponseDto> noEnoughBalance(NoEnoughBalanceException ex) {
+        log.error("Exception: {}", ex);
+        var errorResponseDto = new ErrorResponseDto(ErrorCode.NO_ENOUGH_BALANCE);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
 }

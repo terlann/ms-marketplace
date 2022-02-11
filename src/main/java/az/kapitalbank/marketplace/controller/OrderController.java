@@ -46,7 +46,7 @@ public class OrderController {
     }
 
     // TODO update customer,operation after telesales scoring and dvs
-    @PostMapping("/scoring")
+    @PostMapping("/telesales/result")
     public ResponseEntity<Void> scoringOrder(@Valid @RequestBody ScoringOrderRequestDto request) {
         scoringService.scoringOrder(request);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
