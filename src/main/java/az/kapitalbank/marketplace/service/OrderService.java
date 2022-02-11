@@ -85,11 +85,12 @@ public class OrderService {
             if (operationCount != 0)
                 throw new RuntimeException("This customer havent finished process" + pin);
             customerEntity = customerMapper.toCustomerEntity(request.getCustomerInfo());
-        } else
+        } else {
             customerEntity = customerRepository.findById(customerId).orElseThrow(
                     () -> new RuntimeException("Customer not found : " + customerId));
 
-        validateCustomerBalance(request, customerId);
+            validateCustomerBalance(request, customerEntity.getCardUUID());
+        }
         OperationEntity operationEntity = operationMapper.toOperationEntity(request);
         operationEntity.setCustomer(customerEntity);
 
@@ -152,9 +153,9 @@ public class OrderService {
         return CreateOrderResponse.of(trackId);
     }
 
-    private void validateCustomerBalance(CreateOrderRequestDto request, UUID customerId) {
+    private void validateCustomerBalance(CreateOrderRequestDto request, String cardUUId) {
         var purchaseAmount = getPurchaseAmount(request);
-        var availableBalance = getBalance(customerId);
+        var availableBalance = getBalance(cardUUId);
         if (purchaseAmount.compareTo(availableBalance) > 0) {
             throw new NoEnoughBalanceException(availableBalance);
         }
@@ -207,10 +208,7 @@ public class OrderService {
         return totalAmount.add(totalCommission);
     }
 
-    public BigDecimal getBalance(UUID customerId) {
-        var customerEntity = customerRepository.findById(customerId)
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
-        var cardUUID = customerEntity.getCardUUID();
+    public BigDecimal getBalance(String cardUUID) {
         var balanceResponse = atlasClient.balance(cardUUID);
         return balanceResponse.getAvailableBalance();
     }
