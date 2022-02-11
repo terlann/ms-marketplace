@@ -28,6 +28,7 @@ import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.entity.ProductEntity;
 import az.kapitalbank.marketplace.exception.LoanAmountIncorrectException;
+import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
 import az.kapitalbank.marketplace.exception.OrderAlreadyScoringException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
@@ -88,6 +89,7 @@ public class OrderService {
             customerEntity = customerRepository.findById(customerId).orElseThrow(
                     () -> new RuntimeException("Customer not found : " + customerId));
 
+        validateCustomerBalance(request, customerId);
         OperationEntity operationEntity = operationMapper.toOperationEntity(request);
         operationEntity.setCustomer(customerEntity);
 
@@ -150,6 +152,14 @@ public class OrderService {
         return CreateOrderResponse.of(trackId);
     }
 
+    private void validateCustomerBalance(CreateOrderRequestDto request, UUID customerId) {
+        var purchaseAmount = getPurchaseAmount(request);
+        var availableBalance = getBalance(customerId);
+        if (purchaseAmount.compareTo(availableBalance) > 0) {
+            throw new NoEnoughBalanceException(availableBalance);
+        }
+    }
+
     private BigDecimal getCommission(BigDecimal orderAmount, int loanTerm) {
         BigDecimal percent = commissionProperties.getValues().get(loanTerm);
         if (percent == null) {
@@ -177,6 +187,16 @@ public class OrderService {
     }
 
     private void validatePurchaseAmountLimit(CreateOrderRequestDto request) {
+        var purchaseAmount = getPurchaseAmount(request);
+        var minLimit = BigDecimal.valueOf(50);
+        var maxLimit = BigDecimal.valueOf(20000);
+
+        if (purchaseAmount.compareTo(minLimit) < 0 || purchaseAmount.compareTo(maxLimit) > 0) {
+            throw new TotalAmountLimitException(String.valueOf(purchaseAmount));
+        }
+    }
+
+    private BigDecimal getPurchaseAmount(CreateOrderRequestDto request) {
         BigDecimal totalAmount = request.getTotalAmount();
         BigDecimal totalCommission = BigDecimal.ZERO;
 
@@ -184,14 +204,15 @@ public class OrderService {
             BigDecimal commission = getCommission(order.getTotalAmount(), request.getLoanTerm());
             totalCommission = totalCommission.add(commission);
         }
-        var purchaseAmount = totalAmount.add(totalCommission);
+        return totalAmount.add(totalCommission);
+    }
 
-        var minLimit = BigDecimal.valueOf(50);
-        var maxLimit = BigDecimal.valueOf(20000);
-
-        if (purchaseAmount.compareTo(minLimit) < 0 || purchaseAmount.compareTo(maxLimit) > 0) {
-            throw new TotalAmountLimitException(String.valueOf(totalAmount), String.valueOf(totalCommission));
-        }
+    public BigDecimal getBalance(UUID customerId) {
+        var customerEntity = customerRepository.findById(customerId)
+                .orElseThrow(() -> new RuntimeException("Customer not found"));
+        var cardUUID = customerEntity.getCardUUID();
+        var balanceResponse = atlasClient.balance(cardUUID);
+        return balanceResponse.getAvailableBalance();
     }
 
     //TODO Optimus call before score
@@ -285,4 +306,5 @@ public class OrderService {
         orderEntity.setTransactionStatus(TransactionStatus.REVERSED);
         orderRepository.save(orderEntity);
     }
+
 }

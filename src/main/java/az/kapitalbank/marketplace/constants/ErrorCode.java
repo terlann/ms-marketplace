@@ -24,7 +24,8 @@ public enum ErrorCode {
     LOAN_AMOUNT_INCORRECT("E120", "The loan amount is incorrect"),
     PIN_NOT_FOUND("E121", "Pin not found : %s"),
     LOAN_TERM_NOT_FOUND("E122","No such loan term"),
-    TOTAL_AMOUNT_LIMIT("E123","Purchase amount must be between 50 and 20000");
+    PURCHASE_AMOUNT_LIMIT("E123","Purchase amount must be between 50 and 20000"),
+    NO_ENOUGH_BALANCE("E124","There is no enough amount in balance");
 
     String code;
     String message;

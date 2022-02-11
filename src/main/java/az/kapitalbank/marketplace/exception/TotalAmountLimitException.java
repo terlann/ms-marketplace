@@ -10,9 +10,9 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class TotalAmountLimitException extends RuntimeException {
 
-    static final String MESSAGE = "Purchase amount must be between 50 and 20000. Total Amount: %s, commission: %s";
+    static final String MESSAGE = "Purchase amount must be between 50 and 20000. Purchase Amount: %s";
 
-    public TotalAmountLimitException(String totalAmount, String totalCommission) {
-        super(String.format(MESSAGE, totalAmount, totalCommission));
+    public TotalAmountLimitException(String purchaseAmount) {
+        super(String.format(MESSAGE, purchaseAmount));
     }
 }
