@@ -2,7 +2,6 @@ package az.kapitalbank.marketplace.exception.handler;
 
 import az.kapitalbank.marketplace.constants.ErrorCode;
 import az.kapitalbank.marketplace.dto.ErrorResponseDto;
-import az.kapitalbank.marketplace.dto.response.WrapperResponseDto;
 import az.kapitalbank.marketplace.exception.CreateTelesalesOrderException;
 import az.kapitalbank.marketplace.exception.LoanAmountIncorrectException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
@@ -22,50 +21,40 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @RestControllerAdvice
 public class OrderExceptionHandler extends ResponseEntityExceptionHandler {
 
-
     @ExceptionHandler(PhoneNumberInvalidException.class)
-    public ResponseEntity<WrapperResponseDto<?>> phoneNumberInvalid(Exception ex, Object body) {
+    public ResponseEntity<ErrorResponseDto> phoneNumberInvalid(Exception ex) {
         log.error("Exception: {}", ex);
-        var code = ErrorCode.INVALID_MOBILE_NUMBER.getCode();
-        var message = ErrorCode.INVALID_MOBILE_NUMBER.getMessage();
-        var wrapperResponseDto = WrapperResponseDto.of(code, message);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(wrapperResponseDto);
+        var errorResponseDto = new ErrorResponseDto(ErrorCode.INVALID_MOBILE_NUMBER);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
     @ExceptionHandler(PinCodeInCorrectException.class)
-    public ResponseEntity<WrapperResponseDto<?>> pinCodeIsInvalid(Exception ex, Object body) {
+    public ResponseEntity<ErrorResponseDto> pinCodeIsInvalid(Exception ex) {
         log.error("Exception: {}", ex);
-        var code = ErrorCode.INCORRECT_PIN.getCode();
-        var message = ErrorCode.INCORRECT_PIN.getMessage();
-        var wrapperResponseDto = WrapperResponseDto.of(code, message);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(wrapperResponseDto);
+        var errorResponseDto = new ErrorResponseDto(ErrorCode.INCORRECT_PIN);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
     @ExceptionHandler(PinNotFoundException.class)
     public ResponseEntity<ErrorResponseDto> pinNotFound(PinNotFoundException ex) {
         log.error("Exception: {}", ex);
-        var code = ErrorCode.PIN_NOT_FOUND.getCode();
-        var message = String.format(ErrorCode.PIN_NOT_FOUND.getMessage(), ex.getMessage());
-        var errorResponseDto = new ErrorResponseDto(code, message);
+        var errorResponseDto = new ErrorResponseDto(ErrorCode.PIN_NOT_FOUND);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponseDto);
     }
 
     @ExceptionHandler(CreateTelesalesOrderException.class)
-    public ResponseEntity<WrapperResponseDto<?>> createTelesalesOrder(Exception ex, Object body) {
+    public ResponseEntity<ErrorResponseDto> createTelesalesOrder(Exception ex) {
         log.error("Exception: {}", ex);
-        var code = ErrorCode.CREATE_TELESALES_ORDER.getCode();
-        var message = ErrorCode.CREATE_TELESALES_ORDER.getMessage();
-        var wrapperResponseDto = WrapperResponseDto.of(code, message);
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(wrapperResponseDto);
+        var errorResponseDto = new ErrorResponseDto(ErrorCode.CREATE_TELESALES_ORDER);
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errorResponseDto);
+
     }
 
     @ExceptionHandler(OrderNotFoundException.class)
-    public ResponseEntity<WrapperResponseDto<?>> orderIdNotFound(Exception ex, Object body) {
+    public ResponseEntity<ErrorResponseDto> orderIdNotFound(Exception ex, Object body) {
         log.error("Exception: {}", ex);
-        var code = ErrorCode.ORDER_NOT_FOUND.getCode();
-        var message = ex.getMessage();
-        var wrapperResponseDto = WrapperResponseDto.of(code, message);
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(wrapperResponseDto);
+        var errorResponseDto = new ErrorResponseDto(ErrorCode.ORDER_NOT_FOUND);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponseDto);
     }
 
     @ExceptionHandler(LoanAmountIncorrectException.class)
@@ -76,21 +65,17 @@ public class OrderExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(UnknownLoanTerm.class)
-    public ResponseEntity<WrapperResponseDto<?>> loanTermIncorrect(Exception ex) {
+    public ResponseEntity<ErrorResponseDto> loanTermIncorrect(Exception ex) {
         log.error("Exception: {}", ex);
-        var code = HttpStatus.NOT_FOUND.value();
-        var message = ex.getMessage();
-        var wrapperResponseDto = WrapperResponseDto.of(String.valueOf(code), message);
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(wrapperResponseDto);
+        var errorResponseDto = new ErrorResponseDto(ErrorCode.LOAN_TERM_NOT_FOUND);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponseDto);
     }
 
     @ExceptionHandler(TotalAmountLimitException.class)
-    public ResponseEntity<WrapperResponseDto<?>> exceedTotalAmountLimit(TotalAmountLimitException ex) {
+    public ResponseEntity<ErrorResponseDto> exceedTotalAmountLimit(TotalAmountLimitException ex) {
         log.error("Exception: {}", ex);
-        var code = HttpStatus.BAD_REQUEST.value();
-        var message = ex.getMessage();
-        var wrapperResponseDto = WrapperResponseDto.of(String.valueOf(code), message);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(wrapperResponseDto);
+        var errorResponseDto = new ErrorResponseDto(ErrorCode.TOTAL_AMOUNT_LIMIT);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
 }

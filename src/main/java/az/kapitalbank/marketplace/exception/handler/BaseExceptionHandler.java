@@ -26,8 +26,7 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler({SQLIntegrityConstraintViolationException.class,
             SQLException.class,
-            FeignException.class,
-            Exception.class})
+            FeignException.class})
     public ResponseEntity<ErrorResponseDto> multipleException(Exception ex) {
         log.error("Exception: {}", ex);
         var errorResponseDto = new ErrorResponseDto(ErrorCode.INTERNAL_SERVER_ERROR);
@@ -49,7 +48,7 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
                                                                   WebRequest request) {
         log.error("Request - [{}], Exception: ", request.toString(), ex);
         List<String> errorFields = new ArrayList<>();
-        ex.getBindingResult().getAllErrors().forEach((error) -> {
+        ex.getBindingResult().getAllErrors().forEach(error -> {
             String fieldName = ((FieldError) error).getField();
             errorFields.add(fieldName);
         });

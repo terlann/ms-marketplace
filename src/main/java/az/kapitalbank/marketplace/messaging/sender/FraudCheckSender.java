@@ -21,7 +21,7 @@ import org.springframework.stereotype.Component;
 public class FraudCheckSender {
 
     final ObjectMapper objectMapper;
-
+    public static final PropertyNamingStrategy LOWER_CAMEL_CASE = new PropertyNamingStrategy();
     LinkedList<FraudCheckEvent> fraudCheckEventLinkedList = new LinkedList<>();
 
     public void sendMessage(FraudCheckEvent fraudCheckEvent) {
