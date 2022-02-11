@@ -1,6 +1,7 @@
 package az.kapitalbank.marketplace.controller;
 
 import javax.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
@@ -9,6 +10,7 @@ import az.kapitalbank.marketplace.dto.request.ReverseRequestDto;
 import az.kapitalbank.marketplace.dto.request.ScoringOrderRequestDto;
 import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
 import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
+import az.kapitalbank.marketplace.dto.response.PurchaseResponseDto;
 import az.kapitalbank.marketplace.service.OrderService;
 import az.kapitalbank.marketplace.service.ScoringService;
 import lombok.AccessLevel;
@@ -57,14 +59,12 @@ public class OrderController {
     }
 
     @PostMapping("/purchase")
-    public ResponseEntity<Void> purchase(@Valid @RequestBody PurchaseRequestDto request) {
-        service.purchase(request);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    public ResponseEntity<List<PurchaseResponseDto>> purchase(@Valid @RequestBody PurchaseRequestDto request) {
+        return ResponseEntity.ok(service.purchase(request));
     }
 
     @PostMapping("/reverse")
-    public ResponseEntity<Void> reverse(@Valid @RequestBody ReverseRequestDto request) {
-        service.reverse(request);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    public ResponseEntity<PurchaseResponseDto> reverse(@Valid @RequestBody ReverseRequestDto request) {
+        return ResponseEntity.ok(service.reverse(request));
     }
 }

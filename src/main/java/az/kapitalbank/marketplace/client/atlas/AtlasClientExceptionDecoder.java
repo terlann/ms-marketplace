@@ -1,6 +1,6 @@
 package az.kapitalbank.marketplace.client.atlas;
 
-import az.kapitalbank.marketplace.exception.FeignClientException;
+import az.kapitalbank.marketplace.exception.AtlasException;
 import feign.Response;
 import feign.codec.ErrorDecoder;
 import lombok.SneakyThrows;
@@ -12,10 +12,8 @@ public class AtlasClientExceptionDecoder implements ErrorDecoder {
     @SneakyThrows
     @Override
     public Exception decode(String methodKey, Response response) {
-        if (response.status() == 400) {
-// TODO learn atlas available exceptions and throw
-            throw new RuntimeException();
-        } else
-            throw new FeignClientException(methodKey, response.toString());
+
+        throw new AtlasException(methodKey, response.toString());
+
     }
 }
