@@ -8,6 +8,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public enum OrderStatus {
     SUCCESS(1),
+    FAIL(2),
     ERROR(0);
 
     int status;

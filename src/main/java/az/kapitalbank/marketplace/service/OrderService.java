@@ -16,6 +16,7 @@ import az.kapitalbank.marketplace.client.atlas.model.request.ReversPurchaseReque
 import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseCompleteResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.ReverseResponse;
 import az.kapitalbank.marketplace.config.CommissionProperties;
+import az.kapitalbank.marketplace.constants.OrderStatus;
 import az.kapitalbank.marketplace.constants.TransactionStatus;
 import az.kapitalbank.marketplace.dto.DeliveryProductDto;
 import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
@@ -25,7 +26,7 @@ import az.kapitalbank.marketplace.dto.request.PurchaseRequestDto;
 import az.kapitalbank.marketplace.dto.request.ReverseRequestDto;
 import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
 import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
-import az.kapitalbank.marketplace.dto.response.UmicoPurchase;
+import az.kapitalbank.marketplace.dto.response.UmicoPurchaseResponseDto;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
@@ -238,10 +239,10 @@ public class OrderService {
         log.info("delete operation finish ... track_id - [{}]", trackId);
     }
 
-    public List<UmicoPurchase> purchase(PurchaseRequestDto request) {
+    public List<UmicoPurchaseResponseDto> purchase(PurchaseRequestDto request) {
         var customerEntityOptional = customerRepository.findById(request.getCustomerId());
-        UmicoPurchase purchaseResponseForUmico = null;
-        List<UmicoPurchase> umicoPurchaseList = new ArrayList<>();
+        UmicoPurchaseResponseDto umicoPurchaseResponseDto = null;
+        List<UmicoPurchaseResponseDto> umicoPurchaseList = new ArrayList<>();
         if (customerEntityOptional.isPresent()) {
             var cardUUID = customerEntityOptional.get().getCardUUID();
             for (DeliveryProductDto deliveryProductDto : request.getDeliveryOrders()) {
@@ -273,15 +274,15 @@ public class OrderService {
                         orderEntity.setTransactionId(purchaseResponse.getId());
                         orderEntity.setRrn(rrn);
                         orderEntity.setTransactionStatus(TransactionStatus.COMPLETED);
-                        purchaseResponseForUmico.setStatus("SUCCESS");
+                        umicoPurchaseResponseDto.setStatus(OrderStatus.SUCCESS);
                     } catch (AtlasException atlasException) {
-                        purchaseResponseForUmico.setStatus("FAIL");
+                        umicoPurchaseResponseDto.setStatus(OrderStatus.FAIL);
                         orderEntity.setTransactionStatus(TransactionStatus.FAIL_COMPLETED);
                     }
-                    purchaseResponseForUmico.setOrderNo(orderEntity.getOrderNo());
+                    umicoPurchaseResponseDto.setOrderNo(orderEntity.getOrderNo());
                     orderRepository.save(orderEntity);
                 }
-                umicoPurchaseList.add(purchaseResponseForUmico);
+                umicoPurchaseList.add(umicoPurchaseResponseDto);
             }
         } else {
             throw new RuntimeException("Customer not found");
@@ -290,9 +291,9 @@ public class OrderService {
     }
 
     @Transactional
-    public List<UmicoPurchase> reverse(ReverseRequestDto request) {
+    public UmicoPurchaseResponseDto reverse(ReverseRequestDto request) {
 
-        UmicoPurchase purchaseResponseForUmico = null;
+        UmicoPurchaseResponseDto purchaseResponseForUmico = null;
         customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
 
@@ -302,19 +303,17 @@ public class OrderService {
         var reversPurchaseRequest = ReversPurchaseRequest.builder()
                 .description("everything will be okay")  //TODO text ok?)
                 .build();
-        List<UmicoPurchase> umicoPurchaseList = new ArrayList<>();
         ReverseResponse reverseResponse = null;
         try {
             reverseResponse = atlasClient.reverse(orderEntity.getTransactionId(), reversPurchaseRequest);
-            purchaseResponseForUmico.setStatus("SUCCESS");
+            purchaseResponseForUmico.setStatus(OrderStatus.SUCCESS);
         } catch (AtlasException atlasException) {
-            purchaseResponseForUmico.setStatus("FAIL");
+            purchaseResponseForUmico.setStatus(OrderStatus.FAIL);
         }
         purchaseResponseForUmico.setOrderNo(orderEntity.getOrderNo());
-        umicoPurchaseList.add(purchaseResponseForUmico);
         orderEntity.setTransactionId(reverseResponse.getId());
         orderEntity.setTransactionStatus(TransactionStatus.REVERSED);
         orderRepository.save(orderEntity);
-        return umicoPurchaseList;
+        return purchaseResponseForUmico;
     }
 }
