@@ -7,7 +7,7 @@ import lombok.experimental.FieldDefaults;
 
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UmicoPurchaseResponseDto {
+public class PurchaseResponseDto {
     String orderNo;
     OrderStatus status;
 }

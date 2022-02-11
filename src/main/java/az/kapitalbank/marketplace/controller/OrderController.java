@@ -10,7 +10,7 @@ import az.kapitalbank.marketplace.dto.request.ReverseRequestDto;
 import az.kapitalbank.marketplace.dto.request.ScoringOrderRequestDto;
 import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
 import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
-import az.kapitalbank.marketplace.dto.response.UmicoPurchaseResponseDto;
+import az.kapitalbank.marketplace.dto.response.PurchaseResponseDto;
 import az.kapitalbank.marketplace.service.OrderService;
 import az.kapitalbank.marketplace.service.ScoringService;
 import lombok.AccessLevel;
@@ -59,12 +59,12 @@ public class OrderController {
     }
 
     @PostMapping("/purchase")
-    public ResponseEntity<List<UmicoPurchaseResponseDto>> purchase(@Valid @RequestBody PurchaseRequestDto request) {
+    public ResponseEntity<List<PurchaseResponseDto>> purchase(@Valid @RequestBody PurchaseRequestDto request) {
         return ResponseEntity.ok(service.purchase(request));
     }
 
     @PostMapping("/reverse")
-    public ResponseEntity<UmicoPurchaseResponseDto> reverse(@Valid @RequestBody ReverseRequestDto request) {
+    public ResponseEntity<PurchaseResponseDto> reverse(@Valid @RequestBody ReverseRequestDto request) {
         return ResponseEntity.ok(service.reverse(request));
     }
 }

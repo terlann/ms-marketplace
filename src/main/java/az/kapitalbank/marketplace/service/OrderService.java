@@ -26,7 +26,7 @@ import az.kapitalbank.marketplace.dto.request.PurchaseRequestDto;
 import az.kapitalbank.marketplace.dto.request.ReverseRequestDto;
 import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
 import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
-import az.kapitalbank.marketplace.dto.response.UmicoPurchaseResponseDto;
+import az.kapitalbank.marketplace.dto.response.PurchaseResponseDto;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
@@ -239,10 +239,10 @@ public class OrderService {
         log.info("delete operation finish ... track_id - [{}]", trackId);
     }
 
-    public List<UmicoPurchaseResponseDto> purchase(PurchaseRequestDto request) {
+    public List<PurchaseResponseDto> purchase(PurchaseRequestDto request) {
         var customerEntityOptional = customerRepository.findById(request.getCustomerId());
-        UmicoPurchaseResponseDto umicoPurchaseResponseDto = null;
-        List<UmicoPurchaseResponseDto> umicoPurchaseList = new ArrayList<>();
+        PurchaseResponseDto purchaseResponseDto = null;
+        List<PurchaseResponseDto> umicoPurchaseList = new ArrayList<>();
         if (customerEntityOptional.isPresent()) {
             var cardUUID = customerEntityOptional.get().getCardUUID();
             for (DeliveryProductDto deliveryProductDto : request.getDeliveryOrders()) {
@@ -274,15 +274,15 @@ public class OrderService {
                         orderEntity.setTransactionId(purchaseResponse.getId());
                         orderEntity.setRrn(rrn);
                         orderEntity.setTransactionStatus(TransactionStatus.COMPLETED);
-                        umicoPurchaseResponseDto.setStatus(OrderStatus.SUCCESS);
+                        purchaseResponseDto.setStatus(OrderStatus.SUCCESS);
                     } catch (AtlasException atlasException) {
-                        umicoPurchaseResponseDto.setStatus(OrderStatus.FAIL);
+                        purchaseResponseDto.setStatus(OrderStatus.FAIL);
                         orderEntity.setTransactionStatus(TransactionStatus.FAIL_COMPLETED);
                     }
-                    umicoPurchaseResponseDto.setOrderNo(orderEntity.getOrderNo());
+                    purchaseResponseDto.setOrderNo(orderEntity.getOrderNo());
                     orderRepository.save(orderEntity);
                 }
-                umicoPurchaseList.add(umicoPurchaseResponseDto);
+                umicoPurchaseList.add(purchaseResponseDto);
             }
         } else {
             throw new RuntimeException("Customer not found");
@@ -291,9 +291,9 @@ public class OrderService {
     }
 
     @Transactional
-    public UmicoPurchaseResponseDto reverse(ReverseRequestDto request) {
+    public PurchaseResponseDto reverse(ReverseRequestDto request) {
 
-        UmicoPurchaseResponseDto purchaseResponseForUmico = null;
+        PurchaseResponseDto purchaseResponse = null;
         customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
 
@@ -306,14 +306,14 @@ public class OrderService {
         ReverseResponse reverseResponse = null;
         try {
             reverseResponse = atlasClient.reverse(orderEntity.getTransactionId(), reversPurchaseRequest);
-            purchaseResponseForUmico.setStatus(OrderStatus.SUCCESS);
+            purchaseResponse.setStatus(OrderStatus.SUCCESS);
         } catch (AtlasException atlasException) {
-            purchaseResponseForUmico.setStatus(OrderStatus.FAIL);
+            purchaseResponse.setStatus(OrderStatus.FAIL);
         }
-        purchaseResponseForUmico.setOrderNo(orderEntity.getOrderNo());
+        purchaseResponse.setOrderNo(orderEntity.getOrderNo());
         orderEntity.setTransactionId(reverseResponse.getId());
         orderEntity.setTransactionStatus(TransactionStatus.REVERSED);
         orderRepository.save(orderEntity);
-        return purchaseResponseForUmico;
+        return purchaseResponse;
     }
 }
