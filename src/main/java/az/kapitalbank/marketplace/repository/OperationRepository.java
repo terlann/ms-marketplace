@@ -19,8 +19,8 @@ public interface OperationRepository extends JpaRepository<OperationEntity, UUID
 
     @Query(nativeQuery = true,
             value = "select count(*) " +
-                    "from   customer c" +
-                    "       inner join operation o " +
+                    "from   kb_marketplace_customer c" +
+                    "       inner join kb_marketplace_operation o " +
                     "               on c.id = o.customer_id " +
                     "where  pin = :pin " +
                     "       and o.umico_decision_status in( 'APPROVED', 'PREAPPROVED', 'PENDING' )")
