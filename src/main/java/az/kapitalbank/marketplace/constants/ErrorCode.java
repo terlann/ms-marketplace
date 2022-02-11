@@ -22,7 +22,9 @@ public enum ErrorCode {
     CREATE_TELESALES_ORDER("E118", "Cannot create telesales order.Please try after a while"),
     PRODUCT_AMOUNT_INCORRECT("E119", "The price of product is incorrect"),
     LOAN_AMOUNT_INCORRECT("E120", "The loan amount is incorrect"),
-    PIN_NOT_FOUND("E121", "Pin not found : %s");
+    PIN_NOT_FOUND("E121", "Pin not found : %s"),
+    LOAN_TERM_NOT_FOUND("E122","No such loan term"),
+    TOTAL_AMOUNT_LIMIT("E123","Purchase amount must be between 50 and 20000");
 
     String code;
     String message;
