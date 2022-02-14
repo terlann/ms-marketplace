@@ -5,12 +5,10 @@ import javax.persistence.Entity;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 import az.kapitalbank.marketplace.constants.CustomerStatus;
-import az.kapitalbank.marketplace.constants.IdentifiedBy;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -41,8 +39,6 @@ public class CustomerEntity extends BaseEntity {
     LocalDate birthday;
     String cardUUID;
     CustomerStatus status;
-    LocalDateTime identifiedDate;
-    IdentifiedBy identifiedBy;
 
     @Builder.Default
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)

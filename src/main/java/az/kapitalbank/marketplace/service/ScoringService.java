@@ -22,13 +22,12 @@ import az.kapitalbank.marketplace.client.umico.model.UmicoScoringDecisionRequest
 import az.kapitalbank.marketplace.client.umico.model.UmicoScoringDecisionResponse;
 import az.kapitalbank.marketplace.constants.AdpOptimusLevels;
 import az.kapitalbank.marketplace.constants.ScoringStatus;
-import az.kapitalbank.marketplace.constants.UmicoOrderStatus;
+import az.kapitalbank.marketplace.constants.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.CompleteScoring;
 import az.kapitalbank.marketplace.dto.request.ScoringOrderRequestDto;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.exception.FeignClientException;
 import az.kapitalbank.marketplace.exception.OrderAlreadyScoringException;
-import az.kapitalbank.marketplace.exception.OrderIsInactiveException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.ScoringCustomerException;
 import az.kapitalbank.marketplace.mappers.ScoringMapper;
@@ -64,61 +63,54 @@ public class ScoringService {
     ScoringMapper scoringMapper;
 
     @Transactional
-    public void scoringOrder(ScoringOrderRequestDto request) {
+    public void telesalesResult(ScoringOrderRequestDto request) {
         String telesalesOrderId = request.getTelesalesOrderId().trim();
-        log.info("scoring order start... telesales_order_id - [{}]", telesalesOrderId);
+        log.info("telesales loan result start... telesales_order_id - [{}]", telesalesOrderId);
         var exceptionMessage = String.format("telesales_order_id - [%S]", telesalesOrderId);
-        var operationEntityOptional = operationRepository.findByTelesalesOrderId(telesalesOrderId);
-        operationEntityOptional.orElseThrow(() -> new OrderNotFoundException(exceptionMessage));
-        log.info("scoring order find order in db. telesales_order_id - [{}]", telesalesOrderId);
-        operationEntityOptional
-                .filter(o -> {
-                    if (o.getDeletedAt() != null) {
-                        log.error("scoring order is inactive. telesales_order_id - [{}]", telesalesOrderId);
-                        throw new OrderIsInactiveException(exceptionMessage);
-                    }
-                    if (o.getScoringStatus() != null) {
-                        log.error("scoring order is already have been score. telesales_order_id - [{}]",
-                                telesalesOrderId);
-                        throw new OrderAlreadyScoringException(telesalesOrderId);
-                    }
-                    return true;
-                });
+        var operationEntity = operationRepository.findByTelesalesOrderId(telesalesOrderId)
+                .orElseThrow(() -> new OrderNotFoundException(exceptionMessage));
+        log.info("telesales_order_id found in db. telesales_order_id - [{}]", telesalesOrderId);
 
-
-        var operationEntity = operationEntityOptional.get();
-
-        operationEntity.setScoringDate(LocalDateTime.now());
-        operationEntity.setScoringStatus(request.getScoringStatus());
-        if (request.getScoringStatus().equals(ScoringStatus.APPROVED)) {
-            operationEntity.setLoanStartDate(request.getLoanStartDate());
-            operationEntity.setLoanEndDate(request.getLoanEndDate());
-            // TODO update dvs statuses
+        if (operationEntity.getScoringStatus() != null) {
+            log.error("Order already have scored. telesales_order_id - [{}]",
+                    telesalesOrderId);
+            throw new OrderAlreadyScoringException(telesalesOrderId);
         }
 
+        var umicoDecisionStatus = request.getScoringStatus() == ScoringStatus.APPROVED ?
+                UmicoDecisionStatus.APPROVED : UmicoDecisionStatus.REJECTED;
+        operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+        operationEntity.setScoringStatus(request.getScoringStatus());
+        operationEntity.setScoringDate(LocalDateTime.now());
+        var cardUid = request.getCardPan(); // TODO optimus send me pan and change to cardUid
+        if (request.getScoringStatus().equals(ScoringStatus.APPROVED)) {
+            operationEntity.getCustomer().setCardUUID(cardUid);
+            operationEntity.setLoanContractStartDate(request.getLoanContractStartDate()); // TODO optimus send me
+            operationEntity.setLoanContractEndDate(request.getLoanContractEndDate()); // TODO optimus send me
+        }
+        operationRepository.save(operationEntity);
+
+        //TODO purchase all orders
         try {
-            //TODO purchase all orders
-            sendDecisionScoring(operationEntity, telesalesOrderId, request.getScoringStatus().getStatus());
+            sendDecisionScoring(operationEntity);
         } catch (Exception e) {
             log.error("scoring order dont send the decision to umico. ete_order_id - [{}],Exception - ",
                     telesalesOrderId, e);
         }
-
-        log.info("scoring order saving the result. ete_order_id - [{}],track_id - [{}]",
-                telesalesOrderId,
-                operationEntityOptional.get().getId());
-        log.info("scoring order find finish... ete_order_id - [{}]", telesalesOrderId);
+        log.info("telesales loan result finished... telesales_order_id - [{}]", telesalesOrderId);
     }
 
 
-    @Transactional
-    public void sendDecisionScoring(OperationEntity operationEntity, String telesalesOrderId, Integer result) {
+    public void sendDecisionScoring(OperationEntity operationEntity) {
         try {
-            var status = result == 1 ? UmicoOrderStatus.APPROVED : UmicoOrderStatus.DECLINED;
-            var trackId = operationEntity.getId();
             UmicoScoringDecisionRequest umicoScoringDecisionRequest = UmicoScoringDecisionRequest.builder()
-                    .trackId(trackId)
-                    .scoringStatus(status.toString())
+                    .trackId(operationEntity.getId())
+                    .decisionStatus(operationEntity.getUmicoDecisionStatus())
+//                    .loanContractStartDate()
+//                    .loanContractEndDate()
+                    .customerId(operationEntity.getCustomer().getId())
+                    .commission(operationEntity.getCommission())
+                    .loanLimit(operationEntity.getTotalAmount())
                     .loanTerm(operationEntity.getLoanTerm())
                     .build();
             log.info("scoring order send decision to umico. Request - [{}] ",
@@ -127,10 +119,10 @@ public class ScoringService {
                     .sendDecisionScoring(umicoScoringDecisionRequest, apiKey);
             log.info("scoring order send decision to umico. Response - [{}] , ete_order_id - [{}]",
                     umicoScoringDecisionResponse.toString(),
-                    telesalesOrderId);
+                    operationEntity.getTelesalesOrderId());
         } catch (FeignClientException e) {
             log.error("send decision scoring to umico. ete_order_id - [{}] " +
-                    ",FeignException - {}", telesalesOrderId, e.getMessage());
+                    ",FeignException - {}", operationEntity.getTelesalesOrderId(), e.getMessage());
         }
     }
 

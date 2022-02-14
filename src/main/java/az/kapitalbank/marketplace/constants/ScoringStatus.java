@@ -10,9 +10,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public enum ScoringStatus {
     APPROVED(1),
-    REJECTED(0),
-    PENDING(-2),
-    PREAPPROVED(-1);
+    REJECTED(0);
 
     final int status;
 }

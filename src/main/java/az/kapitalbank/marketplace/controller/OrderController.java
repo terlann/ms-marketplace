@@ -2,7 +2,6 @@ package az.kapitalbank.marketplace.controller;
 
 import javax.validation.Valid;
 import java.util.List;
-import java.util.UUID;
 
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
 import az.kapitalbank.marketplace.dto.request.PurchaseRequestDto;
@@ -18,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -47,14 +45,8 @@ public class OrderController {
 
     // TODO update customer,operation after telesales scoring and dvs
     @PostMapping("/telesales/result")
-    public ResponseEntity<Void> scoringOrder(@Valid @RequestBody ScoringOrderRequestDto request) {
-        scoringService.scoringOrder(request);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
-    }
-
-    @DeleteMapping("/{trackId}")
-    public ResponseEntity<Void> deleteOrder(@Valid @PathVariable UUID trackId) {
-        service.deleteOrder(trackId);
+    public ResponseEntity<Void> telesalesResult(@Valid @RequestBody ScoringOrderRequestDto request) {
+        scoringService.telesalesResult(request);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 

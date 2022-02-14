@@ -8,8 +8,8 @@ import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.optimus.OptimusClient;
 import az.kapitalbank.marketplace.client.umico.UmicoClient;
 import az.kapitalbank.marketplace.client.umico.model.UmicoScoringDecisionRequest;
-import az.kapitalbank.marketplace.constants.ScoringStatus;
 import az.kapitalbank.marketplace.constants.TransactionStatus;
+import az.kapitalbank.marketplace.constants.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.CompleteScoring;
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.messaging.event.OrderDvsStatusEvent;
@@ -59,50 +59,48 @@ public class OrderDvsStatusListener {
                             .readValue(message, OrderDvsStatusEvent.class);
                     log.info("order dvs status consumer. Message - [{}]", orderDvsStatusEvent);
                     if (orderDvsStatusEvent != null) {
-                        var operationEntityOptional = operationRepository.findByDvsOrderId(
-                                orderDvsStatusEvent.getOrderId());
-                        if (operationEntityOptional.isPresent()) {
-                            var operationEntity = operationEntityOptional.get();
-                            var customerEntity = operationEntity.getCustomer();
-                            var completeScoring = CompleteScoring.builder()
-                                    .trackId(operationEntity.getId())
-                                    .businessKey(operationEntity.getBusinessKey())
-                                    .additionalNumber1(customerEntity.getAdditionalPhoneNumber1())
-                                    .additionalNumber2(customerEntity.getAdditionalPhoneNumber2())
-                                    .build();
-                            scoringService.completeScoring(completeScoring);
+                        //TODO Dvs status reject send umico reject if confirm complete process but pending ?
+                        var operationEntity = operationRepository.findByDvsOrderId(orderDvsStatusEvent.getOrderId())
+                                .orElseThrow(() -> new RuntimeException("Operation not found"));
+                        var customerEntity = operationEntity.getCustomer();
+                        var completeScoring = CompleteScoring.builder()
+                                .trackId(operationEntity.getId())
+                                .businessKey(operationEntity.getBusinessKey())
+                                .additionalNumber1(customerEntity.getAdditionalPhoneNumber1())
+                                .additionalNumber2(customerEntity.getAdditionalPhoneNumber2())
+                                .build();
+                        scoringService.completeScoring(completeScoring);
 
-                            operationEntity.setDvsOrderStatus(orderDvsStatusEvent.getStatus());
-                            operationRepository.save(operationEntity);
-                            var orders = operationEntity.getOrders();
-                            var cardPan = optimusClient.getProcessVariable(operationEntity.getBusinessKey(), "pan");
-                            var cardUid = atlasClient.findByPan(cardPan).getUid();
-                            customerEntity.setCardUUID(cardUid);
-                            customerRepository.save(customerEntity);
-                            for (OrderEntity orderEntity : orders) {
-                                var rrn = GenerateUtil.rrn();
-                                var purchaseRequest = PurchaseRequest.builder()
-                                        .rrn(rrn)
-                                        .amount(orderEntity.getTotalAmount())
-                                        .description("purchase") //TODO text ?
-                                        .currency(944)
-                                        .terminalName(terminalName)
-                                        .uid(cardUid)
-                                        .build();
-                                var purchaseResponse = atlasClient.purchase(purchaseRequest);
-                                orderEntity.setRrn(rrn);
-                                orderEntity.setTransactionId(purchaseResponse.getId());
-                                orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
-                                orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
-                            }
-                            var umicoScoringDecisionRequest = UmicoScoringDecisionRequest.builder()
-                                    .trackId(operationEntity.getId())
-                                    .scoringStatus(ScoringStatus.APPROVED.name())
-                                    .loanTerm(operationEntity.getLoanTerm())
-                                    .customerId(customerEntity.getId())
+                        operationEntity.setDvsOrderStatus(orderDvsStatusEvent.getStatus());
+                        operationRepository.save(operationEntity);
+                        var orders = operationEntity.getOrders();
+                        var cardPan = optimusClient.getProcessVariable(operationEntity.getBusinessKey(), "pan");
+                        var cardUid = atlasClient.findByPan(cardPan).getUid();
+                        customerEntity.setCardUUID(cardUid);
+                        customerRepository.save(customerEntity);
+                        for (OrderEntity orderEntity : orders) {
+                            var rrn = GenerateUtil.rrn();
+                            var purchaseRequest = PurchaseRequest.builder()
+                                    .rrn(rrn)
+                                    .amount(orderEntity.getTotalAmount())
+                                    .description("purchase") //TODO text ?
+                                    .currency(944)
+                                    .terminalName(terminalName)
+                                    .uid(cardUid)
                                     .build();
-                            umicoClient.sendDecisionScoring(umicoScoringDecisionRequest, apiKey);
+                            var purchaseResponse = atlasClient.purchase(purchaseRequest);
+                            orderEntity.setRrn(rrn);
+                            orderEntity.setTransactionId(purchaseResponse.getId());
+                            orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
+                            orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
                         }
+                        var umicoScoringDecisionRequest = UmicoScoringDecisionRequest.builder()
+                                .trackId(operationEntity.getId())
+                                .decisionStatus(UmicoDecisionStatus.APPROVED)
+                                .loanTerm(operationEntity.getLoanTerm())
+                                .customerId(customerEntity.getId())
+                                .build();
+                        umicoClient.sendDecisionScoring(umicoScoringDecisionRequest, apiKey);
                     }
                 } catch (JsonProcessingException j) {
                     log.error("order dvs status consume.Message - [{}], JsonProcessingException - {}",
