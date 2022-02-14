@@ -17,8 +17,8 @@ public interface LoanFormalizeMapper {
 
     @Mapping(source = "customerEntity.fullName", target = "fullName")
     @Mapping(source = "customerEntity.email", target = "email")
-    @Mapping(source = "customerEntity.mobileNumber", target = "mobile")
-    @Mapping(source = "customerEntity.pin", target = "pin")
+    @Mapping(source = "mobileNumber", target = "mobile")
+    @Mapping(source = "pin", target = "pin")
     @Mapping(source = "processResponse.variables.cif", target = "cif")
     @Mapping(source = "processResponse.variables.cashCreditContractNumber", target = "cashContract")
     @Mapping(source = "processResponse.taskId", target = "processId")
@@ -36,6 +36,7 @@ public interface LoanFormalizeMapper {
     @Mapping(source = "processResponse.processCreateTime", target = "creditCreatedAt",
             qualifiedByName = "toLocalDateTime")
     @Mapping(constant = "processResponse.variables.selectedOffer.cashOffer.availableLoanAmount", target = "cashAmount")
-    DvsCreateOrderRequest toDvsCreateOrderRequest(CustomerEntity customerEntity, ProcessResponse processResponse);
+    DvsCreateOrderRequest toDvsCreateOrderRequest(CustomerEntity customerEntity, ProcessResponse processResponse,
+                                                  String pin, String mobileNumber);
 
 }

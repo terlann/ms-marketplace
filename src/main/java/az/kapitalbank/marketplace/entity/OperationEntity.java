@@ -45,6 +45,8 @@ public class OperationEntity extends BaseEntity {
     String longitude;
     String ip;
     String userAgent;
+    String pin;
+    String mobileNumber;
     String taskId;
     String businessKey;
     ScoringStatus scoringStatus;

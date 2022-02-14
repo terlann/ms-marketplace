@@ -17,5 +17,7 @@ public interface OperationMapper {
     @Mapping(source = "customerInfo.longitude", target = "longitude")
     @Mapping(source = "customerInfo.ip", target = "ip")
     @Mapping(source = "customerInfo.userAgent", target = "userAgent")
+    @Mapping(source = "customerInfo.pin", target = "pin")
+    @Mapping(source = "customerInfo.mobileNumber", target = "mobileNumber")
     OperationEntity toOperationEntity(CreateOrderRequestDto source);
 }

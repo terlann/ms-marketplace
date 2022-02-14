@@ -94,6 +94,10 @@ public class OrderDvsStatusListener {
                             orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
                             orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
                         }
+                        customerEntity.setPin(operationEntity.getPin());
+                        customerEntity.setMobileNumber(operationEntity.getMobileNumber());
+                        customerRepository.save(customerEntity);
+
                         var umicoScoringDecisionRequest = UmicoScoringDecisionRequest.builder()
                                 .trackId(operationEntity.getId())
                                 .decisionStatus(UmicoDecisionStatus.APPROVED)

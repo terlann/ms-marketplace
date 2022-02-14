@@ -80,11 +80,10 @@ public class OrderService {
         CustomerEntity customerEntity = null;
         if (customerId == null) {
             validatePurchaseAmountLimit(request);
-            var pin = request.getCustomerInfo().getPin();
-            var operationCount = operationRepository.operationCountByPinAndDecisionStatus(pin);
-            if (operationCount != 0)
-                throw new RuntimeException("This customer havent finished process" + pin);
-            customerEntity = customerMapper.toCustomerEntity(request.getCustomerInfo());
+            var customerByUmicoUserId =
+                    customerRepository.findByUmicoUserId(request.getCustomerInfo().getUmicoUserId());
+            customerEntity = customerByUmicoUserId.orElseGet(() ->
+                    customerMapper.toCustomerEntity(request.getCustomerInfo()));
         } else {
             customerEntity = customerRepository.findById(customerId).orElseThrow(
                     () -> new RuntimeException("Customer not found : " + customerId));
@@ -129,11 +128,8 @@ public class OrderService {
         operationEntity.setOrders(orderEntities);
         customerEntity.setOperations(Collections.singletonList(operationEntity));
         var trackId = operationEntity.getId();
-        if (customerId == null) {
-            FraudCheckEvent fraudCheckEvent = createOrderMapper.toOrderEvent(request);
-            fraudCheckEvent.setTrackId(trackId);
-            customerOrderProducer.sendMessage(fraudCheckEvent);
-        } else {
+
+        if (customerId != null && !customerEntity.getPin().isBlank() && !customerEntity.getMobileNumber().isBlank()) {
             var cardUid = customerEntity.getCardUUID();
             for (OrderEntity orderEntity : orderEntities) {
                 var rrn = GenerateUtil.rrn();
@@ -152,6 +148,10 @@ public class OrderService {
                 orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
                 orderEntities.add(orderEntity);
             }
+        } else {
+            FraudCheckEvent fraudCheckEvent = createOrderMapper.toOrderEvent(request);
+            fraudCheckEvent.setTrackId(trackId);
+            customerOrderProducer.sendMessage(fraudCheckEvent);
         }
         customerRepository.save(customerEntity);
         return CreateOrderResponse.of(trackId);

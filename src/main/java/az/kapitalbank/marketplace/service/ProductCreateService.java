@@ -77,12 +77,11 @@ public class ProductCreateService {
 
         var operationEntityOptional = operationRepository.findById(trackId);
         if (operationEntityOptional.isPresent()) {
-            var customerEntity = operationEntityOptional.get().getCustomer();
             var operationEntity = operationEntityOptional.get();
             try {
                 Optional<String> businessKey = scoringService.startScoring(trackId,
-                        customerEntity.getPin(),
-                        customerEntity.getMobileNumber());
+                        operationEntity.getPin(),
+                        operationEntity.getMobileNumber());
                 if (businessKey.isPresent()) {
                     operationEntity.setBusinessKey(businessKey.get());
                     operationRepository.save(operationEntity);
@@ -91,7 +90,8 @@ public class ProductCreateService {
                             businessKey);
                 }
             } catch (ScoringCustomerException e) {
-                log.error("ProductCreateService: optimus start scoring was failed.Redirect to telesales track_id - [{}]", trackId);
+                log.error("ProductCreateService:" +
+                        " optimus start scoring was failed.Redirect to telesales track_id - [{}]", trackId);
                 var telesalesOrderId = telesalesService.sendLead(trackId);
                 updateOperationTelesalesOrderId(trackId, telesalesOrderId);
                 sendDecision(UmicoDecisionStatus.PENDING, trackId, "", "");
@@ -109,7 +109,6 @@ public class ProductCreateService {
         if (scoringResultEvent.getProcessStatus().equals(ProcessStatus.IN_USER_ACTIVITY)) {
             var processResponse = scoringService.getProcess(trackId, businessKey)
                     .orElseThrow(() -> new RuntimeException("Optimus getProcess is null"));
-            CustomerEntity customerEntity = operationEntity.getCustomer();
             InUserActivityData inUserActivityData = (InUserActivityData) scoringResultEvent.getData();
             String taskDefinitionKey = inUserActivityData.getTaskDefinitionKey();
             if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SCORING)) {
@@ -126,8 +125,12 @@ public class ProductCreateService {
                 operationEntity.setTaskId(taskId);
                 operationRepository.save(operationEntity);
             } else if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SIGN_DOCUMENTS)) {
+                CustomerEntity customerEntity = operationEntity.getCustomer();
                 DvsCreateOrderRequest dvsCreateOrderRequest = loanFormalizeMapper
-                        .toDvsCreateOrderRequest(customerEntity, processResponse);
+                        .toDvsCreateOrderRequest(customerEntity,
+                                processResponse,
+                                operationEntity.getPin(),
+                                operationEntity.getMobileNumber());
                 DvsCreateOrderResponse dvsCreateOrderResponse = verificationService
                         .createOrder(dvsCreateOrderRequest, trackId)
                         .orElseThrow(() -> new RuntimeException("DVS create order response is null"));
