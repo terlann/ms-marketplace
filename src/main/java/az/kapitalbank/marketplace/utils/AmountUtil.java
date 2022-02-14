@@ -5,17 +5,18 @@ import java.math.RoundingMode;
 
 import az.kapitalbank.marketplace.config.CommissionProperties;
 import az.kapitalbank.marketplace.exception.UnknownLoanTerm;
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
-@RequiredArgsConstructor
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class AmountUtil {
 
-    static CommissionProperties commissionProperties;
+    private static CommissionProperties commissionProperties;
+
+    @Autowired
+    public AmountUtil(CommissionProperties commissionProperties) {
+        AmountUtil.commissionProperties = commissionProperties;
+    }
 
     public static BigDecimal amountFormatting(BigDecimal amount) {
         return BigDecimal.valueOf(amount.doubleValue());
