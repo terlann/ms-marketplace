@@ -106,22 +106,22 @@ public class ProductCreateService {
         var operationEntity = operationRepository.findByBusinessKey(businessKey)
                 .orElseThrow(() -> new RuntimeException("Operation not found"));
         var trackId = operationEntity.getId();
-        CustomerEntity customerEntity = operationEntity.getCustomer();
         if (scoringResultEvent.getProcessStatus().equals(ProcessStatus.IN_USER_ACTIVITY)) {
-            InUserActivityData inUserActivityData = (InUserActivityData) scoringResultEvent.getData();
             var processResponse = scoringService.getProcess(trackId, businessKey)
                     .orElseThrow(() -> new RuntimeException("Optimus getProcess is null"));
-            ProcessData processData = processResponse.getVariables();
-            var scoredAmount = processData.getSelectedOffer().getCashOffer().getAvailableLoanAmount();
-            if (scoredAmount.compareTo(operationEntity.getTotalAmount().add(operationEntity.getCommission())) < 0) {
-                var telesalesOrderId = telesalesService.sendLead(trackId);
-                updateOperationTelesalesOrderId(trackId, telesalesOrderId);
-                sendDecision(UmicoDecisionStatus.PENDING, trackId, "", "");
-                return;
-            }
-            var taskId = processResponse.getTaskId();
+            CustomerEntity customerEntity = operationEntity.getCustomer();
+            InUserActivityData inUserActivityData = (InUserActivityData) scoringResultEvent.getData();
             String taskDefinitionKey = inUserActivityData.getTaskDefinitionKey();
             if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SCORING)) {
+                var taskId = processResponse.getTaskId();
+                ProcessData processData = processResponse.getVariables();
+                var scoredAmount = processData.getSelectedOffer().getCashOffer().getAvailableLoanAmount();
+                if (scoredAmount.compareTo(operationEntity.getTotalAmount().add(operationEntity.getCommission())) < 0) {
+                    var telesalesOrderId = telesalesService.sendLead(trackId);
+                    updateOperationTelesalesOrderId(trackId, telesalesOrderId);
+                    sendDecision(UmicoDecisionStatus.PENDING, trackId, "", "");
+                    return;
+                }
                 scoringService.createScoring(trackId, taskId, scoredAmount);
                 operationEntity.setTaskId(taskId);
                 operationRepository.save(operationEntity);
