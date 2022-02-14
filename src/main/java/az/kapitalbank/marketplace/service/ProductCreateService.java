@@ -91,7 +91,8 @@ public class ProductCreateService {
                             businessKey);
                 }
             } catch (ScoringCustomerException e) {
-                log.error("ProductCreateService: optimus start scoring was failed.Redirect to telesales track_id - [{}]", trackId);
+                log.error("ProductCreateService: " +
+                        "optimus start scoring was failed.Redirect to telesales track_id - [{}]", trackId);
                 var telesalesOrderId = telesalesService.sendLead(trackId);
                 updateOperationTelesalesOrderId(trackId, telesalesOrderId);
                 sendDecision(UmicoDecisionStatus.PENDING, trackId, "", "");
