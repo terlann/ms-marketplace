@@ -3,7 +3,6 @@ package az.kapitalbank.marketplace.dto.request;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
-import java.util.UUID;
 
 import az.kapitalbank.marketplace.constants.ScoringStatus;
 import lombok.AccessLevel;
@@ -17,7 +16,7 @@ public class ScoringOrderRequestDto {
     String telesalesOrderId;
     @NotNull
     ScoringStatus scoringStatus;
-    LocalDate loanStartDate;
-    LocalDate loanEndDate;
-    UUID cardUUID;
+    LocalDate loanContractStartDate;
+    LocalDate loanContractEndDate;
+    String cardPan;
 }

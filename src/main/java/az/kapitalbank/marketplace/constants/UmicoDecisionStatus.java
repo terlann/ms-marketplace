@@ -4,6 +4,6 @@ public enum UmicoDecisionStatus {
     APPROVED,
     PREAPPROVED,
     DECLINED,
-    REJECT,
+    REJECTED,
     PENDING
 }

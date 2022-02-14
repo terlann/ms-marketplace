@@ -36,7 +36,7 @@ public interface OptimusClient {
     String getProcessVariable(@PathVariable("business-key") String businessKey, @RequestParam String variableName);
 
     @DeleteMapping("/api/v1/process/loan/{business-key}")
-    void  deleteLoan(@PathVariable("business-key") String businessKey);
+    void deleteLoan(@PathVariable("business-key") String businessKey);
 
     class FeignConfiguration {
         @Bean

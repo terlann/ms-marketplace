@@ -8,7 +8,7 @@ import lombok.experimental.FieldDefaults;
 @Getter
 @Setter
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class UnknownLoanTerm  extends RuntimeException {
+public class UnknownLoanTerm extends RuntimeException {
 
     static final String MESSAGE = "No such loan term - [%s]";
 

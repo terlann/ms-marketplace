@@ -2,12 +2,9 @@ package az.kapitalbank.marketplace.service;
 
 import javax.transaction.Transactional;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.UUID;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteRequest;
@@ -15,7 +12,6 @@ import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.ReversPurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseCompleteResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.ReverseResponse;
-import az.kapitalbank.marketplace.config.CommissionProperties;
 import az.kapitalbank.marketplace.constants.OrderStatus;
 import az.kapitalbank.marketplace.constants.TransactionStatus;
 import az.kapitalbank.marketplace.dto.DeliveryProductDto;
@@ -37,7 +33,6 @@ import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
 import az.kapitalbank.marketplace.exception.OrderAlreadyScoringException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
-import az.kapitalbank.marketplace.exception.UnknownLoanTerm;
 import az.kapitalbank.marketplace.mappers.CreateOrderMapper;
 import az.kapitalbank.marketplace.mappers.CustomerMapper;
 import az.kapitalbank.marketplace.mappers.OperationMapper;
@@ -56,6 +51,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import static az.kapitalbank.marketplace.utils.AmountUtil.getCommission;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -71,8 +68,6 @@ public class OrderService {
     AtlasClient atlasClient;
     OrderMapper orderMapper;
     OrderRepository orderRepository;
-    CommissionProperties commissionProperties;
-
     @NonFinal
     @Value("${purchase.terminal-name}")
     String terminalName;
@@ -99,12 +94,15 @@ public class OrderService {
         OperationEntity operationEntity = operationMapper.toOperationEntity(request);
         operationEntity.setCustomer(customerEntity);
 
+        var operationCommission = BigDecimal.ZERO;
         List<OrderEntity> orderEntities = new ArrayList<>();
         List<ProductEntity> productEntities = new ArrayList<>();
         for (OrderProductDeliveryInfo deliveryInfo : request.getDeliveryInfo()) {
+            var commission = getCommission(deliveryInfo.getTotalAmount(), request.getLoanTerm());
+            operationCommission = operationCommission.add(commission);
             OrderEntity orderEntity = OrderEntity.builder()
                     .totalAmount(deliveryInfo.getTotalAmount())
-                    .commission(getCommission(deliveryInfo.getTotalAmount(), request.getLoanTerm()))
+                    .commission(commission)
                     .orderNo(deliveryInfo.getOrderNo())
                     .deliveryAddress(deliveryInfo.getDeliveryAddress())
                     .operation(operationEntity)
@@ -127,6 +125,7 @@ public class OrderService {
             orderEntities.add(orderEntity);
             orderEntity.setProducts(productEntities);
         }
+        operationEntity.setCommission(operationCommission);
         operationEntity.setOrders(orderEntities);
         customerEntity.setOperations(Collections.singletonList(operationEntity));
         var trackId = operationEntity.getId();
@@ -164,16 +163,6 @@ public class OrderService {
         if (purchaseAmount.compareTo(availableBalance) > 0) {
             throw new NoEnoughBalanceException(availableBalance);
         }
-    }
-
-    private BigDecimal getCommission(BigDecimal orderAmount, int loanTerm) {
-        BigDecimal percent = commissionProperties.getValues().get(loanTerm);
-        if (percent == null) {
-            throw new UnknownLoanTerm(loanTerm);
-        }
-        return orderAmount
-                .multiply(percent)
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
     }
 
     private void validateOrderAmount(CreateOrderRequestDto createOrderRequestDto) {
@@ -237,30 +226,9 @@ public class OrderService {
 
     }
 
-    // TODO umico call this
-    @Transactional
-    public void deleteOrder(UUID trackId) {
-        var operationEntity = operationRepository.findById(trackId);
-        log.info("delete order start ... track_id - [{}]", trackId);
-        operationEntity.orElseThrow(() -> new OrderNotFoundException(String.format("track_id - [%s]", trackId)));
-
-        var operation = operationEntity.get();
-
-        if (operation.getDeletedAt() != null)
-            return;
-
-        if (operation.getScoringStatus() != null) {
-            throw new OrderAlreadyScoringException(operation.getTelesalesOrderId());
-        }
-
-        operation.setDeletedAt(LocalDateTime.now());
-        operationRepository.save(operation);
-        log.info("delete operation finish ... track_id - [{}]", trackId);
-    }
-
     public List<PurchaseResponseDto> purchase(PurchaseRequestDto request) {
         var customerEntityOptional = customerRepository.findById(request.getCustomerId());
-        PurchaseResponseDto purchaseResponseDto = null;
+        PurchaseResponseDto purchaseResponseDto = new PurchaseResponseDto();
         List<PurchaseResponseDto> umicoPurchaseList = new ArrayList<>();
         if (customerEntityOptional.isPresent()) {
             var cardUUID = customerEntityOptional.get().getCardUUID();
@@ -312,7 +280,7 @@ public class OrderService {
     @Transactional
     public PurchaseResponseDto reverse(ReverseRequestDto request) {
 
-        PurchaseResponseDto purchaseResponse = null;
+        PurchaseResponseDto purchaseResponse = new PurchaseResponseDto();
         customerRepository.findById(request.getCustomerId())
                 .orElseThrow(() -> new RuntimeException("Customer not found"));
 
@@ -326,12 +294,13 @@ public class OrderService {
         try {
             reverseResponse = atlasClient.reverse(orderEntity.getTransactionId(), reversPurchaseRequest);
             purchaseResponse.setStatus(OrderStatus.SUCCESS);
+            orderEntity.setTransactionId(reverseResponse.getId());
+            orderEntity.setTransactionStatus(TransactionStatus.REVERSED);
         } catch (AtlasException atlasException) {
             purchaseResponse.setStatus(OrderStatus.FAIL);
+            orderEntity.setTransactionStatus(TransactionStatus.FAIL_PURCHASE);
         }
         purchaseResponse.setOrderNo(orderEntity.getOrderNo());
-        orderEntity.setTransactionId(reverseResponse.getId());
-        orderEntity.setTransactionStatus(TransactionStatus.REVERSED);
         orderRepository.save(orderEntity);
         return purchaseResponse;
     }

@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
+import az.kapitalbank.marketplace.constants.UmicoDecisionStatus;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,12 +23,12 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UmicoScoringDecisionRequest {
     UUID trackId;
-    String scoringStatus;
-    LocalDate loanStartDate;
-    LocalDate loanEndDate;
+    UmicoDecisionStatus decisionStatus;
+    LocalDate loanContractStartDate;
+    LocalDate loanContractEndDate;
     String dvsUrl;
     UUID customerId;
-    Integer loanLimit;
+    BigDecimal loanLimit;
     Integer loanTerm;
     BigDecimal commission;
 }

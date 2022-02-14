@@ -38,9 +38,9 @@ import lombok.experimental.SuperBuilder;
 public class OperationEntity extends BaseEntity {
     String telesalesOrderId;
     BigDecimal totalAmount;
+    BigDecimal commission;
     Integer loanTerm;
     OperationStatus status;
-    LocalDateTime deletedAt;
     String latitude;
     String longitude;
     String ip;
@@ -49,8 +49,8 @@ public class OperationEntity extends BaseEntity {
     String businessKey;
     ScoringStatus scoringStatus;
     LocalDateTime scoringDate;
-    LocalDate loanStartDate;
-    LocalDate loanEndDate;
+    LocalDate loanContractStartDate;
+    LocalDate loanContractEndDate;
     String dvsOrderId;
     String dvsOrderStatus;
     @Enumerated(EnumType.STRING)
