@@ -128,6 +128,7 @@ public class OrderService {
         operationEntity.setCommission(operationCommission);
         operationEntity.setOrders(orderEntities);
         customerEntity.setOperations(Collections.singletonList(operationEntity));
+        customerRepository.save(customerEntity);
         var trackId = operationEntity.getId();
         if (customerId == null) {
             FraudCheckEvent fraudCheckEvent = createOrderMapper.toOrderEvent(request);
@@ -153,7 +154,6 @@ public class OrderService {
                 orderEntities.add(orderEntity);
             }
         }
-        customerRepository.save(customerEntity);
         return CreateOrderResponse.of(trackId);
     }
 
