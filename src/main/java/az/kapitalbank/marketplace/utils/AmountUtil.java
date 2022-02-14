@@ -6,10 +6,12 @@ import java.math.RoundingMode;
 import az.kapitalbank.marketplace.config.CommissionProperties;
 import az.kapitalbank.marketplace.exception.UnknownLoanTerm;
 import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class AmountUtil {
 
