@@ -63,7 +63,7 @@ public class ProductCreateService {
 
         if (fraudResultStatus == FraudResultStatus.BLACKLIST) {
             log.info("ProductCreateService: this order was found in blacklist. track_id - [{}]", trackId);
-            sendDecision(UmicoDecisionStatus.REJECTED, trackId, "", "");
+            sendDecision(UmicoDecisionStatus.DECLINED_BY_BLACKLIST, trackId, "", "");
             return;
         }
 
@@ -126,26 +126,31 @@ public class ProductCreateService {
                 operationEntity.setTaskId(taskId);
                 operationRepository.save(operationEntity);
             } else if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SIGN_DOCUMENTS)) {
-                DvsCreateOrderRequest dvsCreateOrderRequest = loanFormalizeMapper
-                        .toDvsCreateOrderRequest(customerEntity, processResponse);
-                DvsCreateOrderResponse dvsCreateOrderResponse = verificationService
-                        .createOrder(dvsCreateOrderRequest, trackId)
-                        .orElseThrow(() -> new RuntimeException("DVS create order response is null"));
-                String dvsId = dvsCreateOrderResponse.getOrderId();
-                operationEntity.setDvsOrderId(dvsId);
-                operationRepository.save(operationEntity);
-                DvsGetDetailsResponse dvsGetDetailsResponse = verificationService.getDetails(trackId,
-                                processResponse.getTaskId(),
-                                dvsId)
-                        .orElseThrow(() -> new RuntimeException("DVS order getDetails response is null"));
-                ;
-                sendDecision(UmicoDecisionStatus.PREAPPROVED,
-                        trackId,
-                        dvsId,
-                        dvsGetDetailsResponse.getWebUrl());
+                try {
+                    DvsCreateOrderRequest dvsCreateOrderRequest = loanFormalizeMapper
+                            .toDvsCreateOrderRequest(customerEntity, processResponse);
+                    DvsCreateOrderResponse dvsCreateOrderResponse = verificationService
+                            .createOrder(dvsCreateOrderRequest, trackId)
+                            .orElseThrow(() -> new RuntimeException("DVS create order response is null"));
+                    String dvsId = dvsCreateOrderResponse.getOrderId();
+                    operationEntity.setDvsOrderId(dvsId);
+                    operationRepository.save(operationEntity);
+                    DvsGetDetailsResponse dvsGetDetailsResponse = verificationService.getDetails(trackId,
+                                    processResponse.getTaskId(),
+                                    dvsId)
+                            .orElseThrow(() -> new RuntimeException("DVS order getDetails response is null"));
+                    sendDecision(UmicoDecisionStatus.PREAPPROVED,
+                            trackId,
+                            dvsId,
+                            dvsGetDetailsResponse.getWebUrl());
+                } catch (Exception e) {
+                    optimusClient.deleteLoan(businessKey);
+                    var telesalesOrderId = telesalesService.sendLead(trackId);
+                    updateOperationTelesalesOrderId(trackId, telesalesOrderId);
+                    sendDecision(UmicoDecisionStatus.PENDING, trackId, "", "");
+                }
             }
         } else if (scoringResultEvent.getProcessStatus().equals(ProcessStatus.INCIDENT_HAPPENED)) {
-            optimusClient.deleteLoan(businessKey);
             var telesalesOrderId = telesalesService.sendLead(trackId);
             updateOperationTelesalesOrderId(trackId, telesalesOrderId);
             sendDecision(UmicoDecisionStatus.PENDING, trackId, "", "");
