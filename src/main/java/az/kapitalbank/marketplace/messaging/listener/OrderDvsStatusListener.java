@@ -62,22 +62,24 @@ public class OrderDvsStatusListener {
                         //TODO Dvs status reject send umico reject if confirm complete process but pending ?
                         var operationEntity = operationRepository.findByDvsOrderId(orderDvsStatusEvent.getOrderId())
                                 .orElseThrow(() -> new RuntimeException("Operation not found"));
-                        var customerEntity = operationEntity.getCustomer();
+
                         var completeScoring = CompleteScoring.builder()
                                 .trackId(operationEntity.getId())
                                 .businessKey(operationEntity.getBusinessKey())
-                                .additionalNumber1(customerEntity.getAdditionalPhoneNumber1())
-                                .additionalNumber2(customerEntity.getAdditionalPhoneNumber2())
+                                .additionalNumber1(operationEntity.getAdditionalPhoneNumber1())
+                                .additionalNumber2(operationEntity.getAdditionalPhoneNumber2())
                                 .build();
                         scoringService.completeScoring(completeScoring);
-
                         operationEntity.setDvsOrderStatus(orderDvsStatusEvent.getStatus());
                         operationRepository.save(operationEntity);
-                        var orders = operationEntity.getOrders();
+
                         var cardPan = optimusClient.getProcessVariable(operationEntity.getBusinessKey(), "pan");
                         var cardUid = atlasClient.findByPan(cardPan).getUid();
+                        var customerEntity = operationEntity.getCustomer();
                         customerEntity.setCardUUID(cardUid);
                         customerRepository.save(customerEntity);
+
+                        var orders = operationEntity.getOrders();
                         for (OrderEntity orderEntity : orders) {
                             var rrn = GenerateUtil.rrn();
                             var purchaseRequest = PurchaseRequest.builder()
@@ -94,10 +96,6 @@ public class OrderDvsStatusListener {
                             orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
                             orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
                         }
-                        customerEntity.setPin(operationEntity.getPin());
-                        customerEntity.setMobileNumber(operationEntity.getMobileNumber());
-                        customerRepository.save(customerEntity);
-
                         var umicoScoringDecisionRequest = UmicoScoringDecisionRequest.builder()
                                 .trackId(operationEntity.getId())
                                 .decisionStatus(UmicoDecisionStatus.APPROVED)

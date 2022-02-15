@@ -18,6 +18,12 @@ public interface OperationMapper {
     @Mapping(source = "customerInfo.ip", target = "ip")
     @Mapping(source = "customerInfo.userAgent", target = "userAgent")
     @Mapping(source = "customerInfo.pin", target = "pin")
+    @Mapping(source = "customerInfo.email", target = "email")
+    @Mapping(source = "customerInfo.workPlace", target = "workPlace")
     @Mapping(source = "customerInfo.mobileNumber", target = "mobileNumber")
+    @Mapping(source = "customerInfo.fullName", target = "fullName")
+    @Mapping(source = "customerInfo.additionalPhoneNumber1", target = "additionalPhoneNumber1")
+    @Mapping(source = "customerInfo.additionalPhoneNumber2", target = "additionalPhoneNumber2")
+    @Mapping(source = "customerInfo.birthday", target = "birthday")
     OperationEntity toOperationEntity(CreateOrderRequestDto source);
 }

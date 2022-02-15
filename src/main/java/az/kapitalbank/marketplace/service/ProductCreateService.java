@@ -17,8 +17,6 @@ import az.kapitalbank.marketplace.constants.FraudResultStatus;
 import az.kapitalbank.marketplace.constants.ProcessStatus;
 import az.kapitalbank.marketplace.constants.TaskDefinitionKey;
 import az.kapitalbank.marketplace.constants.UmicoDecisionStatus;
-import az.kapitalbank.marketplace.dto.CompleteScoring;
-import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.exception.FeignClientException;
 import az.kapitalbank.marketplace.exception.ScoringCustomerException;
 import az.kapitalbank.marketplace.mappers.LoanFormalizeMapper;
@@ -126,12 +124,8 @@ public class ProductCreateService {
                 operationRepository.save(operationEntity);
             } else if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SIGN_DOCUMENTS)) {
                 try {
-                    CustomerEntity customerEntity = operationEntity.getCustomer();
                     DvsCreateOrderRequest dvsCreateOrderRequest = loanFormalizeMapper
-                            .toDvsCreateOrderRequest(customerEntity,
-                                    processResponse,
-                                    operationEntity.getPin(),
-                                    operationEntity.getMobileNumber());
+                            .toDvsCreateOrderRequest(operationEntity, processResponse);
                     DvsCreateOrderResponse dvsCreateOrderResponse = verificationService
                             .createOrder(dvsCreateOrderRequest, trackId)
                             .orElseThrow(() -> new RuntimeException("DVS create order response is null"));
@@ -161,7 +155,7 @@ public class ProductCreateService {
 
     }
 
-
+/*
     public void completeScoring(UUID trackId, String taskId) {
         try {
             var customerEntity = customerRepository.findById(trackId);
@@ -184,7 +178,7 @@ public class ProductCreateService {
             sendDecision(UmicoDecisionStatus.PENDING, trackId, "", "");
         }
     }
-
+*/
 
     @Transactional
     public void sendDecision(UmicoDecisionStatus umicoDecisionStatus, UUID trackId, String dvsId, String dvsUrl) {

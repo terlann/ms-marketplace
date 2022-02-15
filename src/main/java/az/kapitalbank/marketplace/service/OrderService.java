@@ -14,6 +14,7 @@ import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseCompleteRe
 import az.kapitalbank.marketplace.client.atlas.model.response.ReverseResponse;
 import az.kapitalbank.marketplace.constants.OrderStatus;
 import az.kapitalbank.marketplace.constants.TransactionStatus;
+import az.kapitalbank.marketplace.constants.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.DeliveryProductDto;
 import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
 import az.kapitalbank.marketplace.dto.OrderProductItem;
@@ -129,8 +130,9 @@ public class OrderService {
         customerEntity.setOperations(Collections.singletonList(operationEntity));
         customerRepository.save(customerEntity);
         var trackId = operationEntity.getId();
-
-        if (customerId != null && !customerEntity.getPin().isBlank() && !customerEntity.getMobileNumber().isBlank()) {
+        var approvedCustomerCount = operationRepository
+                .countByCustomerAndUmicoDecisionStatus(customerEntity, UmicoDecisionStatus.APPROVED);
+        if (customerId != null && approvedCustomerCount > 0) {
             var cardUid = customerEntity.getCardUUID();
             for (OrderEntity orderEntity : orderEntities) {
                 var rrn = GenerateUtil.rrn();

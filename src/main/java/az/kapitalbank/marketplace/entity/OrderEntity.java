@@ -32,7 +32,7 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @Table(name = "KB_MARKETPLACE_ORDER")
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class  OrderEntity extends BaseEntity {
+public class OrderEntity extends BaseEntity {
     BigDecimal orderLastAmount;
     BigDecimal totalAmount;
     String orderNo;
