@@ -3,7 +3,7 @@ package az.kapitalbank.marketplace.constants;
 public enum UmicoDecisionStatus {
     APPROVED,
     PREAPPROVED,
-    DECLINED,
+    DECLINED_BY_BLACKLIST,
     REJECTED,
     PENDING
 }

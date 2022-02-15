@@ -127,6 +127,7 @@ public class OrderService {
         operationEntity.setCommission(operationCommission);
         operationEntity.setOrders(orderEntities);
         customerEntity.setOperations(Collections.singletonList(operationEntity));
+        customerRepository.save(customerEntity);
         var trackId = operationEntity.getId();
 
         if (customerId != null && !customerEntity.getPin().isBlank() && !customerEntity.getMobileNumber().isBlank()) {
@@ -153,7 +154,6 @@ public class OrderService {
             fraudCheckEvent.setTrackId(trackId);
             customerOrderProducer.sendMessage(fraudCheckEvent);
         }
-        customerRepository.save(customerEntity);
         return CreateOrderResponse.of(trackId);
     }
 
