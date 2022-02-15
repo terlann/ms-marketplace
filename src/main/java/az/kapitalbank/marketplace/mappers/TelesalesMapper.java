@@ -23,9 +23,7 @@ public interface TelesalesMapper {
     @Mapping(source = "operationEntity.email", target = "email")
     @Mapping(source = "operationEntity.loanTerm", target = "duration")
     @Mapping(target = "position", constant = ApplicationConstants.UMICO_MARKETPLACE)
-    @Mapping(source = "operationEntity.totalAmount", target = "loanAmount")
     @Mapping(source = "fraudReasons", target = "orderComment", qualifiedByName = "mapFraudReasons")
     CreateTelesalesOrderRequest toTelesalesOrder(OperationEntity operationEntity,
                                                  List<FraudReason> fraudReasons);
-
 }

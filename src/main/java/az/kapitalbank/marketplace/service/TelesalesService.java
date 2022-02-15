@@ -28,12 +28,14 @@ public class TelesalesService {
         log.error("send lead to telesales start... track_id -[{}]", trackId);
 
         try {
-            var operationEntity = operationRepository.findById(trackId);
-            if (operationEntity.isPresent()) {
+            var operationEntityOptional = operationRepository.findById(trackId);
+            if (operationEntityOptional.isPresent()) {
+                var operationEntity = operationEntityOptional.get();
                 var fraudReasons = fraudRepository.getAllSuspiciousFraudReasonByTrackId(trackId);
-                //TODO fix telesalesMapper and unused everything
                 var createTelesalesOrderRequest = telesalesMapper
-                        .toTelesalesOrder(operationEntity.get(), fraudReasons);
+                        .toTelesalesOrder(operationEntity, fraudReasons);
+                var amountWithCommission = operationEntity.getTotalAmount().add(operationEntity.getCommission());
+                createTelesalesOrderRequest.setLoanAmount(amountWithCommission);
                 var createTelesalesOrderResponse = telesalesClient.sendLead(createTelesalesOrderRequest);
                 log.error("send lead to telesales finish... track_id -[{}], Response - {}",
                         trackId,
