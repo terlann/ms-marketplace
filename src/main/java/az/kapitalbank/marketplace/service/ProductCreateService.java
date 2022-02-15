@@ -17,8 +17,6 @@ import az.kapitalbank.marketplace.constants.FraudResultStatus;
 import az.kapitalbank.marketplace.constants.ProcessStatus;
 import az.kapitalbank.marketplace.constants.TaskDefinitionKey;
 import az.kapitalbank.marketplace.constants.UmicoDecisionStatus;
-import az.kapitalbank.marketplace.dto.CompleteScoring;
-import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.exception.FeignClientException;
 import az.kapitalbank.marketplace.exception.ScoringCustomerException;
 import az.kapitalbank.marketplace.mappers.LoanFormalizeMapper;
@@ -77,12 +75,11 @@ public class ProductCreateService {
 
         var operationEntityOptional = operationRepository.findById(trackId);
         if (operationEntityOptional.isPresent()) {
-            var customerEntity = operationEntityOptional.get().getCustomer();
             var operationEntity = operationEntityOptional.get();
             try {
                 Optional<String> businessKey = scoringService.startScoring(trackId,
-                        customerEntity.getPin(),
-                        customerEntity.getMobileNumber());
+                        operationEntity.getPin(),
+                        operationEntity.getMobileNumber());
                 if (businessKey.isPresent()) {
                     operationEntity.setBusinessKey(businessKey.get());
                     operationRepository.save(operationEntity);
@@ -110,7 +107,6 @@ public class ProductCreateService {
         if (scoringResultEvent.getProcessStatus().equals(ProcessStatus.IN_USER_ACTIVITY)) {
             var processResponse = scoringService.getProcess(trackId, businessKey)
                     .orElseThrow(() -> new RuntimeException("Optimus getProcess is null"));
-            CustomerEntity customerEntity = operationEntity.getCustomer();
             InUserActivityData inUserActivityData = (InUserActivityData) scoringResultEvent.getData();
             String taskDefinitionKey = inUserActivityData.getTaskDefinitionKey();
             if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SCORING)) {
@@ -129,7 +125,7 @@ public class ProductCreateService {
             } else if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SIGN_DOCUMENTS)) {
                 try {
                     DvsCreateOrderRequest dvsCreateOrderRequest = loanFormalizeMapper
-                            .toDvsCreateOrderRequest(customerEntity, processResponse);
+                            .toDvsCreateOrderRequest(operationEntity, processResponse);
                     DvsCreateOrderResponse dvsCreateOrderResponse = verificationService
                             .createOrder(dvsCreateOrderRequest, trackId)
                             .orElseThrow(() -> new RuntimeException("DVS create order response is null"));
@@ -159,7 +155,7 @@ public class ProductCreateService {
 
     }
 
-
+/*
     public void completeScoring(UUID trackId, String taskId) {
         try {
             var customerEntity = customerRepository.findById(trackId);
@@ -182,7 +178,7 @@ public class ProductCreateService {
             sendDecision(UmicoDecisionStatus.PENDING, trackId, "", "");
         }
     }
-
+*/
 
     @Transactional
     public void sendDecision(UmicoDecisionStatus umicoDecisionStatus, UUID trackId, String dvsId, String dvsUrl) {

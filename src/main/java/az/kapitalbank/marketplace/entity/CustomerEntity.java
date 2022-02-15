@@ -4,7 +4,6 @@ import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,16 +26,8 @@ import lombok.experimental.SuperBuilder;
 @Table(name = "KB_MARKETPLACE_CUSTOMER")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CustomerEntity extends BaseEntity {
-    String email;
-    String pin;
-    String workPlace;
-    String mobileNumber;
     String umicoUserId;
-    String fullName;
     Boolean isAgreement;
-    String additionalPhoneNumber1;
-    String additionalPhoneNumber2;
-    LocalDate birthday;
     String cardUUID;
     CustomerStatus status;
 

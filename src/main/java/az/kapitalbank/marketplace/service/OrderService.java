@@ -14,6 +14,7 @@ import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseCompleteRe
 import az.kapitalbank.marketplace.client.atlas.model.response.ReverseResponse;
 import az.kapitalbank.marketplace.constants.OrderStatus;
 import az.kapitalbank.marketplace.constants.TransactionStatus;
+import az.kapitalbank.marketplace.constants.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.DeliveryProductDto;
 import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
 import az.kapitalbank.marketplace.dto.OrderProductItem;
@@ -80,11 +81,10 @@ public class OrderService {
         CustomerEntity customerEntity = null;
         if (customerId == null) {
             validatePurchaseAmountLimit(request);
-            var pin = request.getCustomerInfo().getPin();
-            var operationCount = operationRepository.operationCountByPinAndDecisionStatus(pin);
-            if (operationCount != 0)
-                throw new RuntimeException("This customer havent finished process" + pin);
-            customerEntity = customerMapper.toCustomerEntity(request.getCustomerInfo());
+            var customerByUmicoUserId =
+                    customerRepository.findByUmicoUserId(request.getCustomerInfo().getUmicoUserId());
+            customerEntity = customerByUmicoUserId.orElseGet(() ->
+                    customerMapper.toCustomerEntity(request.getCustomerInfo()));
         } else {
             customerEntity = customerRepository.findById(customerId).orElseThrow(
                     () -> new RuntimeException("Customer not found : " + customerId));
@@ -130,11 +130,9 @@ public class OrderService {
         customerEntity.setOperations(Collections.singletonList(operationEntity));
         customerRepository.save(customerEntity);
         var trackId = operationEntity.getId();
-        if (customerId == null) {
-            FraudCheckEvent fraudCheckEvent = createOrderMapper.toOrderEvent(request);
-            fraudCheckEvent.setTrackId(trackId);
-            customerOrderProducer.sendMessage(fraudCheckEvent);
-        } else {
+        var approvedCustomerCount = operationRepository
+                .countByCustomerAndUmicoDecisionStatus(customerEntity, UmicoDecisionStatus.APPROVED);
+        if (customerId != null && approvedCustomerCount > 0) {
             var cardUid = customerEntity.getCardUUID();
             for (OrderEntity orderEntity : orderEntities) {
                 var rrn = GenerateUtil.rrn();
@@ -153,6 +151,10 @@ public class OrderService {
                 orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
                 orderEntities.add(orderEntity);
             }
+        } else {
+            FraudCheckEvent fraudCheckEvent = createOrderMapper.toOrderEvent(request);
+            fraudCheckEvent.setTrackId(trackId);
+            customerOrderProducer.sendMessage(fraudCheckEvent);
         }
         return CreateOrderResponse.of(trackId);
     }

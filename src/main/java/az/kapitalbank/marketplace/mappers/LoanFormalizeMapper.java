@@ -3,7 +3,7 @@ package az.kapitalbank.marketplace.mappers;
 import az.kapitalbank.marketplace.client.dvs.model.DvsCreateOrderRequest;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
 import az.kapitalbank.marketplace.constants.DvsConstants;
-import az.kapitalbank.marketplace.entity.CustomerEntity;
+import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.mappers.qualifier.LoanFormalizationQualifier;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -15,10 +15,10 @@ import org.mapstruct.ReportingPolicy;
         uses = LoanFormalizationQualifier.class)
 public interface LoanFormalizeMapper {
 
-    @Mapping(source = "customerEntity.fullName", target = "fullName")
-    @Mapping(source = "customerEntity.email", target = "email")
-    @Mapping(source = "customerEntity.mobileNumber", target = "mobile")
-    @Mapping(source = "customerEntity.pin", target = "pin")
+    @Mapping(source = "operationEntity.fullName", target = "fullName")
+    @Mapping(source = "operationEntity.email", target = "email")
+    @Mapping(source = "operationEntity.mobileNumber", target = "mobile")
+    @Mapping(source = "operationEntity.pin", target = "pin")
     @Mapping(source = "processResponse.variables.cif", target = "cif")
     @Mapping(source = "processResponse.variables.cashCreditContractNumber", target = "cashContract")
     @Mapping(source = "processResponse.taskId", target = "processId")
@@ -36,6 +36,6 @@ public interface LoanFormalizeMapper {
     @Mapping(source = "processResponse.processCreateTime", target = "creditCreatedAt",
             qualifiedByName = "toLocalDateTime")
     @Mapping(constant = "processResponse.variables.selectedOffer.cashOffer.availableLoanAmount", target = "cashAmount")
-    DvsCreateOrderRequest toDvsCreateOrderRequest(CustomerEntity customerEntity, ProcessResponse processResponse);
+    DvsCreateOrderRequest toDvsCreateOrderRequest(OperationEntity operationEntity, ProcessResponse processResponse);
 
 }

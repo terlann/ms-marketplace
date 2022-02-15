@@ -30,11 +30,10 @@ public class TelesalesService {
         try {
             var operationEntity = operationRepository.findById(trackId);
             if (operationEntity.isPresent()) {
-                var customerEntity = operationEntity.get().getCustomer();
                 var fraudReasons = fraudRepository.getAllSuspiciousFraudReasonByTrackId(trackId);
                 //TODO fix telesalesMapper and unused everything
                 var createTelesalesOrderRequest = telesalesMapper
-                        .toTelesalesOrder(customerEntity, operationEntity.get(), fraudReasons);
+                        .toTelesalesOrder(operationEntity.get(), fraudReasons);
                 var createTelesalesOrderResponse = telesalesClient.sendLead(createTelesalesOrderRequest);
                 log.error("send lead to telesales finish... track_id -[{}], Response - {}",
                         trackId,
