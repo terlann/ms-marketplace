@@ -1,7 +1,10 @@
 package az.kapitalbank.marketplace.client.umico.model;
 
-import com.fasterxml.jackson.databind.PropertyNamingStrategies;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.UUID;
+
+import az.kapitalbank.marketplace.constants.UmicoDecisionStatus;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,13 +21,14 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-@JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public class UmicoScoringDecisionRequest {
-    @Builder.Default
-    String creditId = "";
-    String status;
-    String orderId;
-    String dvsId;
+    UUID trackId;
+    UmicoDecisionStatus decisionStatus;
+    LocalDate loanContractStartDate;
+    LocalDate loanContractEndDate;
     String dvsUrl;
-    String marketplaceTrackId;
+    UUID customerId;
+    BigDecimal loanLimit;
+    Integer loanTerm;
+    BigDecimal commission;
 }

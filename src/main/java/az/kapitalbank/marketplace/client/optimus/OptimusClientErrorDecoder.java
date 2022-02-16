@@ -1,6 +1,6 @@
 package az.kapitalbank.marketplace.client.optimus;
 
-import az.kapitalbank.marketplace.exception.models.FeignClientException;
+import az.kapitalbank.marketplace.exception.FeignClientException;
 import feign.Response;
 import feign.codec.ErrorDecoder;
 import lombok.extern.slf4j.Slf4j;

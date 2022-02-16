@@ -1,5 +1,13 @@
 package az.kapitalbank.marketplace.entity;
 
+import javax.persistence.CascadeType;
+import javax.persistence.Entity;
+import javax.persistence.OneToMany;
+import javax.persistence.Table;
+import java.util.ArrayList;
+import java.util.List;
+
+import az.kapitalbank.marketplace.constants.CustomerStatus;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -7,47 +15,23 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
-import org.hibernate.annotations.GenericGenerator;
-
-import javax.persistence.CascadeType;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.MapsId;
-import javax.persistence.OneToOne;
-import javax.persistence.Table;
+import lombok.experimental.SuperBuilder;
 
 @Getter
 @Setter
 @Entity
-@Builder
+@SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = CustomerEntity.TABLE_NAME)
+@Table(name = "KB_MARKETPLACE_CUSTOMER")
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class CustomerEntity {
-
-    static final String TABLE_NAME = "CUSTOMER";
-
-    @Id
-    @Column(name = "track_id")
-    @GeneratedValue(generator = "UUID")
-    @GenericGenerator(name = "UUID", strategy = "org.hibernate.id.UUIDGenerator")
-    String id;
-    String ip;
-    String email;
-    String device;
-    String identityNumber;
-    String employerName;
-    String mobileNumber;
+public class CustomerEntity extends BaseEntity {
     String umicoUserId;
-    String fullName;
-    String additionalPhoneNumber1;
-    String additionalPhoneNumber2;
-    @MapsId
-    @JoinColumn(name = "track_id")
-    @OneToOne(cascade = CascadeType.ALL)
-    OrderEntity order;
+    Boolean isAgreement;
+    String cardUUID;
+    CustomerStatus status;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OperationEntity> operations = new ArrayList<>();
 }

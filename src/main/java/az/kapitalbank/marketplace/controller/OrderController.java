@@ -1,37 +1,62 @@
 package az.kapitalbank.marketplace.controller;
 
+import javax.validation.Valid;
+import java.util.List;
+
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
+import az.kapitalbank.marketplace.dto.request.PurchaseRequestDto;
+import az.kapitalbank.marketplace.dto.request.ReverseRequestDto;
+import az.kapitalbank.marketplace.dto.request.ScoringOrderRequestDto;
+import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
+import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
+import az.kapitalbank.marketplace.dto.response.PurchaseResponseDto;
 import az.kapitalbank.marketplace.service.OrderService;
-import io.swagger.v3.oas.annotations.tags.Tag;
+import az.kapitalbank.marketplace.service.ScoringService;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import javax.validation.Valid;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/marketplace/order")
-@Tag(name = "order", description = "the order API")
+@RequestMapping("/api/v1/orders")
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class OrderController {
 
     OrderService service;
+    ScoringService scoringService;
 
     @PostMapping
-    public ResponseEntity<?> createOrder(@Valid @RequestBody CreateOrderRequestDto request) {
-        return ResponseEntity.ok(service.createOrder(request));
+    public ResponseEntity<CreateOrderResponse> createOrder(@Valid @RequestBody CreateOrderRequestDto request) {
+        return new ResponseEntity<>(service.createOrder(request), HttpStatus.CREATED);
     }
 
-    @DeleteMapping(params = "trackId")
-    public ResponseEntity<?> deleteOrder(@Valid @RequestParam String trackId) {
-        return ResponseEntity.ok(service.deleteOrder(trackId));
+    @PostMapping("/check/{telesales-order-id}") //TODO optimus check order
+    public ResponseEntity<CheckOrderResponseDto> checkOrder(@PathVariable("telesales-order-id")
+                                                                    String telesalesOrderId) {
+        return ResponseEntity.ok(service.checkOrder(telesalesOrderId));
+    }
+
+    // TODO update customer,operation after telesales scoring and dvs
+    @PostMapping("/telesales/result")
+    public ResponseEntity<Void> telesalesResult(@Valid @RequestBody ScoringOrderRequestDto request) {
+        scoringService.telesalesResult(request);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @PostMapping("/purchase")
+    public ResponseEntity<List<PurchaseResponseDto>> purchase(@Valid @RequestBody PurchaseRequestDto request) {
+        return ResponseEntity.ok(service.purchase(request));
+    }
+
+    @PostMapping("/reverse")
+    public ResponseEntity<PurchaseResponseDto> reverse(@Valid @RequestBody ReverseRequestDto request) {
+        return ResponseEntity.ok(service.reverse(request));
     }
 }

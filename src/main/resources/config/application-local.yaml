@@ -1,10 +1,16 @@
 spring:
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    database-platform: org.hibernate.dialect.Oracle12cDialect
   datasource:
     hikari:
       pool-name: marketplace-pool
-    url: jdbc:oracle:thin:@//10.0.32.202:1521/onboard
-    username: onboard
-    password: onboard12345
+    url: jdbc:oracle:thin:@//10.0.32.28:1521/umico
+    username: umico
+    password: Z3]:Fnd!j9=2.u9/?P)8
   cloud:
     function:
       definition: checkFraud;checkFraudResult;startScoringResult;orderDvsStatus
@@ -54,8 +60,10 @@ client:
     url: http://testsrsws.kapitalcard.az
   umico:
     url: https://broker-dev.umico.az
-  customer-check:
-    url: https://pre.ms-customer-check.kapitalbank.az
+  checker:
+    url: https://dev.ms-checker.kapitalbank.az
+  adp-atlas:
+    url: https://dev.adp-atlas.kapitalbank.az
   adp-optimus:
     url: https://dev.adp-optimus.kapitalbank.az/
   adp-dvs:
@@ -70,3 +78,15 @@ feign:
 server:
   port: 8080
 
+purchase:
+  terminal-name: R1020002
+
+commission:
+  values:
+    1: 2.50
+    2: 3.50
+    3: 5.00
+    6: 7.50
+    12: 13.50
+    18: 18.50
+    24: 23.50

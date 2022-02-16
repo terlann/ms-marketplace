@@ -7,7 +7,7 @@ plugins {
     id 'checkstyle'
 }
 
-group = 'az.kapitalbank.ms'
+group = 'az.kapitalbank.marketplace'
 version = "0.0.1-SNAPSHOT"
 sourceCompatibility = 11
 
@@ -45,16 +45,11 @@ dependencies {
     implementation "org.springframework.cloud:spring-cloud-starter-openfeign:$springCloudVersion"
     implementation "org.springframework.kafka:spring-kafka:$kafkaVersion"
     implementation "com.oracle.database.jdbc:ojdbc8:$oracleVersion"
-    implementation "org.springdoc:springdoc-openapi-webmvc-core:$springDocVersion"
-    implementation "org.springdoc:springdoc-openapi-ui:$springDocVersion"
-    implementation "org.springdoc:springdoc-openapi-data-rest:$springDocVersion"
+    implementation "io.springfox:springfox-swagger2:$swaggerVersion"
+    implementation "io.springfox:springfox-swagger-ui:$swaggerVersion"
     implementation "io.springfox:springfox-bean-validators:$beanValidatorVersion"
     implementation "io.github.openfeign:feign-jackson:$openFeignVersion"
     implementation "io.github.openfeign:feign-annotation-error-decoder:$openFeignVersion"
-    implementation 'io.github.openfeign:feign-httpclient:9.4.0'
-    implementation "org.springframework.boot:spring-boot-starter-aop:$springBootVersion"
-    implementation "org.apache.poi:poi:$apachePoiVersion"
-    implementation "org.apache.poi:poi-ooxml:$apachePoiVersion"
     implementation "org.mapstruct:mapstruct:$mapStructversion"
     implementation 'org.junit.jupiter:junit-jupiter:5.7.0'
     annotationProcessor "org.mapstruct:mapstruct-processor:$mapStructversion"

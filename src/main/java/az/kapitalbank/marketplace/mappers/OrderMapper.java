@@ -1,7 +1,7 @@
 package az.kapitalbank.marketplace.mappers;
 
 import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
-import az.kapitalbank.marketplace.entity.OrderEntity;
+import az.kapitalbank.marketplace.entity.OperationEntity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
@@ -12,5 +12,5 @@ import org.mapstruct.ReportingPolicy;
 public interface OrderMapper {
 
     @Mapping(source = "id", target = "trackId")
-    CheckOrderResponseDto entityToDto(OrderEntity source);
+    CheckOrderResponseDto entityToDto(OperationEntity source);
 }
