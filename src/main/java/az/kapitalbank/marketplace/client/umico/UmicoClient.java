@@ -12,16 +12,16 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 
 @FeignClient(name = "client-umico",
-        url = "${client.umico.url}",
+        url = "${client.umico.url}/api/v2",
         primary = false,
         configuration = UmicoClient.FeignConfiguration.class)
 public interface UmicoClient {
 
-    @PostMapping("/api/v1/orders/result")
+    @PostMapping("/application_offers")
     UmicoScoringDecisionResponse sendDecisionScoring(@RequestBody UmicoScoringDecisionRequest request,
                                                      @RequestHeader("ApiKey") String apiKey);
 
-    @PostMapping("/api/v1/tranche/completed")
+    @PostMapping("/tranche/completed")
     void sendDecisionTranche(@RequestBody UmicoScoringTrancheRequest request,
                              @RequestHeader("ApiKey") String apiKey);
 

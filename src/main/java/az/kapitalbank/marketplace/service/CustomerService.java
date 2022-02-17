@@ -1,5 +1,6 @@
 package az.kapitalbank.marketplace.service;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
@@ -46,9 +47,11 @@ public class CustomerService {
         }
         var cardUUID = customerEntity.getCardUUID();
         var balanceResponse = atlasClient.balance(cardUUID);
-        //TODO just some fields isn't exact in response
+        //TODO loan utilized and loan limit must be fixed
         return BalanceResponseDto.builder()
                 .availableBalance(balanceResponse.getAvailableBalance())
+                .loanEndDate(LocalDate.of(2025, 02, 15))
+                .loanUtilized(balanceResponse.getOverdraftLimit().subtract(balanceResponse.getAvailableBalance()))
                 .loanLimit(balanceResponse.getOverdraftLimit())
                 .build();
     }
