@@ -39,6 +39,7 @@ public class OrderExceptionHandler extends ResponseEntityExceptionHandler {
         var errorResponseDto = new ErrorResponseDto(ErrorCode.INVALID_MOBILE_NUMBER);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
+
     @ExceptionHandler(PinCodeInCorrectException.class)
     public ResponseEntity<ErrorResponseDto> pinCodeIsInvalid(Exception ex) {
         log.error("Exception: {}", ex);
