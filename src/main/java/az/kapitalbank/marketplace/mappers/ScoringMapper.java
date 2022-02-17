@@ -13,12 +13,15 @@ public interface ScoringMapper {
 
     ScoringMapper INSTANCE = Mappers.getMapper(ScoringMapper.class);
 
-    @Mapping(source = "pinCode", target = "pin")
-    @Mapping(source = "phoneNumber", target = "phoneNumber")
-    @Mapping(target = "scoreCash", constant = "true")
-    @Mapping(target = "phoneNumberVerified", constant = "true")
-    @Mapping(target = "processProductType", source = "productType")
+    @Mapping(target = "cardProductCode",constant = "BUMM")
     @Mapping(target = "isMarketPlaceOperation", constant = "true")
+    @Mapping(target = "phoneNumber",source = "phoneNumber")
+    @Mapping(target = "phoneNumberVerified", constant = "true")
+    @Mapping(source = "pinCode", target = "pin")
+    @Mapping(target = "preApproval", constant = "false")
+    @Mapping(target = "processProductType", source = "productType")
+    @Mapping(target = "scoreCard", constant = "true")
+    @Mapping(target = "scoreCash", constant = "false")
     StartScoringVariable toCustomerScoringVariable(String pinCode, String phoneNumber, String productType);
 
 
