@@ -36,6 +36,8 @@ public class FraudCheckResultListener {
                     log.error("check fraud result consume.Message - [{}], JsonProcessingException - {}",
                             message,
                             j.getMessage());
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
 

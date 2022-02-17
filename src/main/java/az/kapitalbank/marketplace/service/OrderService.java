@@ -88,6 +88,10 @@ public class OrderService {
         } else {
             customerEntity = customerRepository.findById(customerId).orElseThrow(
                     () -> new RuntimeException("Customer not found : " + customerId));
+            var pendingCustomer = operationRepository.countByCustomerAndUmicoDecisionStatusIn(customerEntity,
+                    List.of(UmicoDecisionStatus.PENDING, UmicoDecisionStatus.PREAPPROVED));
+            if (pendingCustomer > 0)
+                throw new RuntimeException("");
 
             validateCustomerBalance(request, customerEntity.getCardUUID());
         }
@@ -132,6 +136,7 @@ public class OrderService {
         var trackId = operationEntity.getId();
         var approvedCustomerCount = operationRepository
                 .countByCustomerAndUmicoDecisionStatus(customerEntity, UmicoDecisionStatus.APPROVED);
+
         if (customerId != null && approvedCustomerCount > 0) {
             var cardUid = customerEntity.getCardUUID();
             for (OrderEntity orderEntity : orderEntities) {
@@ -228,6 +233,7 @@ public class OrderService {
 
     }
 
+    // fin approve, fin reject
     public List<PurchaseResponseDto> purchase(PurchaseRequestDto request) {
         var customerEntityOptional = customerRepository.findById(request.getCustomerId());
         PurchaseResponseDto purchaseResponseDto = new PurchaseResponseDto();
@@ -238,10 +244,10 @@ public class OrderService {
                 var optionalOrderEntity = orderRepository.findByOrderNo(deliveryProductDto.getOrderNo());
                 if (optionalOrderEntity.isPresent()) {
                     var orderEntity = optionalOrderEntity.get();
-                    if (!orderEntity.getOrderNo().equals(deliveryProductDto.getOrderNo()) ||
-                            orderEntity.getTotalAmount().compareTo(deliveryProductDto.getOrderLastAmount()) == -1) {
-                        throw new RuntimeException("Order or amount isn't equals");
-                    }
+//                    if (!orderEntity.getOrderNo().equals(deliveryProductDto.getOrderNo()) ||
+//                            orderEntity.getTotalAmount().compareTo(deliveryProductDto.getOrderLastAmount()) == -1) {
+//                        throw new RuntimeException("Order or amount isn't equals");
+//                    }
                     var commision = orderEntity.getCommission();
                     var amount = orderEntity.getTotalAmount();
                     var totalPayment = commision.add(amount);

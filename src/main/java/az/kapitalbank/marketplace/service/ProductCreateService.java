@@ -1,6 +1,7 @@
 package az.kapitalbank.marketplace.service;
 
 import javax.transaction.Transactional;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
@@ -54,7 +55,7 @@ public class ProductCreateService {
 
 
     @Transactional
-    public void startScoring(FraudCheckResultEvent fraudCheckResultEvent) {
+    public void startScoring(FraudCheckResultEvent fraudCheckResultEvent) throws InterruptedException {
         log.info("ProductCreateService: optimus start process... fraud_result_event - {}", fraudCheckResultEvent);
         var trackId = fraudCheckResultEvent.getTrackId();
         var fraudResultStatus = fraudCheckResultEvent.getFraudResultStatus();
@@ -72,6 +73,25 @@ public class ProductCreateService {
             sendDecision(UmicoDecisionStatus.PENDING, trackId, "", "");
             return;
         }
+
+        Thread.sleep(10000);
+
+        var oper = operationRepository.findById(trackId);
+        var umicoScoringDecisionRequest = UmicoScoringDecisionRequest.builder()
+                .trackId(oper.get().getId())
+                .decisionStatus(UmicoDecisionStatus.APPROVED)
+                .loanTerm(oper.get().getLoanTerm())
+                .dvsUrl("")
+                .loanLimit(oper.get().getTotalAmount())
+                .commission(oper.get().getCommission())
+                .loanContractStartDate(LocalDate.now())
+                .loanContractEndDate(LocalDate.now().plusYears(5))
+                .customerId(oper.get().getCustomer().getId())
+                .build();
+        umicoClient.sendDecisionScoring(umicoScoringDecisionRequest, apiKey);
+
+        if (true)
+            return;
 
         var operationEntityOptional = operationRepository.findById(trackId);
         if (operationEntityOptional.isPresent()) {
