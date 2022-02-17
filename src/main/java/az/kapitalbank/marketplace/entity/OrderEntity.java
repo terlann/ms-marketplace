@@ -42,6 +42,7 @@ public class OrderEntity extends BaseEntity {
     String transactionId;
     String rrn;
     String approvalCode;
+    String transactionError;
     @Enumerated(EnumType.STRING)
     TransactionStatus transactionStatus;
 
