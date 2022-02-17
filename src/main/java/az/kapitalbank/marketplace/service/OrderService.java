@@ -161,7 +161,7 @@ public class OrderService {
 
     private void validateCustomerBalance(CreateOrderRequestDto request, String cardUUId) {
         var purchaseAmount = getPurchaseAmount(request);
-        var availableBalance = getBalance(cardUUId);
+        var availableBalance = getAvailableBalance(cardUUId);
         if (purchaseAmount.compareTo(availableBalance) > 0) {
             throw new NoEnoughBalanceException(availableBalance);
         }
@@ -204,7 +204,7 @@ public class OrderService {
         return totalAmount.add(totalCommission);
     }
 
-    public BigDecimal getBalance(String cardUUID) {
+    public BigDecimal getAvailableBalance(String cardUUID) {
         var balanceResponse = atlasClient.balance(cardUUID);
         return balanceResponse.getAvailableBalance();
     }

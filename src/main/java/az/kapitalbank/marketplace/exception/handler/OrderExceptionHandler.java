@@ -4,6 +4,7 @@ import az.kapitalbank.marketplace.constants.ErrorCode;
 import az.kapitalbank.marketplace.dto.ErrorResponseDto;
 import az.kapitalbank.marketplace.exception.CreateTelesalesOrderException;
 import az.kapitalbank.marketplace.exception.LoanAmountIncorrectException;
+import az.kapitalbank.marketplace.exception.MarketplaceException;
 import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.PhoneNumberInvalidException;
@@ -22,13 +23,22 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @RestControllerAdvice
 public class OrderExceptionHandler extends ResponseEntityExceptionHandler {
 
+    @ExceptionHandler(MarketplaceException.class)
+    public ResponseEntity<ErrorResponseDto> marketplaceException(MarketplaceException ex) {
+        log.error("Exception: {}", ex);
+        var errorResponse = ErrorResponseDto.builder()
+                .code(ex.getErrorCode().getCode())
+                .message(ex.getErrorCode().getMessage())
+                .build();
+        return ResponseEntity.status(ex.getHttpStatus()).body(errorResponse);
+    }
+
     @ExceptionHandler(PhoneNumberInvalidException.class)
     public ResponseEntity<ErrorResponseDto> phoneNumberInvalid(Exception ex) {
         log.error("Exception: {}", ex);
         var errorResponseDto = new ErrorResponseDto(ErrorCode.INVALID_MOBILE_NUMBER);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
-
     @ExceptionHandler(PinCodeInCorrectException.class)
     public ResponseEntity<ErrorResponseDto> pinCodeIsInvalid(Exception ex) {
         log.error("Exception: {}", ex);

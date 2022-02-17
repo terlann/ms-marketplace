@@ -17,6 +17,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.Type;
 import org.hibernate.annotations.UpdateTimestamp;
 
 @MappedSuperclass
@@ -29,6 +30,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 public abstract class BaseEntity implements Serializable {
 
     @Id
+    @Type(type = "uuid-char")
     @GeneratedValue(generator = "UUID")
     @GenericGenerator(
             name = "UUID",
