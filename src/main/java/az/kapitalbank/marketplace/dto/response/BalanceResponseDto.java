@@ -19,5 +19,5 @@ public class BalanceResponseDto {
     LocalDate loanEndDate;
     BigDecimal loanLimit;
     BigDecimal loanUtilized;
-    BigDecimal loanAvailable;
+    BigDecimal availableBalance;
 }

@@ -14,6 +14,6 @@ public class BalanceResponse {
     String accountNumber;
     BigDecimal availableBalance;
     int currency;
-    int overdraftLimit;
+    BigDecimal overdraftLimit;
 
 }
