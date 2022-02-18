@@ -14,12 +14,10 @@ import az.kapitalbank.marketplace.client.optimus.model.process.ProcessData;
 import az.kapitalbank.marketplace.client.umico.UmicoClient;
 import az.kapitalbank.marketplace.client.umico.model.UmicoScoringDecisionRequest;
 import az.kapitalbank.marketplace.client.umico.model.UmicoScoringDecisionResponse;
-import az.kapitalbank.marketplace.constants.FraudResultStatus;
 import az.kapitalbank.marketplace.constants.ProcessStatus;
 import az.kapitalbank.marketplace.constants.TaskDefinitionKey;
 import az.kapitalbank.marketplace.constants.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.exception.FeignClientException;
-import az.kapitalbank.marketplace.exception.ScoringCustomerException;
 import az.kapitalbank.marketplace.mappers.LoanFormalizeMapper;
 import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
 import az.kapitalbank.marketplace.messaging.event.InUserActivityData;
@@ -60,61 +58,77 @@ public class ProductCreateService {
         var trackId = fraudCheckResultEvent.getTrackId();
         var fraudResultStatus = fraudCheckResultEvent.getFraudResultStatus();
 
-        if (fraudResultStatus == FraudResultStatus.BLACKLIST) {
-            log.info("ProductCreateService: this order was found in blacklist. track_id - [{}]", trackId);
-            sendDecision(UmicoDecisionStatus.DECLINED_BY_BLACKLIST, trackId, "", "");
-            return;
-        }
-
-        if (fraudResultStatus == FraudResultStatus.SUSPICIOUS || fraudResultStatus == FraudResultStatus.WARNING) {
-            log.info("ProductCreateService: fraud case was found in order. track_id - [{}]", trackId);
-            var telesalesOrderId = telesalesService.sendLead(trackId);
-            updateOperationTelesalesOrderId(trackId, telesalesOrderId);
-            sendDecision(UmicoDecisionStatus.PENDING, trackId, "", "");
-            return;
-        }
+//        if (fraudResultStatus == FraudResultStatus.BLACKLIST) {
+//            log.info("ProductCreateService: this order was found in blacklist. track_id - [{}]", trackId);
+//            sendDecision(UmicoDecisionStatus.DECLINED_BY_BLACKLIST, trackId, "", "");
+//            return;
+//        }
+//
+//        if (fraudResultStatus == FraudResultStatus.SUSPICIOUS || fraudResultStatus == FraudResultStatus.WARNING) {
+//            log.info("ProductCreateService: fraud case was found in order. track_id - [{}]", trackId);
+//            var telesalesOrderId = telesalesService.sendLead(trackId);
+//            updateOperationTelesalesOrderId(trackId, telesalesOrderId);
+//            sendDecision(UmicoDecisionStatus.PENDING, trackId, "", "");
+//            return;
+//        }
 
         Thread.sleep(10000);
-
         var oper = operationRepository.findById(trackId);
-        var umicoScoringDecisionRequest = UmicoScoringDecisionRequest.builder()
-                .trackId(oper.get().getId())
-                .decisionStatus(UmicoDecisionStatus.APPROVED)
-                .loanTerm(oper.get().getLoanTerm())
-                .dvsUrl("")
-                .loanLimit(oper.get().getTotalAmount())
-                .commission(oper.get().getCommission())
-                .loanContractStartDate(LocalDate.now())
-                .loanContractEndDate(LocalDate.now().plusYears(5))
-                .customerId(oper.get().getCustomer().getId())
-                .build();
-        umicoClient.sendDecisionScoring(umicoScoringDecisionRequest, apiKey);
 
-        if (true)
+        if (oper.get().getPin().equals("7CGBJNC")) {
+            var umicoScoringDecisionRequest = UmicoScoringDecisionRequest.builder()
+                    .trackId(oper.get().getId())
+                    .decisionStatus(UmicoDecisionStatus.REJECTED)
+                    .loanTerm(oper.get().getLoanTerm())
+                    .dvsUrl("")
+//                    .loanLimit(oper.get().getTotalAmount())
+//                    .commission(oper.get().getCommission())
+//                    .loanContractStartDate(LocalDate.now())
+//                    .loanContractEndDate(LocalDate.now().plusYears(5))
+//                    .customerId(oper.get().getCustomer().getId())
+                    .build();
+            umicoClient.sendDecisionScoring(umicoScoringDecisionRequest, apiKey);
+            log.error("Rejected to umico " + oper.get().getPin());
             return;
-
-        var operationEntityOptional = operationRepository.findById(trackId);
-        if (operationEntityOptional.isPresent()) {
-            var operationEntity = operationEntityOptional.get();
-            try {
-                Optional<String> businessKey = scoringService.startScoring(trackId,
-                        operationEntity.getPin(),
-                        operationEntity.getMobileNumber());
-                if (businessKey.isPresent()) {
-                    operationEntity.setBusinessKey(businessKey.get());
-                    operationRepository.save(operationEntity);
-                    log.info("ProductCreateService: optimus stared scoring.track_id - [{}], business_key - [{}]",
-                            trackId,
-                            businessKey);
-                }
-            } catch (ScoringCustomerException e) {
-                log.error("ProductCreateService: " +
-                        "optimus start scoring was failed.Redirect to telesales track_id - [{}]", trackId);
-                var telesalesOrderId = telesalesService.sendLead(trackId);
-                updateOperationTelesalesOrderId(trackId, telesalesOrderId);
-                sendDecision(UmicoDecisionStatus.PENDING, trackId, "", "");
-            }
+        } else {
+            var umicoScoringDecisionRequest = UmicoScoringDecisionRequest.builder()
+                    .trackId(oper.get().getId())
+                    .decisionStatus(UmicoDecisionStatus.APPROVED)
+                    .loanTerm(oper.get().getLoanTerm())
+                    .dvsUrl("")
+                    .loanLimit(oper.get().getTotalAmount())
+                    .commission(oper.get().getCommission())
+                    .loanContractStartDate(LocalDate.now())
+                    .loanContractEndDate(LocalDate.now().plusYears(5))
+                    .customerId(oper.get().getCustomer().getId())
+                    .build();
+            umicoClient.sendDecisionScoring(umicoScoringDecisionRequest, apiKey);
+            log.info("Approved to umico " + oper.get().getPin());
+            return;
         }
+
+//        var operationEntityOptional = operationRepository.findById(trackId);
+//        if (operationEntityOptional.isPresent()) {
+//            var operationEntity = operationEntityOptional.get();
+//            try {
+//                Optional<String> businessKey = scoringService.startScoring(trackId,
+//                        operationEntity.getPin(),
+//                        operationEntity.getMobileNumber());
+//                if (businessKey.isPresent()) {
+//                    operationEntity.setBusinessKey(businessKey.get());
+//                    operationRepository.save(operationEntity);
+//                    log.info("ProductCreateService: optimus stared scoring.track_id - [{}], business_key - [{}]",
+//                            trackId,
+//                            businessKey);
+//                }
+//            } catch (ScoringCustomerException e) {
+//                log.error("ProductCreateService: " +
+//                        "optimus start scoring was failed.Redirect to telesales track_id - [{}]", trackId);
+//                var telesalesOrderId = telesalesService.sendLead(trackId);
+//                updateOperationTelesalesOrderId(trackId, telesalesOrderId);
+//                sendDecision(UmicoDecisionStatus.PENDING, trackId, "", "");
+//            }
+//        }
 
     }
 
