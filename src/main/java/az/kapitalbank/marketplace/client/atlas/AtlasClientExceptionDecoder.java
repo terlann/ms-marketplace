@@ -1,7 +1,5 @@
 package az.kapitalbank.marketplace.client.atlas;
 
-import java.util.UUID;
-
 import az.kapitalbank.marketplace.exception.AtlasException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.Response;
@@ -20,7 +18,7 @@ public class AtlasClientExceptionDecoder implements ErrorDecoder {
                     new ObjectMapper().readValue(response.body().asInputStream(), AtlasException.class);
             throw new AtlasException(errorResponse.getUuid(), errorResponse.getCode(), errorResponse.getMessage());
         } else {
-            throw new AtlasException(UUID.randomUUID().toString(), "500", "Atlas Client Internal Server Error");
+            throw new AtlasException("", String.valueOf(response.status()), response.toString());
         }
     }
 }
