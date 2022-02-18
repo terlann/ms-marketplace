@@ -267,12 +267,12 @@ public class OrderService {
                     } catch (AtlasException ex) {
                         purchaseResponseDto.setStatus(OrderStatus.FAIL);
                         orderEntity.setTransactionStatus(TransactionStatus.FAIL_COMPLETED);
+                        orderEntity.setTransactionError(ex.getMessage());
                         String errorMessager = "Atlas Exception: UUID - %s  ,  code - %s, message - %s";
-                        orderEntity.setTransactionError(String.format(errorMessager,
+                        log.error(String.format(errorMessager,
                                 ex.getUuid(),
                                 ex.getCode(),
                                 ex.getMessage()));
-                        log.error(errorMessager);
                     }
                     purchaseResponseDto.setOrderNo(orderEntity.getOrderNo());
                     orderRepository.save(orderEntity);
