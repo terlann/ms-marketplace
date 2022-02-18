@@ -133,8 +133,9 @@ public class OrderService {
         }
         operationEntity.setCommission(operationCommission);
         operationEntity.setOrders(orderEntities);
+        operationEntity = operationRepository.save(operationEntity);
         customerEntity.getOperations().add(operationEntity);
-        customerRepository.save(customerEntity);
+        customerEntity = customerRepository.save(customerEntity);
         var trackId = operationEntity.getId();
         var approvedCustomerCount = operationRepository
                 .countByCustomerAndUmicoDecisionStatus(customerEntity, UmicoDecisionStatus.APPROVED);
