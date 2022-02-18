@@ -1,10 +1,18 @@
 package az.kapitalbank.marketplace.exception;
 
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.experimental.FieldDefaults;
+
+@Getter
+@Setter
+@AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class AtlasException extends RuntimeException {
 
-    static final String MESSAGE = "Atlas exception.method_key - %s, Response - %s";
-
-    public AtlasException(String message, String response) {
-        super(String.format(MESSAGE, message, response));
-    }
+    String uuid;
+    String code;
+    String message;
 }

@@ -264,9 +264,15 @@ public class OrderService {
                         orderEntity.setRrn(rrn);
                         orderEntity.setTransactionStatus(TransactionStatus.COMPLETED);
                         purchaseResponseDto.setStatus(OrderStatus.SUCCESS);
-                    } catch (AtlasException atlasException) {
+                    } catch (AtlasException ex) {
                         purchaseResponseDto.setStatus(OrderStatus.FAIL);
                         orderEntity.setTransactionStatus(TransactionStatus.FAIL_COMPLETED);
+                        orderEntity.setTransactionError(ex.getMessage());
+                        String errorMessager = "Atlas Exception: UUID - %s  ,  code - %s, message - %s";
+                        log.error(String.format(errorMessager,
+                                ex.getUuid(),
+                                ex.getCode(),
+                                ex.getMessage()));
                     }
                     purchaseResponseDto.setOrderNo(orderEntity.getOrderNo());
                     orderRepository.save(orderEntity);
@@ -298,9 +304,15 @@ public class OrderService {
             purchaseResponse.setStatus(OrderStatus.SUCCESS);
             orderEntity.setTransactionId(reverseResponse.getId());
             orderEntity.setTransactionStatus(TransactionStatus.REVERSED);
-        } catch (AtlasException atlasException) {
+        } catch (AtlasException ex) {
             purchaseResponse.setStatus(OrderStatus.FAIL);
             orderEntity.setTransactionStatus(TransactionStatus.FAIL_PURCHASE);
+            String errorMessager = "Atlas Exception: UUID - %s  ,  code - %s, message - %s";
+            orderEntity.setTransactionError(String.format(errorMessager,
+                    ex.getUuid(),
+                    ex.getCode(),
+                    ex.getMessage()));
+            log.error(errorMessager);
         }
         purchaseResponse.setOrderNo(orderEntity.getOrderNo());
         orderRepository.save(orderEntity);
