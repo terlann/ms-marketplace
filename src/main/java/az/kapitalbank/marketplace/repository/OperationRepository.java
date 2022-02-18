@@ -23,6 +23,6 @@ public interface OperationRepository extends JpaRepository<OperationEntity, UUID
                                                UmicoDecisionStatus umicoDecisionStatus);
 
     long countByCustomerAndUmicoDecisionStatusIn(CustomerEntity customer,
-                                               List<UmicoDecisionStatus> umicoDecisionStatus);
+                                                 List<UmicoDecisionStatus> umicoDecisionStatus);
 
 }

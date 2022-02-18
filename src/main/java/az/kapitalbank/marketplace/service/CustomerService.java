@@ -40,19 +40,19 @@ public class CustomerService {
 
 
     public BalanceResponseDto getBalance(String umicoUserId, UUID customerId) {
-        var customerEntity = customerRepository.findById(customerId)
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
-        if (!customerEntity.getUmicoUserId().equals(umicoUserId)) {
-            throw new RuntimeException("Umico user not found");
-        }
-        var cardUUID = customerEntity.getCardUUID();
-        var balanceResponse = atlasClient.balance(cardUUID);
-        //TODO loan utilized and loan limit must be fixed
+//        var customerEntity = customerRepository.findById(customerId)
+//                .orElseThrow(() -> new RuntimeException("Customer not found"));
+//        if (!customerEntity.getUmicoUserId().equals(umicoUserId)) {
+//            throw new RuntimeException("Umico user not found");
+//        }
+//        var cardUUID = customerEntity.getCardUUID();
+//        var balanceResponse = atlasClient.balance(cardUUID);
+//        TODO loan utilized and loan limit must be fixed
         return BalanceResponseDto.builder()
-                .availableBalance(balanceResponse.getAvailableBalance())
+                .availableBalance(OrderService.available)
                 .loanEndDate(LocalDate.of(2025, 02, 15))
-                .loanUtilized(balanceResponse.getOverdraftLimit().subtract(balanceResponse.getAvailableBalance()))
-                .loanLimit(balanceResponse.getOverdraftLimit())
+                .loanUtilized(OrderService.overdraft.subtract(OrderService.available))
+                .loanLimit(OrderService.overdraft)
                 .build();
     }
 }

@@ -3,15 +3,10 @@ package az.kapitalbank.marketplace.service;
 import javax.transaction.Transactional;
 import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
-import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
-import az.kapitalbank.marketplace.client.atlas.model.request.ReversPurchaseRequest;
-import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseCompleteResponse;
-import az.kapitalbank.marketplace.client.atlas.model.response.ReverseResponse;
 import az.kapitalbank.marketplace.constants.ErrorCode;
 import az.kapitalbank.marketplace.constants.OrderStatus;
 import az.kapitalbank.marketplace.constants.TransactionStatus;
@@ -29,7 +24,6 @@ import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.entity.ProductEntity;
-import az.kapitalbank.marketplace.exception.AtlasException;
 import az.kapitalbank.marketplace.exception.LoanAmountIncorrectException;
 import az.kapitalbank.marketplace.exception.MarketplaceException;
 import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
@@ -75,6 +69,9 @@ public class OrderService {
     @NonFinal
     @Value("${purchase.terminal-name}")
     String terminalName;
+
+    public static BigDecimal available = new BigDecimal("900.45");
+    public static BigDecimal overdraft = new BigDecimal("5000");
 
     @Transactional
     public CreateOrderResponse createOrder(CreateOrderRequestDto request) {
@@ -136,7 +133,7 @@ public class OrderService {
         }
         operationEntity.setCommission(operationCommission);
         operationEntity.setOrders(orderEntities);
-        customerEntity.setOperations(Collections.singletonList(operationEntity));
+        customerEntity.getOperations().add(operationEntity);
         customerRepository.save(customerEntity);
         var trackId = operationEntity.getId();
         var approvedCustomerCount = operationRepository
@@ -241,48 +238,58 @@ public class OrderService {
     // fin approve, fin reject
     public List<PurchaseResponseDto> purchase(PurchaseRequestDto request) {
         var customerEntityOptional = customerRepository.findById(request.getCustomerId());
-        PurchaseResponseDto purchaseResponseDto = new PurchaseResponseDto();
-        List<PurchaseResponseDto> umicoPurchaseList = new ArrayList<>();
-        if (customerEntityOptional.isPresent()) {
-            var cardUUID = customerEntityOptional.get().getCardUUID();
-            for (DeliveryProductDto deliveryProductDto : request.getDeliveryOrders()) {
-                var optionalOrderEntity = orderRepository.findByOrderNo(deliveryProductDto.getOrderNo());
-                if (optionalOrderEntity.isPresent()) {
-                    var orderEntity = optionalOrderEntity.get();
-//                    if (!orderEntity.getOrderNo().equals(deliveryProductDto.getOrderNo()) ||
-//                            orderEntity.getTotalAmount().compareTo(deliveryProductDto.getOrderLastAmount()) == -1) {
-//                        throw new RuntimeException("Order or amount isn't equals");
-//                    }
-                    var commision = orderEntity.getCommission();
-                    var amount = orderEntity.getTotalAmount();
-                    var totalPayment = commision.add(amount);
-                    var rrn = GenerateUtil.rrn();
-                    var purchaseCompleteRequest = PurchaseCompleteRequest.builder()
-                            .id(Integer.valueOf(orderEntity.getTransactionId()))
-                            .uid(cardUUID)
-                            .amount(totalPayment)
-                            .approvalCode(orderEntity.getApprovalCode())
-                            .currency(944)
-                            .description("Umico marketplace, order was delivered")//TODO text ok?
-                            .rrn(rrn)
-                            .terminalName(terminalName)
-                            .build();
 
-                    PurchaseCompleteResponse purchaseResponse = null;
-                    try {
-                        purchaseResponse = atlasClient.complete(purchaseCompleteRequest);
-                        orderEntity.setTransactionId(purchaseResponse.getId());
-                        orderEntity.setRrn(rrn);
-                        orderEntity.setTransactionStatus(TransactionStatus.COMPLETED);
-                        purchaseResponseDto.setStatus(OrderStatus.SUCCESS);
-                    } catch (AtlasException atlasException) {
-                        purchaseResponseDto.setStatus(OrderStatus.FAIL);
-                        orderEntity.setTransactionStatus(TransactionStatus.FAIL_COMPLETED);
-                    }
-                    purchaseResponseDto.setOrderNo(orderEntity.getOrderNo());
-                    orderRepository.save(orderEntity);
-                }
+
+        List<PurchaseResponseDto> umicoPurchaseList = new ArrayList<>();
+
+        if (customerEntityOptional.isPresent()) {
+//            var cardUUID = customerEntityOptional.get().getCardUUID();
+            for (DeliveryProductDto deliveryProductDto : request.getDeliveryOrders()) {
+                PurchaseResponseDto purchaseResponseDto = new PurchaseResponseDto();
+                purchaseResponseDto.setOrderNo(deliveryProductDto.getOrderNo());
+                purchaseResponseDto.setStatus(OrderStatus.SUCCESS);
+                available = available.subtract(deliveryProductDto.getOrderLastAmount());
                 umicoPurchaseList.add(purchaseResponseDto);
+
+//                var optionalOrderEntity = orderRepository.findByOrderNo(deliveryProductDto.getOrderNo());
+//
+//                optionalOrderEntity.get().se
+//
+//                if (optionalOrderEntity.isPresent()) {
+//                    var orderEntity = optionalOrderEntity.get();
+////                    if (!orderEntity.getOrderNo().equals(deliveryProductDto.getOrderNo()) ||
+////                            orderEntity.getTotalAmount().compareTo(deliveryProductDto.getOrderLastAmount()) == -1) {
+////                        throw new RuntimeException("Order or amount isn't equals");
+////                    }
+//                    var commision = orderEntity.getCommission();
+//                    var amount = orderEntity.getTotalAmount();
+//                    var totalPayment = commision.add(amount);
+//                    var rrn = GenerateUtil.rrn();
+//                    var purchaseCompleteRequest = PurchaseCompleteRequest.builder()
+//                            .id(Integer.valueOf(orderEntity.getTransactionId()))
+//                            .uid(cardUUID)
+//                            .amount(totalPayment)
+//                            .approvalCode(orderEntity.getApprovalCode())
+//                            .currency(944)
+//                            .description("Umico marketplace, order was delivered")//TODO text ok?
+//                            .rrn(rrn)
+//                            .terminalName(terminalName)
+//                            .build();
+//
+//                    PurchaseCompleteResponse purchaseResponse = null;
+//                    try {
+//                        purchaseResponse = atlasClient.complete(purchaseCompleteRequest);
+//                        orderEntity.setTransactionId(purchaseResponse.getId());
+//                        orderEntity.setRrn(rrn);
+//                        orderEntity.setTransactionStatus(TransactionStatus.COMPLETED);
+//                        purchaseResponseDto.setStatus(OrderStatus.SUCCESS);
+//                    } catch (AtlasException atlasException) {
+//                        purchaseResponseDto.setStatus(OrderStatus.FAIL);
+//                        orderEntity.setTransactionStatus(TransactionStatus.FAIL_COMPLETED);
+//                    }
+//                    purchaseResponseDto.setOrderNo(orderEntity.getOrderNo());
+//                    orderRepository.save(orderEntity);
+//                }
             }
         } else {
             throw new RuntimeException("Customer not found");
@@ -294,27 +301,32 @@ public class OrderService {
     public PurchaseResponseDto reverse(ReverseRequestDto request) {
 
         PurchaseResponseDto purchaseResponse = new PurchaseResponseDto();
-        customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
+        available = available.subtract(request.getOrderAmount());
+        purchaseResponse.setStatus(OrderStatus.SUCCESS);
+        purchaseResponse.setOrderNo(request.getOrderNo());
 
-        var orderEntity = orderRepository.findByOrderNo(request.getOrderNo())
-                .orElseThrow(() -> new RuntimeException("Order not found"));
 
-        var reversPurchaseRequest = ReversPurchaseRequest.builder()
-                .description("everything will be okay")  //TODO text ok?)
-                .build();
-        ReverseResponse reverseResponse = null;
-        try {
-            reverseResponse = atlasClient.reverse(orderEntity.getTransactionId(), reversPurchaseRequest);
-            purchaseResponse.setStatus(OrderStatus.SUCCESS);
-            orderEntity.setTransactionId(reverseResponse.getId());
-            orderEntity.setTransactionStatus(TransactionStatus.REVERSED);
-        } catch (AtlasException atlasException) {
-            purchaseResponse.setStatus(OrderStatus.FAIL);
-            orderEntity.setTransactionStatus(TransactionStatus.FAIL_PURCHASE);
-        }
-        purchaseResponse.setOrderNo(orderEntity.getOrderNo());
-        orderRepository.save(orderEntity);
+//        customerRepository.findById(request.getCustomerId())
+//                .orElseThrow(() -> new RuntimeException("Customer not found"));
+//
+//        var orderEntity = orderRepository.findByOrderNo(request.getOrderNo())
+//                .orElseThrow(() -> new RuntimeException("Order not found"));
+//
+//        var reversPurchaseRequest = ReversPurchaseRequest.builder()
+//                .description("everything will be okay")  //TODO text ok?)
+//                .build();
+//        ReverseResponse reverseResponse = null;
+//        try {
+//            reverseResponse = atlasClient.reverse(orderEntity.getTransactionId(), reversPurchaseRequest);
+//            purchaseResponse.setStatus(OrderStatus.SUCCESS);
+//            orderEntity.setTransactionId(reverseResponse.getId());
+//            orderEntity.setTransactionStatus(TransactionStatus.REVERSED);
+//        } catch (AtlasException atlasException) {
+//            purchaseResponse.setStatus(OrderStatus.FAIL);
+//            orderEntity.setTransactionStatus(TransactionStatus.FAIL_PURCHASE);
+//        }
+//        purchaseResponse.setOrderNo(orderEntity.getOrderNo());
+//        orderRepository.save(orderEntity);
         return purchaseResponse;
     }
 
