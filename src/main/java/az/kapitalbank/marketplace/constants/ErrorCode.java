@@ -25,7 +25,9 @@ public enum ErrorCode {
     PIN_NOT_FOUND("E121", "Pin not found : %s"),
     LOAN_TERM_NOT_FOUND("E122", "No such loan term"),
     PURCHASE_AMOUNT_LIMIT("E123", "Purchase amount must be between 50 and 20000 in first transaction"),
-    NO_ENOUGH_BALANCE("E124", "There is no enough amount in balance");
+    NO_ENOUGH_BALANCE("E124", "There is no enough amount in balance"),
+    CUSTOMER_IS_IN_PROGRESS("E125", "Customer already in progress"),
+    CUSTOMER_NOT_FOUND("E126", "Customer not found");
 
     String code;
     String message;

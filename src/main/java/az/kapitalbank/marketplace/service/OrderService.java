@@ -12,6 +12,7 @@ import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.ReversPurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseCompleteResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.ReverseResponse;
+import az.kapitalbank.marketplace.constants.ErrorCode;
 import az.kapitalbank.marketplace.constants.OrderStatus;
 import az.kapitalbank.marketplace.constants.TransactionStatus;
 import az.kapitalbank.marketplace.constants.UmicoDecisionStatus;
@@ -30,6 +31,7 @@ import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.entity.ProductEntity;
 import az.kapitalbank.marketplace.exception.AtlasException;
 import az.kapitalbank.marketplace.exception.LoanAmountIncorrectException;
+import az.kapitalbank.marketplace.exception.MarketplaceException;
 import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
 import az.kapitalbank.marketplace.exception.OrderAlreadyScoringException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
@@ -50,6 +52,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import static az.kapitalbank.marketplace.utils.AmountUtil.getCommission;
@@ -87,11 +90,13 @@ public class OrderService {
                     customerMapper.toCustomerEntity(request.getCustomerInfo()));
         } else {
             customerEntity = customerRepository.findById(customerId).orElseThrow(
-                    () -> new RuntimeException("Customer not found : " + customerId));
+                    () -> new MarketplaceException("Customer not found : " + customerId,
+                            ErrorCode.CUSTOMER_NOT_FOUND, HttpStatus.NOT_FOUND));
             var pendingCustomer = operationRepository.countByCustomerAndUmicoDecisionStatusIn(customerEntity,
                     List.of(UmicoDecisionStatus.PENDING, UmicoDecisionStatus.PREAPPROVED));
             if (pendingCustomer > 0)
-                throw new RuntimeException("");
+                throw new MarketplaceException("Customer is already in progress: Customerid: " + customerId,
+                        ErrorCode.CUSTOMER_IS_IN_PROGRESS, HttpStatus.BAD_REQUEST);
 
             validateCustomerBalance(request, customerEntity.getCardUUID());
         }
