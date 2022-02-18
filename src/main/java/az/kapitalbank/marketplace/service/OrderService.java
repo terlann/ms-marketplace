@@ -89,11 +89,6 @@ public class OrderService {
                 customerEntity = customerMapper.toCustomerEntity(request.getCustomerInfo());
                 customerEntity = customerRepository.save(customerEntity);
             }
-//            var customerByUmicoUserId =
-//                    customerRepository.findByUmicoUserId(request.getCustomerInfo().getUmicoUserId());
-//            customerEntity = customerByUmicoUserId.orElseGet(() ->
-//                    customerMapper.toCustomerEntity(request.getCustomerInfo())
-//            );
         } else {
             customerEntity = customerRepository.findById(customerId).orElseThrow(
                     () -> new MarketplaceException("Customer not found : " + customerId,
@@ -144,7 +139,6 @@ public class OrderService {
         operationEntity.setOrders(orderEntities);
         operationEntity = operationRepository.save(operationEntity);
         customerEntity.getOperations().add(operationEntity);
-//        customerEntity = customerRepository.save(customerEntity);
         var trackId = operationEntity.getId();
         var approvedCustomerCount = operationRepository
                 .countByCustomerAndUmicoDecisionStatus(customerEntity, UmicoDecisionStatus.APPROVED);
