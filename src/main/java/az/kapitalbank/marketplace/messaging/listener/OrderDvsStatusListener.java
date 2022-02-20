@@ -6,12 +6,17 @@ import java.util.function.Consumer;
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.optimus.OptimusClient;
+import az.kapitalbank.marketplace.client.optimus.model.scoring.CustomerDecision;
 import az.kapitalbank.marketplace.client.umico.UmicoClient;
-import az.kapitalbank.marketplace.client.umico.model.UmicoScoringDecisionRequest;
-import az.kapitalbank.marketplace.constants.TransactionStatus;
-import az.kapitalbank.marketplace.constants.UmicoDecisionStatus;
+import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
+import az.kapitalbank.marketplace.constant.ApplicationConstant;
+import az.kapitalbank.marketplace.constant.Currency;
+import az.kapitalbank.marketplace.constant.DvsStatus;
+import az.kapitalbank.marketplace.constant.ScoringLevel;
+import az.kapitalbank.marketplace.constant.TransactionStatus;
+import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.CompleteScoring;
-import az.kapitalbank.marketplace.entity.OrderEntity;
+import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.messaging.event.OrderDvsStatusEvent;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
@@ -59,50 +64,119 @@ public class OrderDvsStatusListener {
                             .readValue(message, OrderDvsStatusEvent.class);
                     log.info("order dvs status consumer. Message - [{}]", orderDvsStatusEvent);
                     if (orderDvsStatusEvent != null) {
-                        //TODO Dvs status reject send umico reject if confirm complete process but pending ?
-                        var operationEntity = operationRepository.findByDvsOrderId(orderDvsStatusEvent.getOrderId())
-                                .orElseThrow(() -> new RuntimeException("Operation not found"));
+                        var dvsOrderId = orderDvsStatusEvent.getOrderId();
+                        var operationEntity = operationRepository.findByDvsOrderId(dvsOrderId)
+                                .orElseThrow(() -> new OperationNotFoundException("dvsOrderId - " + dvsOrderId));
 
-                        var completeScoring = CompleteScoring.builder()
-                                .trackId(operationEntity.getId())
-                                .businessKey(operationEntity.getBusinessKey())
-                                .additionalNumber1(operationEntity.getAdditionalPhoneNumber1())
-                                .additionalNumber2(operationEntity.getAdditionalPhoneNumber2())
-                                .build();
-                        scoringService.completeScoring(completeScoring);
-                        operationEntity.setDvsOrderStatus(orderDvsStatusEvent.getStatus());
-                        operationRepository.save(operationEntity);
+                        var dvsOrderStatus = orderDvsStatusEvent.getStatus();
+                        switch (dvsOrderStatus) {
+                            case "pending":
+                                log.info("Order Dvs status in pending. Order dvs status response - [{}]",
+                                        orderDvsStatusEvent);
+                                var umicoPendingDecisionRequest = UmicoDecisionRequest.builder()
+                                        .trackId(operationEntity.getId())
+                                        .decisionStatus(UmicoDecisionStatus.PENDING)
+                                        .loanTerm(operationEntity.getLoanTerm())
+                                        .build();
+                                umicoClient.sendDecisionToUmico(umicoPendingDecisionRequest, apiKey);
+                                log.info("Order Dvs status sent to umico like PENDING.");
+                                operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.PENDING);
+                                operationEntity.setDvsOrderStatus(DvsStatus.PENDING);
+                                operationRepository.save(operationEntity);
+                                break;
+                            case "rejected":
+                                log.info("Order Dvs status in rejected. Order dvs status response - [{}]",
+                                        orderDvsStatusEvent);
+                                var completeScoringWithReject = CompleteScoring.builder()
+                                        .trackId(operationEntity.getId())
+                                        .taskId(operationEntity.getTaskId())
+                                        .businessKey(operationEntity.getBusinessKey())
+                                        .additionalNumber1(operationEntity.getAdditionalPhoneNumber1())
+                                        .additionalNumber2(operationEntity.getAdditionalPhoneNumber2())
+                                        .customerDecision(CustomerDecision.REJECT)
+                                        .build();
+                                scoringService.completeScoring(completeScoringWithReject);
+                                log.info("Optimus complete process was rejected. businessKey - {}",
+                                        operationEntity.getBusinessKey());
+                                var umicoRejectedDecisionRequest = UmicoDecisionRequest.builder()
+                                        .trackId(operationEntity.getId())
+                                        .decisionStatus(UmicoDecisionStatus.REJECTED)
+                                        .loanTerm(operationEntity.getLoanTerm())
+                                        .build();
+                                umicoClient.sendDecisionToUmico(umicoRejectedDecisionRequest, apiKey);
+                                log.info("Order Dvs status sent to umico like REJECTED. trackId - {}",
+                                        operationEntity.getId());
+                                operationEntity.setDvsOrderStatus(DvsStatus.REJECTED);
+                                operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
+                                operationRepository.save(operationEntity);
+                                break;
+                            case "confirmed":
+                                log.info("Order Dvs status in confirmed. Order dvs status response - [{}]",
+                                        orderDvsStatusEvent);
+                                var completeScoringWithConfirm = CompleteScoring.builder()
+                                        .trackId(operationEntity.getId())
+                                        .taskId(operationEntity.getTaskId())
+                                        .businessKey(operationEntity.getBusinessKey())
+                                        .additionalNumber1(operationEntity.getAdditionalPhoneNumber1())
+                                        .additionalNumber2(operationEntity.getAdditionalPhoneNumber2())
+                                        .customerDecision(CustomerDecision.CONFIRM_CREDIT)
+                                        .build();
+                                scoringService.completeScoring(completeScoringWithConfirm);
+                                log.info("Optimus complete process was confirmed. businessKey - {}",
+                                        operationEntity.getBusinessKey());
 
-                        var cardPan = optimusClient.getProcessVariable(operationEntity.getBusinessKey(), "pan");
-                        var cardUid = atlasClient.findByPan(cardPan).getUid();
-                        var customerEntity = operationEntity.getCustomer();
-                        customerEntity.setCardUUID(cardUid);
-                        customerRepository.save(customerEntity);
+                                var cardPan = optimusClient.getProcessVariable(operationEntity.getBusinessKey(),
+                                        "pan");
+                                var cardId = atlasClient.findByPan(cardPan).getUid();
+                                var orders = operationEntity.getOrders();
+                                log.info("Pan was taken and changed card uid.Purchase process starts. cardId - {}",
+                                        cardId);
+                                for (var order : orders) {
+                                    var rrn = GenerateUtil.rrn();
+                                    var purchaseRequest = PurchaseRequest.builder()
+                                            .rrn(rrn)
+                                            .amount(order.getTotalAmount())
+                                            .description(ApplicationConstant.PURCHASE_DESCRIPTION)
+                                            .currency(Currency.AZN.getCode())
+                                            .terminalName(terminalName)
+                                            .uid(cardId)
+                                            .build();
+                                    var purchaseResponse = atlasClient.purchase(purchaseRequest);
 
-                        var orders = operationEntity.getOrders();
-                        for (OrderEntity orderEntity : orders) {
-                            var rrn = GenerateUtil.rrn();
-                            var purchaseRequest = PurchaseRequest.builder()
-                                    .rrn(rrn)
-                                    .amount(orderEntity.getTotalAmount())
-                                    .description("purchase") //TODO text ?
-                                    .currency(944)
-                                    .terminalName(terminalName)
-                                    .uid(cardUid)
-                                    .build();
-                            var purchaseResponse = atlasClient.purchase(purchaseRequest);
-                            orderEntity.setRrn(rrn);
-                            orderEntity.setTransactionId(purchaseResponse.getId());
-                            orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
-                            orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
+                                    order.setRrn(rrn);
+                                    order.setTransactionId(purchaseResponse.getId());
+                                    order.setApprovalCode(purchaseResponse.getApprovalCode());
+                                    order.setTransactionStatus(TransactionStatus.PURCHASE);
+                                    order.setOperation(operationEntity);
+                                }
+                                operationEntity.setOrders(orders);
+                                operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
+                                operationEntity.setDvsOrderStatus(DvsStatus.CONFIRMED);
+                                operationEntity.setScoringLevel(ScoringLevel.COMPLETE);
+                                operationEntity.setLoanContractStartDate(null); // TODO ?
+                                operationEntity.setLoanContractEndDate(null);   // TODO ?
+                                operationRepository.save(operationEntity);
+                                var customerEntity = operationEntity.getCustomer();
+                                customerEntity.setCardId(cardId);
+                                customerRepository.save(customerEntity);
+                                log.info("Purchased all orders.");
+
+                                var umicoApprovedDecisionRequest = UmicoDecisionRequest.builder()
+                                        .trackId(operationEntity.getId())
+                                        .commission(operationEntity.getCommission())
+                                        .customerId(customerEntity.getId())
+                                        .decisionStatus(UmicoDecisionStatus.APPROVED)
+                                        .loanTerm(operationEntity.getLoanTerm())
+                                        .loanLimit(operationEntity.getTotalAmount())
+                                        .loanContractStartDate(null) // TODO ?
+                                        .loanContractEndDate(null)   // TODO ?
+                                        .build();
+                                umicoClient.sendDecisionToUmico(umicoApprovedDecisionRequest, apiKey);
+                                log.info("Order Dvs status sent to umico like APPROVED. trackId - {}",
+                                        operationEntity.getId());
+                                break;
+                            default:
                         }
-                        var umicoScoringDecisionRequest = UmicoScoringDecisionRequest.builder()
-                                .trackId(operationEntity.getId())
-                                .decisionStatus(UmicoDecisionStatus.APPROVED)
-                                .loanTerm(operationEntity.getLoanTerm())
-                                .customerId(customerEntity.getId())
-                                .build();
-                        umicoClient.sendDecisionScoring(umicoScoringDecisionRequest, apiKey);
                     }
                 } catch (JsonProcessingException j) {
                     log.error("order dvs status consume.Message - [{}], JsonProcessingException - {}",

@@ -48,7 +48,5 @@ public interface OptimusClient {
         OptimusClientErrorDecoder errorDecoder() {
             return new OptimusClientErrorDecoder();
         }
-
     }
-
 }

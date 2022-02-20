@@ -25,8 +25,7 @@ public class TelesalesService {
     OperationRepository operationRepository;
 
     public Optional<String> sendLead(UUID trackId) {
-        log.error("send lead to telesales start... track_id -[{}]", trackId);
-
+        log.info("Send lead to telesales start... track_id -[{}]", trackId);
         try {
             var operationEntityOptional = operationRepository.findById(trackId);
             if (operationEntityOptional.isPresent()) {
@@ -37,13 +36,13 @@ public class TelesalesService {
                 var amountWithCommission = operationEntity.getTotalAmount().add(operationEntity.getCommission());
                 createTelesalesOrderRequest.setLoanAmount(amountWithCommission);
                 var createTelesalesOrderResponse = telesalesClient.sendLead(createTelesalesOrderRequest);
-                log.error("send lead to telesales finish... track_id -[{}], Response - {}",
+                log.info("Send lead to telesales finish... track_id -[{}], Response - {}",
                         trackId,
                         createTelesalesOrderResponse);
                 return Optional.of(createTelesalesOrderResponse.getOperationId());
             }
         } catch (Exception e) {
-            log.error("cannot send lead to telesales. track_id -[{}], Exception - {}", trackId, e.getMessage());
+            log.error("It can't send lead to telesales. track_id -[{}], Exception - {}", trackId, e.getMessage());
         }
         return Optional.empty();
     }

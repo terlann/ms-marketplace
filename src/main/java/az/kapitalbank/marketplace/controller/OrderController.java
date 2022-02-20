@@ -1,12 +1,13 @@
 package az.kapitalbank.marketplace.controller;
 
 import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import java.util.List;
 
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
 import az.kapitalbank.marketplace.dto.request.PurchaseRequestDto;
 import az.kapitalbank.marketplace.dto.request.ReverseRequestDto;
-import az.kapitalbank.marketplace.dto.request.ScoringOrderRequestDto;
+import az.kapitalbank.marketplace.dto.request.TelesalesResultRequestDto;
 import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
 import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
 import az.kapitalbank.marketplace.dto.response.PurchaseResponseDto;
@@ -37,15 +38,14 @@ public class OrderController {
         return new ResponseEntity<>(service.createOrder(request), HttpStatus.CREATED);
     }
 
-    @PostMapping("/check/{telesales-order-id}") //TODO optimus check order
-    public ResponseEntity<CheckOrderResponseDto> checkOrder(@PathVariable("telesales-order-id")
+    @PostMapping("/check/{telesales-order-id}")
+    public ResponseEntity<CheckOrderResponseDto> checkOrder(@NotBlank @PathVariable("telesales-order-id")
                                                                     String telesalesOrderId) {
         return ResponseEntity.ok(service.checkOrder(telesalesOrderId));
     }
 
-    // TODO update customer,operation after telesales scoring and dvs
     @PostMapping("/telesales/result")
-    public ResponseEntity<Void> telesalesResult(@Valid @RequestBody ScoringOrderRequestDto request) {
+    public ResponseEntity<Void> telesalesResult(@Valid @RequestBody TelesalesResultRequestDto request) {
         scoringService.telesalesResult(request);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }

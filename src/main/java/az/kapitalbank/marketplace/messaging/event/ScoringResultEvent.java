@@ -6,10 +6,10 @@ import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
 
-import static az.kapitalbank.marketplace.constants.ProcessStatus.BUSINESS_ERROR;
-import static az.kapitalbank.marketplace.constants.ProcessStatus.COMPLETED;
-import static az.kapitalbank.marketplace.constants.ProcessStatus.INCIDENT_HAPPENED;
-import static az.kapitalbank.marketplace.constants.ProcessStatus.IN_USER_ACTIVITY;
+import static az.kapitalbank.marketplace.constant.ProcessStatus.BUSINESS_ERROR;
+import static az.kapitalbank.marketplace.constant.ProcessStatus.COMPLETED;
+import static az.kapitalbank.marketplace.constant.ProcessStatus.INCIDENT_HAPPENED;
+import static az.kapitalbank.marketplace.constant.ProcessStatus.IN_USER_ACTIVITY;
 
 @Data
 @FieldDefaults(level = AccessLevel.PRIVATE)

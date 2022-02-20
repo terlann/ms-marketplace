@@ -23,27 +23,29 @@ public class VerificationService {
 
     DvsClient dvsClient;
 
+    public Optional<DvsCreateOrderResponse> createOrder(DvsCreateOrderRequest request, UUID trackId) {
+        log.info("Verification service create order start... track_id - [{}]", trackId);
+        try {
+            DvsCreateOrderResponse dvsCreateOrderResponse = dvsClient.createOrder(request);
+            log.error("Verification service create order finish... track_id - [{}]", trackId);
+            return Optional.of(dvsCreateOrderResponse);
+        } catch (FeignClientException f) {
+            log.error("Verification service create order error... track_id - [{}]", trackId);
+            return Optional.empty();
+        }
+    }
+
     public Optional<DvsGetDetailsResponse> getDetails(UUID trackId, String orderId, String dvsId) {
-        log.info("verification service get details start... track_id - [{}],order_id - [{}],dvs_id - [{}]",
+        log.info("Verification service get details start... track_id - [{}],order_id - [{}],dvs_id - [{}]",
                 trackId,
                 orderId,
                 dvsId);
         try {
             DvsGetDetailsResponse dvsGetDetailsResponse = dvsClient.getDetails(orderId, dvsId);
+            log.info("Verification service get details finish... track_id - [{}]", trackId);
             return Optional.of(dvsGetDetailsResponse);
         } catch (FeignClientException f) {
-            log.error("verification service get details finish... track_id - [{}]", trackId);
-            return Optional.empty();
-        }
-    }
-
-    public Optional<DvsCreateOrderResponse> createOrder(DvsCreateOrderRequest request, UUID trackId) {
-        log.info("verification service create order start... track_id - [{}]", trackId);
-        try {
-            DvsCreateOrderResponse dvsCreateOrderResponse = dvsClient.createOrder(request);
-            return Optional.of(dvsCreateOrderResponse);
-        } catch (FeignClientException f) {
-            log.error("verification service create order finish... track_id - [{}]", trackId);
+            log.error("Verification service get details error... track_id - [{}]", trackId);
             return Optional.empty();
         }
     }

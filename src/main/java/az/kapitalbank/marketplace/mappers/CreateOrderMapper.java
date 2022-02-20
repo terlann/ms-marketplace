@@ -13,16 +13,6 @@ import org.mapstruct.ReportingPolicy;
         uses = {CreateOrderQualifier.class})
 public interface CreateOrderMapper {
 
-//    @Mapping(source = "productEntityList", target = "products")
-//    @Mapping(source = "loanProcessRequestDto.loanTerm", target = "loanDuration")
-//    @Mapping(source = "loanProcessRequestDto.totalAmount", target = "totalAmount",
-//            qualifiedByName = "calculateLoanAmount")
-//    OrderEntity toOrderEntity(LoanProcessRequestDto loanProcessRequestDto,
-//                              List<ProductEntity> productEntityList);
-//
-//    @Mapping(source = "productAmount", target = "productAmount", qualifiedByName = "divideAmount")
-//    ProductEntity toProductOrderEntity(OrderProductItem orderProductItem);
-
     @Mapping(source = "customerInfo.umicoUserId", target = "umicoUserId")
     @Mapping(source = "customerInfo.ip", target = "ip")
     @Mapping(source = "customerInfo.pin", target = "pin")

@@ -1,6 +1,6 @@
 package az.kapitalbank.marketplace.dto;
 
-import az.kapitalbank.marketplace.constants.ErrorCode;
+import az.kapitalbank.marketplace.constant.Error;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -18,8 +18,8 @@ public class ErrorResponseDto {
     String code;
     String message;
 
-    public ErrorResponseDto(ErrorCode errorCode) {
-        this.code = errorCode.getCode();
-        this.message = errorCode.getMessage();
+    public ErrorResponseDto(Error error) {
+        this.code = error.getCode();
+        this.message = error.getMessage();
     }
 }

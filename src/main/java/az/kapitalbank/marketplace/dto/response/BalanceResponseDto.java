@@ -16,7 +16,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class BalanceResponseDto {
-    LocalDate loanEndDate;
+    LocalDate cardExpiryDate;
     BigDecimal loanLimit;
     BigDecimal loanUtilized;
     BigDecimal availableBalance;
