@@ -2,7 +2,7 @@ package az.kapitalbank.marketplace.messaging.event;
 
 import java.util.UUID;
 
-import az.kapitalbank.marketplace.constants.FraudResultStatus;
+import az.kapitalbank.marketplace.constant.FraudResultStatus;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;

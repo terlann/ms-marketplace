@@ -8,9 +8,7 @@ import az.kapitalbank.marketplace.client.atlas.model.response.CardResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseCompleteResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.ReverseResponse;
-import az.kapitalbank.marketplace.client.telesales.TelesalesClientErrorDecoder;
 import feign.Logger;
-import feign.codec.ErrorDecoder;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -47,13 +45,8 @@ public interface AtlasClient {
         }
 
         @Bean
-        public ErrorDecoder feignErrorDecoder() {
-            return new TelesalesClientErrorDecoder();
-        }
-
-        @Bean
-        AtlasClientExceptionDecoder exceptionDecoder() {
-            return new AtlasClientExceptionDecoder();
+        AtlasClientErrorDecoder exceptionDecoder() {
+            return new AtlasClientErrorDecoder();
         }
     }
 

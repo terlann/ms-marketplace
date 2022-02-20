@@ -1,6 +1,7 @@
 package az.kapitalbank.marketplace.dto.request;
 
 import javax.validation.Valid;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 import java.util.List;
@@ -20,8 +21,10 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateOrderRequestDto {
+    @NotNull
     CustomerInfo customerInfo;
     @NotNull
+    @Min(1)
     Integer loanTerm;
     @NotNull
     BigDecimal totalAmount;

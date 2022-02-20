@@ -1,18 +1,15 @@
 package az.kapitalbank.marketplace.client.dvs;
 
-import az.kapitalbank.marketplace.exception.FeignClientException;
+import az.kapitalbank.marketplace.client.dvs.exception.DvsClientException;
 import feign.Response;
 import feign.codec.ErrorDecoder;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Configuration;
 
-@Slf4j
-@Component
+@Configuration
 public class DvsClientErrorDecoder implements ErrorDecoder {
 
     @Override
     public Exception decode(String methodKey, Response response) {
-        log.error("adp-dvs client error decoder. Response - {}", response.toString());
-        return new FeignClientException(methodKey, response.body().toString());
+        return new DvsClientException(methodKey, response.body().toString());
     }
 }

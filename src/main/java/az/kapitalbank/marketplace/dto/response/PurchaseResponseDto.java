@@ -1,6 +1,6 @@
 package az.kapitalbank.marketplace.dto.response;
 
-import az.kapitalbank.marketplace.constants.OrderStatus;
+import az.kapitalbank.marketplace.constant.OrderStatus;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;

@@ -1,7 +1,6 @@
 package az.kapitalbank.marketplace.service;
 
 import javax.transaction.Transactional;
-import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,14 +10,16 @@ import az.kapitalbank.marketplace.client.dvs.model.DvsGetDetailsResponse;
 import az.kapitalbank.marketplace.client.optimus.OptimusClient;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessData;
 import az.kapitalbank.marketplace.client.umico.UmicoClient;
-import az.kapitalbank.marketplace.client.umico.model.UmicoScoringDecisionRequest;
-import az.kapitalbank.marketplace.client.umico.model.UmicoScoringDecisionResponse;
-import az.kapitalbank.marketplace.constants.FraudResultStatus;
-import az.kapitalbank.marketplace.constants.ProcessStatus;
-import az.kapitalbank.marketplace.constants.TaskDefinitionKey;
-import az.kapitalbank.marketplace.constants.UmicoDecisionStatus;
+import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
+import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionResponse;
+import az.kapitalbank.marketplace.constant.FraudResultStatus;
+import az.kapitalbank.marketplace.constant.ProcessStatus;
+import az.kapitalbank.marketplace.constant.ScoringLevel;
+import az.kapitalbank.marketplace.constant.TaskDefinitionKey;
+import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.exception.FeignClientException;
-import az.kapitalbank.marketplace.exception.ScoringCustomerException;
+import az.kapitalbank.marketplace.exception.OperationNotFoundException;
+import az.kapitalbank.marketplace.exception.ScoringException;
 import az.kapitalbank.marketplace.mappers.LoanFormalizeMapper;
 import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
 import az.kapitalbank.marketplace.messaging.event.InUserActivityData;
@@ -81,13 +82,14 @@ public class ProductCreateService {
                         operationEntity.getPin(),
                         operationEntity.getMobileNumber());
                 if (businessKey.isPresent()) {
+                    operationEntity.setScoringLevel(ScoringLevel.START);
                     operationEntity.setBusinessKey(businessKey.get());
                     operationRepository.save(operationEntity);
                     log.info("ProductCreateService: optimus stared scoring.track_id - [{}], business_key - [{}]",
                             trackId,
                             businessKey);
                 }
-            } catch (ScoringCustomerException e) {
+            } catch (ScoringException e) {
                 log.error("ProductCreateService: " +
                         "optimus start scoring was failed.Redirect to telesales track_id - [{}]", trackId);
                 var telesalesOrderId = telesalesService.sendLead(trackId);
@@ -102,7 +104,7 @@ public class ProductCreateService {
     public void createScoring(ScoringResultEvent scoringResultEvent) {
         var businessKey = scoringResultEvent.getBusinessKey();
         var operationEntity = operationRepository.findByBusinessKey(businessKey)
-                .orElseThrow(() -> new RuntimeException("Operation not found"));
+                .orElseThrow(() -> new OperationNotFoundException("businessKey - " + businessKey));
         var trackId = operationEntity.getId();
         if (scoringResultEvent.getProcessStatus().equals(ProcessStatus.IN_USER_ACTIVITY)) {
             var processResponse = scoringService.getProcess(trackId, businessKey)
@@ -119,9 +121,9 @@ public class ProductCreateService {
                     sendDecision(UmicoDecisionStatus.PENDING, trackId, "", "");
                     return;
                 }
-                scoringService.createScoring(trackId, taskId, scoredAmount);
                 operationEntity.setTaskId(taskId);
                 operationRepository.save(operationEntity);
+                scoringService.createScoring(trackId, taskId, scoredAmount);
             } else if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SIGN_DOCUMENTS)) {
                 try {
                     DvsCreateOrderRequest dvsCreateOrderRequest = loanFormalizeMapper
@@ -185,8 +187,7 @@ public class ProductCreateService {
         var operationEntity = operationRepository.findById(trackId)
                 .orElseThrow(() -> new RuntimeException("Operation not found: " + trackId));
         operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
-        operationEntity.setScoringDate(LocalDateTime.now());
-        UmicoScoringDecisionRequest umicoScoringDecisionRequest = UmicoScoringDecisionRequest.builder()
+        UmicoDecisionRequest umicoScoringDecisionRequest = UmicoDecisionRequest.builder()
                 .trackId(trackId)
                 .decisionStatus(umicoDecisionStatus)
                 .loanTerm(operationEntity.getLoanTerm())
@@ -198,8 +199,8 @@ public class ProductCreateService {
         log.info("product create send decision.track_id - [{}], Request - [{}]", trackId,
                 umicoScoringDecisionRequest);
         try {
-            UmicoScoringDecisionResponse umicoScoringDecisionResponse = umicoClient
-                    .sendDecisionScoring(umicoScoringDecisionRequest, apiKey);
+            UmicoDecisionResponse umicoScoringDecisionResponse = umicoClient
+                    .sendDecisionToUmico(umicoScoringDecisionRequest, apiKey);
             log.info("product create send decision.track_id - [{}], Response - [{}]",
                     trackId,
                     umicoScoringDecisionResponse);

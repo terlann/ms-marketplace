@@ -3,7 +3,7 @@ package az.kapitalbank.marketplace.mappers.qualifier;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import az.kapitalbank.marketplace.constants.FraudReason;
+import az.kapitalbank.marketplace.constant.FraudReason;
 import org.mapstruct.Named;
 import org.springframework.stereotype.Component;
 

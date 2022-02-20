@@ -1,7 +1,6 @@
 package az.kapitalbank.marketplace.service;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -18,18 +17,19 @@ import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringReque
 import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringResponse;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringVariable;
 import az.kapitalbank.marketplace.client.umico.UmicoClient;
-import az.kapitalbank.marketplace.client.umico.model.UmicoScoringDecisionRequest;
-import az.kapitalbank.marketplace.client.umico.model.UmicoScoringDecisionResponse;
-import az.kapitalbank.marketplace.constants.AdpOptimusLevels;
-import az.kapitalbank.marketplace.constants.ScoringStatus;
-import az.kapitalbank.marketplace.constants.UmicoDecisionStatus;
+import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
+import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionResponse;
+import az.kapitalbank.marketplace.constant.ScoringLevel;
+import az.kapitalbank.marketplace.constant.TelesalesResult;
+import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.CompleteScoring;
-import az.kapitalbank.marketplace.dto.request.ScoringOrderRequestDto;
+import az.kapitalbank.marketplace.dto.request.TelesalesResultRequestDto;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.exception.FeignClientException;
+import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderAlreadyScoringException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
-import az.kapitalbank.marketplace.exception.ScoringCustomerException;
+import az.kapitalbank.marketplace.exception.ScoringException;
 import az.kapitalbank.marketplace.mappers.ScoringMapper;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import lombok.AccessLevel;
@@ -63,7 +63,7 @@ public class ScoringService {
     ScoringMapper scoringMapper;
 
     @Transactional
-    public void telesalesResult(ScoringOrderRequestDto request) {
+    public void telesalesResult(TelesalesResultRequestDto request) {
         String telesalesOrderId = request.getTelesalesOrderId().trim();
         log.info("telesales loan result start... telesales_order_id - [{}]", telesalesOrderId);
         var exceptionMessage = String.format("telesales_order_id - [%S]", telesalesOrderId);
@@ -71,22 +71,22 @@ public class ScoringService {
                 .orElseThrow(() -> new OrderNotFoundException(exceptionMessage));
         log.info("telesales_order_id found in db. telesales_order_id - [{}]", telesalesOrderId);
 
-        if (operationEntity.getScoringStatus() != null) {
+        if (operationEntity.getScoringLevel() != null) {
             log.error("Order already have scored. telesales_order_id - [{}]",
                     telesalesOrderId);
             throw new OrderAlreadyScoringException(telesalesOrderId);
         }
 
-        var umicoDecisionStatus = request.getScoringStatus() == ScoringStatus.APPROVED ?
-                UmicoDecisionStatus.APPROVED : UmicoDecisionStatus.REJECTED;
-        operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
-        operationEntity.setScoringStatus(request.getScoringStatus());
-        operationEntity.setScoringDate(LocalDateTime.now());
-        var cardUid = request.getCardPan(); // TODO optimus send me pan and change to cardUid
-        if (request.getScoringStatus().equals(ScoringStatus.APPROVED)) {
-            operationEntity.getCustomer().setCardUUID(cardUid);
+        if (request.getTelesalesResult() == TelesalesResult.APPROVED) {
+            var cardUid = request.getCardPan(); // TODO optimus send me pan and change to cardUid
+            operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
+            operationEntity.setScoringLevel(ScoringLevel.COMPLETE);
+            operationEntity.getCustomer().setCardId(cardUid);
             operationEntity.setLoanContractStartDate(request.getLoanContractStartDate()); // TODO optimus send me
             operationEntity.setLoanContractEndDate(request.getLoanContractEndDate()); // TODO optimus send me
+        } else {
+            operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
+            operationEntity.setScoringLevel(ScoringLevel.REJECT);
         }
         operationRepository.save(operationEntity);
 
@@ -103,20 +103,20 @@ public class ScoringService {
 
     public void sendDecisionScoring(OperationEntity operationEntity) {
         try {
-            UmicoScoringDecisionRequest umicoScoringDecisionRequest = UmicoScoringDecisionRequest.builder()
+            UmicoDecisionRequest umicoScoringDecisionRequest = UmicoDecisionRequest.builder()
                     .trackId(operationEntity.getId())
                     .decisionStatus(operationEntity.getUmicoDecisionStatus())
-//                    .loanContractStartDate()
-//                    .loanContractEndDate()
+                    .loanContractStartDate(null) // TODO ?
+                    .loanContractEndDate(null)  // TODO ?
                     .customerId(operationEntity.getCustomer().getId())
                     .commission(operationEntity.getCommission())
-                    .loanLimit(operationEntity.getTotalAmount())
+                    .loanLimit(operationEntity.getTotalAmount().add(operationEntity.getCommission()))
                     .loanTerm(operationEntity.getLoanTerm())
                     .build();
             log.info("scoring order send decision to umico. Request - [{}] ",
                     umicoScoringDecisionRequest.toString());
-            UmicoScoringDecisionResponse umicoScoringDecisionResponse = umicoClient
-                    .sendDecisionScoring(umicoScoringDecisionRequest, apiKey);
+            UmicoDecisionResponse umicoScoringDecisionResponse = umicoClient
+                    .sendDecisionToUmico(umicoScoringDecisionRequest, apiKey);
             log.info("scoring order send decision to umico. Response - [{}] , ete_order_id - [{}]",
                     umicoScoringDecisionResponse.toString(),
                     operationEntity.getTelesalesOrderId());
@@ -128,7 +128,7 @@ public class ScoringService {
 
     public Optional<String> startScoring(UUID trackId, String pinCode, String phoneNumber) {
         log.info("scoring service customer-scoring start... track_id - [{}]", trackId);
-        StartScoringVariable startScoringVariable = scoringMapper.toCustomerScoringVariable(pinCode,
+        StartScoringVariable startScoringVariable = scoringMapper.toStartScoringVariable(pinCode,
                 phoneNumber,
                 productType);
         StartScoringRequest startScoringRequest = StartScoringRequest.builder()
@@ -150,7 +150,7 @@ public class ScoringService {
         }
     }
 
-    public void createScoring(UUID trackId, String businessKey, BigDecimal loanAmount) {
+    public void createScoring(UUID trackId, String taskId, BigDecimal loanAmount) {
         log.info("scoring service create-scoring start... track_id - [{}]", trackId);
         CreateScoringRequest createScoringRequest = CreateScoringRequest.builder()
                 .cashDemandedAmount(loanAmount.toString())
@@ -158,13 +158,17 @@ public class ScoringService {
                 .build();
         log.info("scoring service create-scoring. track_id - [{}], Request - {}", trackId, createScoringRequest);
         try {
-            optimusClient.scoringCreate(businessKey, createScoringRequest);
+            optimusClient.scoringCreate(taskId, createScoringRequest);
+            var operationEntity = operationRepository.findById(trackId)
+                    .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
+            operationEntity.setScoringLevel(ScoringLevel.CREATE);
+            operationRepository.save(operationEntity);
             log.info("scoring service create-scoring finish... track_id - [{}]", trackId);
         } catch (FeignClientException e) {
             log.error("scoring service create-scoring finish... track_id - [{}],FeignException - {}",
                     trackId,
                     e.getMessage());
-            throw new ScoringCustomerException(trackId, AdpOptimusLevels.CREATE);
+            throw new ScoringException(trackId, ScoringLevel.CREATE);
         }
     }
 
@@ -188,18 +192,18 @@ public class ScoringService {
                 .customerContact(CustomerContact.builder()
                         .customerNumberList(customerNumberList)
                         .build())
-                .customerDecision(CustomerDecision.CONFIRM_CREDIT)
+                .customerDecision(completeScoring.getCustomerDecision())
                 .build();
 
         log.info("scoring service complete-scoring. track_id - [{}], Request - {}", trackId, completeScoringRequest);
         try {
-            optimusClient.scoringComplete(completeScoring.getBusinessKey(), completeScoringRequest);
+            optimusClient.scoringComplete(completeScoring.getTaskId(), completeScoringRequest);
             log.info("scoring service complete-scoring finish... track_id - [{}]", trackId);
         } catch (FeignClientException f) {
             log.error("scoring service complete-scoring finish... track_id - [{}],FeignException - {}",
                     trackId,
                     f.getMessage());
-            throw new ScoringCustomerException(trackId, AdpOptimusLevels.COMPLETE);
+            throw new ScoringException(trackId, ScoringLevel.COMPLETE);
         }
     }
 

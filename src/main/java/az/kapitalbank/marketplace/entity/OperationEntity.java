@@ -11,13 +11,12 @@ import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import az.kapitalbank.marketplace.constants.OperationStatus;
-import az.kapitalbank.marketplace.constants.ScoringStatus;
-import az.kapitalbank.marketplace.constants.UmicoDecisionStatus;
+import az.kapitalbank.marketplace.constant.DvsStatus;
+import az.kapitalbank.marketplace.constant.ScoringLevel;
+import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -40,7 +39,6 @@ public class OperationEntity extends BaseEntity {
     BigDecimal totalAmount;
     BigDecimal commission;
     Integer loanTerm;
-    OperationStatus status;
     String latitude;
     String longitude;
     String ip;
@@ -55,12 +53,11 @@ public class OperationEntity extends BaseEntity {
     LocalDate birthday;
     String taskId;
     String businessKey;
-    ScoringStatus scoringStatus;
-    LocalDateTime scoringDate;
+    ScoringLevel scoringLevel;
     LocalDate loanContractStartDate;
     LocalDate loanContractEndDate;
     String dvsOrderId;
-    String dvsOrderStatus;
+    DvsStatus dvsOrderStatus;
     @Enumerated(EnumType.STRING)
     UmicoDecisionStatus umicoDecisionStatus;
 

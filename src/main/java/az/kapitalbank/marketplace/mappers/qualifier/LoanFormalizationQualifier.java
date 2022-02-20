@@ -2,7 +2,6 @@ package az.kapitalbank.marketplace.mappers.qualifier;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -20,7 +19,7 @@ public class LoanFormalizationQualifier {
 
     @Named("asList")
     public List<String> asList(String source) {
-        return Arrays.asList(source);
+        return List.of(source);
     }
 
     @Named("toLocalDateTime")

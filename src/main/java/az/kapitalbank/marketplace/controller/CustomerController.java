@@ -1,6 +1,7 @@
 package az.kapitalbank.marketplace.controller;
 
-import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Size;
 import java.util.UUID;
 
 import az.kapitalbank.marketplace.dto.response.BalanceResponseDto;
@@ -25,15 +26,15 @@ public class CustomerController {
     CustomerService customerService;
 
     @GetMapping("/check/{pin}")
-    public ResponseEntity<Void> checkPin(@Valid @PathVariable String pin) {
-        customerService.checkPin(pin);
+    public ResponseEntity<Void> checkPerson(@NotBlank @Size(max = 7, min = 7) @PathVariable String pin) {
+        customerService.checkPerson(pin);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @GetMapping("/balance")
-    public ResponseEntity<BalanceResponseDto> getBalance(@Valid
-                                                         @RequestParam String umicoUserId,
-                                                         @RequestParam UUID customerId) {
+    public ResponseEntity<BalanceResponseDto> getBalance(
+            @NotBlank @RequestParam String umicoUserId,
+            @NotBlank @RequestParam UUID customerId) {
         return ResponseEntity.ok(customerService.getBalance(umicoUserId, customerId));
     }
 }

@@ -10,7 +10,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OrderNotFoundException extends RuntimeException {
 
-    static final String MESSAGE = "Order cannot find. %s";
+    static final String MESSAGE = "Order not found. order_no - %s";
 
     public OrderNotFoundException(String message) {
         super(String.format(MESSAGE, message));

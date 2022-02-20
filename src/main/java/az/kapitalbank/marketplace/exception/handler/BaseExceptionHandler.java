@@ -6,8 +6,19 @@ import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.ArrayList;
 import java.util.List;
 
-import az.kapitalbank.marketplace.constants.ErrorCode;
+import az.kapitalbank.marketplace.client.externalinteg.exception.ExternalIntegrationException;
+import az.kapitalbank.marketplace.constant.Error;
 import az.kapitalbank.marketplace.dto.ErrorResponseDto;
+import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
+import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
+import az.kapitalbank.marketplace.exception.LoanAmountIncorrectException;
+import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
+import az.kapitalbank.marketplace.exception.OrderAlreadyScoringException;
+import az.kapitalbank.marketplace.exception.OrderNotFoundException;
+import az.kapitalbank.marketplace.exception.PersonNotFoundException;
+import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
+import az.kapitalbank.marketplace.exception.UmicoUserNotFoundException;
+import az.kapitalbank.marketplace.exception.UnknownLoanTerm;
 import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
@@ -28,18 +39,88 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
             SQLException.class,
             FeignException.class})
     public ResponseEntity<ErrorResponseDto> multipleException(Exception ex) {
-        log.error("Exception: {}", ex);
-        var errorResponseDto = new ErrorResponseDto(ErrorCode.INTERNAL_SERVER_ERROR);
+        log.error("Exception: {}", ex.getMessage());
+        var errorResponseDto = new ErrorResponseDto(Error.INTERNAL_SERVER_ERROR);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponseDto);
     }
 
     @ExceptionHandler(UnexpectedTypeException.class)
     public ResponseEntity<ErrorResponseDto> unexpectedTypeException(UnexpectedTypeException ex) {
-        log.error("Exception: {}", ex);
-        var errorResponseDto = new ErrorResponseDto(ErrorCode.REQUEST_FIELD_TYPES);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponseDto);
+        log.error("UnexpectedTypeException: {}", ex.getMessage());
+        var errorResponseDto = new ErrorResponseDto(Error.REQUEST_FIELD_TYPES);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
+    @ExceptionHandler({PersonNotFoundException.class, ExternalIntegrationException.class})
+    public ResponseEntity<ErrorResponseDto> personNotFound(Exception ex) {
+        log.error(ex.getMessage());
+        var errorResponseDto = new ErrorResponseDto(Error.PERSON_NOT_FOUND);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(OrderNotFoundException.class)
+    public ResponseEntity<ErrorResponseDto> orderIdNotFound(OrderNotFoundException ex) {
+        log.error(ex.getMessage());
+        var errorResponseDto = new ErrorResponseDto(Error.ORDER_NOT_FOUND);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(LoanAmountIncorrectException.class)
+    public ResponseEntity<ErrorResponseDto> loanAmountIncorrect(LoanAmountIncorrectException ex) {
+        log.error(ex.getMessage());
+        var errorResponseDto = new ErrorResponseDto(Error.LOAN_AMOUNT_INCORRECT);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(UnknownLoanTerm.class)
+    public ResponseEntity<ErrorResponseDto> loanTermIncorrect(UnknownLoanTerm ex) {
+        log.error(ex.getMessage());
+        var errorResponseDto = new ErrorResponseDto(Error.LOAN_TERM_NOT_FOUND);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(TotalAmountLimitException.class)
+    public ResponseEntity<ErrorResponseDto> exceedTotalAmountLimit(TotalAmountLimitException ex) {
+        log.error(ex.getMessage());
+        var errorResponseDto = new ErrorResponseDto(Error.PURCHASE_AMOUNT_LIMIT);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(NoEnoughBalanceException.class)
+    public ResponseEntity<ErrorResponseDto> noEnoughBalance(NoEnoughBalanceException ex) {
+        log.error(ex.getMessage());
+        var errorResponseDto = new ErrorResponseDto(Error.NO_ENOUGH_BALANCE);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(OrderAlreadyScoringException.class)
+    public ResponseEntity<ErrorResponseDto> orderAlreadyScoring(OrderAlreadyScoringException ex) {
+        log.error(ex.getMessage());
+        var errorResponseDto = new ErrorResponseDto(Error.ORDER_ALREADY_SCORING);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(CustomerNotFoundException.class)
+    public ResponseEntity<ErrorResponseDto> customerNotFoundException(CustomerNotFoundException ex) {
+        log.error(ex.getMessage());
+        var errorResponseDto = new ErrorResponseDto(Error.CUSTOMER_NOT_FOUND);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(UmicoUserNotFoundException.class)
+    public ResponseEntity<ErrorResponseDto> umicoUserNotFoundException(UmicoUserNotFoundException ex) {
+        log.error(ex.getMessage());
+        var errorResponseDto = new ErrorResponseDto(Error.UMICO_USER_NOT_FOUND);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(CustomerNotCompletedProcessException.class)
+    public ResponseEntity<ErrorResponseDto> customerNotCompletedProcessException(
+            CustomerNotCompletedProcessException ex) {
+        log.error(ex.getMessage());
+        var errorResponseDto = new ErrorResponseDto(Error.CUSTOMER_NOT_COMPLETED_PROCESS);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
 
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
@@ -52,8 +133,8 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
             String fieldName = ((FieldError) error).getField();
             errorFields.add(fieldName);
         });
-        var code = ErrorCode.BAD_REQUEST.getCode();
-        var message = String.format(ErrorCode.BAD_REQUEST.getMessage(), errorFields.toArray());
+        var code = Error.BAD_REQUEST.getCode();
+        var message = String.format(Error.BAD_REQUEST.getMessage(), errorFields.toArray());
         var errorResponseDto = new ErrorResponseDto(code, message);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
