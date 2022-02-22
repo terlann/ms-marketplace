@@ -1,10 +1,13 @@
 package az.kapitalbank.marketplace.service;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.externalinteg.ExternalIntegrationClient;
 import az.kapitalbank.marketplace.client.externalinteg.model.IamasResponse;
+import az.kapitalbank.marketplace.constant.AccountStatus;
+import az.kapitalbank.marketplace.constants.ResultType;
 import az.kapitalbank.marketplace.dto.response.BalanceResponseDto;
 import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
 import az.kapitalbank.marketplace.exception.PersonNotFoundException;
@@ -42,17 +45,26 @@ public class CustomerService {
     public BalanceResponseDto getBalance(String umicoUserId, UUID customerId) {
         var customerEntity = customerRepository.findById(customerId)
                 .orElseThrow(() -> new CustomerNotFoundException("customerId - " + customerId));
+
         if (!customerEntity.getUmicoUserId().equals(umicoUserId)) {
             throw new UmicoUserNotFoundException(umicoUserId);
         }
-        var cardId = customerEntity.getCardId();
-        var balanceResponse = atlasClient.balance(cardId);
-        //TODO just some fields isn't exact in response
+        var cardUUID = customerEntity.getCardId();
+        var cardDetailResponse = atlasClient.findCardByUID(cardUUID, ResultType.ACCOUNT);
+
+        var accountResponseList = cardDetailResponse.getAccounts()
+                .stream()
+                .filter(x -> x.getStatus() == AccountStatus.OPEN_PRIMARY)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Open Primary Account not Found in Account Response"));
+
+        var loanLimit = accountResponseList.getOverdraftLimit();
+        var availableBalance = accountResponseList.getAvailableBalance();
         return BalanceResponseDto.builder()
-                .cardExpiryDate(null)
-                .loanUtilized(null)
-                .availableBalance(balanceResponse.getAvailableBalance())
-                .loanLimit(balanceResponse.getOverdraftLimit())
+                .loanUtilized(loanLimit.subtract(availableBalance))
+                .availableBalance(availableBalance)
+                .loanLimit(loanLimit)
+                .cardExpiryDate(LocalDate.from(cardDetailResponse.getExpiryDate()))
                 .build();
     }
 }

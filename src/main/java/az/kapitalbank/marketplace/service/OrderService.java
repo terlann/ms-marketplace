@@ -12,11 +12,13 @@ import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.ReversPurchaseRequest;
+import az.kapitalbank.marketplace.constant.AccountStatus;
 import az.kapitalbank.marketplace.constant.ApplicationConstant;
 import az.kapitalbank.marketplace.constant.Currency;
 import az.kapitalbank.marketplace.constant.OrderStatus;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
+import az.kapitalbank.marketplace.constants.ResultType;
 import az.kapitalbank.marketplace.dto.DeliveryProductDto;
 import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
 import az.kapitalbank.marketplace.dto.OrderProductItem;
@@ -325,8 +327,13 @@ public class OrderService {
     }
 
     private BigDecimal getAvailableBalance(String cardId) {
-        var balanceResponse = atlasClient.balance(cardId);
-        return balanceResponse.getAvailableBalance();
+        var cardDetailResponse = atlasClient.findCardByUID(cardId, ResultType.ACCOUNT);
+
+        var accountResponseList = cardDetailResponse.getAccounts()
+                .stream()
+                .filter(x -> x.getStatus() == AccountStatus.OPEN_PRIMARY).findFirst()
+                .orElseThrow(() -> new RuntimeException("Open Primary Account not Found in Account Response"));
+        return accountResponseList.getAvailableBalance();
     }
 
 }
