@@ -153,7 +153,8 @@ public class ScoringService {
     public void createScoring(UUID trackId, String taskId, BigDecimal loanAmount) {
         log.info("scoring service create-scoring start... track_id - [{}]", trackId);
         CreateScoringRequest createScoringRequest = CreateScoringRequest.builder()
-                .cashDemandedAmount(loanAmount.toString())
+                .cardDemandedAmount(loanAmount.toString())
+                .salesSource("umico_marketplace")
                 .customerDecision(CustomerDecision.CREATE_CREDIT)
                 .build();
         log.info("scoring service create-scoring. track_id - [{}], Request - {}", trackId, createScoringRequest);

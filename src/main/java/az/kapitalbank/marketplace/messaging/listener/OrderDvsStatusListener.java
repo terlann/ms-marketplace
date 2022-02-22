@@ -64,9 +64,9 @@ public class OrderDvsStatusListener {
                             .readValue(message, OrderDvsStatusEvent.class);
                     log.info("order dvs status consumer. Message - [{}]", orderDvsStatusEvent);
                     if (orderDvsStatusEvent != null) {
-                        var dvsOrderId = orderDvsStatusEvent.getOrderId();
-                        var operationEntity = operationRepository.findByDvsOrderId(dvsOrderId)
-                                .orElseThrow(() -> new OperationNotFoundException("dvsOrderId - " + dvsOrderId));
+                        var trackId = orderDvsStatusEvent.getTrackId();
+                        var operationEntity = operationRepository.findById(trackId)
+                                .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
 
                         var dvsOrderStatus = orderDvsStatusEvent.getStatus();
                         switch (dvsOrderStatus) {

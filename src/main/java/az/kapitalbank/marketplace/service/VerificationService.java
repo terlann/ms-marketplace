@@ -35,13 +35,12 @@ public class VerificationService {
         }
     }
 
-    public Optional<DvsGetDetailsResponse> getDetails(UUID trackId, String orderId, String dvsId) {
-        log.info("Verification service get details start... track_id - [{}],order_id - [{}],dvs_id - [{}]",
+    public Optional<DvsGetDetailsResponse> getDetails(UUID trackId, Long dvsId) {
+        log.info("Verification service get details start... track_id - [{}],dvs_id - [{}]",
                 trackId,
-                orderId,
                 dvsId);
         try {
-            DvsGetDetailsResponse dvsGetDetailsResponse = dvsClient.getDetails(orderId, dvsId);
+            DvsGetDetailsResponse dvsGetDetailsResponse = dvsClient.getDetails(trackId, dvsId);
             log.info("Verification service get details finish... track_id - [{}]", trackId);
             return Optional.of(dvsGetDetailsResponse);
         } catch (FeignClientException f) {
