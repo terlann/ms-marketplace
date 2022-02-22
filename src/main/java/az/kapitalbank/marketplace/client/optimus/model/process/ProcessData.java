@@ -28,4 +28,5 @@ public class ProcessData {
     String cashCreditContractNumber;
     String initiatorUser;
     CreditDocumentsInfo creditDocumentsInfo;
+    CreateCardCreditRequest createCardCreditRequest;
 }
