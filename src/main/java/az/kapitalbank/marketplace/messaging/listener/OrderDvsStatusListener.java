@@ -87,16 +87,8 @@ public class OrderDvsStatusListener {
                             case "rejected":
                                 log.info("Order Dvs status in rejected. Order dvs status response - [{}]",
                                         orderDvsStatusEvent);
-                                var completeScoringWithReject = CompleteScoring.builder()
-                                        .trackId(operationEntity.getId())
-                                        .taskId(operationEntity.getTaskId())
-                                        .businessKey(operationEntity.getBusinessKey())
-                                        .additionalNumber1(operationEntity.getAdditionalPhoneNumber1())
-                                        .additionalNumber2(operationEntity.getAdditionalPhoneNumber2())
-                                        .customerDecision(CustomerDecision.REJECT)
-                                        .build();
-                                scoringService.completeScoring(completeScoringWithReject);
-                                log.info("Optimus complete process was rejected. businessKey - {}",
+                                optimusClient.deleteLoan(operationEntity.getBusinessKey());
+                                log.info("Loan deleted in optimus. businessKey - {}",
                                         operationEntity.getBusinessKey());
                                 var umicoRejectedDecisionRequest = UmicoDecisionRequest.builder()
                                         .trackId(operationEntity.getId())
@@ -153,8 +145,6 @@ public class OrderDvsStatusListener {
                                 operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
                                 operationEntity.setDvsOrderStatus(DvsStatus.CONFIRMED);
                                 operationEntity.setScoringLevel(ScoringLevel.COMPLETE);
-                                operationEntity.setLoanContractStartDate(null); // TODO ?
-                                operationEntity.setLoanContractEndDate(null);   // TODO ?
                                 operationRepository.save(operationEntity);
                                 var customerEntity = operationEntity.getCustomer();
                                 customerEntity.setCardId(cardId);
@@ -168,8 +158,8 @@ public class OrderDvsStatusListener {
                                         .decisionStatus(UmicoDecisionStatus.APPROVED)
                                         .loanTerm(operationEntity.getLoanTerm())
                                         .loanLimit(operationEntity.getTotalAmount())
-                                        .loanContractStartDate(null) // TODO ?
-                                        .loanContractEndDate(null)   // TODO ?
+                                        .loanContractStartDate(operationEntity.getLoanContractStartDate())
+                                        .loanContractEndDate(operationEntity.getLoanContractEndDate())
                                         .build();
                                 umicoClient.sendDecisionToUmico(umicoApprovedDecisionRequest, apiKey);
                                 log.info("Order Dvs status sent to umico like APPROVED. trackId - {}",

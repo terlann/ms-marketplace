@@ -18,11 +18,9 @@ import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.exception.FeignClientException;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.ScoringException;
-import az.kapitalbank.marketplace.mappers.LoanFormalizeMapper;
 import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
 import az.kapitalbank.marketplace.messaging.event.InUserActivityData;
 import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
-import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -43,13 +41,11 @@ public class ProductCreateService {
     String apiKey;
 
     OperationRepository operationRepository;
-    CustomerRepository customerRepository;
     ScoringService scoringService;
     VerificationService verificationService;
     TelesalesService telesalesService;
     UmicoClient umicoClient;
     OptimusClient optimusClient;
-    LoanFormalizeMapper loanFormalizeMapper;
 
 
     @Transactional
@@ -129,11 +125,15 @@ public class ProductCreateService {
                     DvsGetDetailsResponse dvsGetDetailsResponse = verificationService.getDetails(trackId, dvsId)
                             .orElseThrow(() -> new RuntimeException("DVS order getDetails response is null"));
 
-                    sendDecision(UmicoDecisionStatus.PREAPPROVED, trackId, dvsGetDetailsResponse.getWebUrl());
-
+                    var start = processResponse.getVariables().getCreateCardCreditRequest().getStartDate();
+                    var end = processResponse.getVariables().getCreateCardCreditRequest().getEndDate();
+                    operationEntity.setLoanContractStartDate(start);
+                    operationEntity.setLoanContractEndDate(end);
                     operationEntity.setTaskId(taskId);
                     operationEntity.setDvsOrderId(dvsId);
                     operationRepository.save(operationEntity);
+
+                    sendDecision(UmicoDecisionStatus.PREAPPROVED, trackId, dvsGetDetailsResponse.getWebUrl());
                 } catch (Exception e) {
                     optimusClient.deleteLoan(businessKey);
                     var telesalesOrderId = telesalesService.sendLead(trackId);
@@ -141,38 +141,15 @@ public class ProductCreateService {
                     sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
                 }
             }
-        } else if (scoringResultEvent.getProcessStatus().equals(ProcessStatus.INCIDENT_HAPPENED)) {
+        } else if (scoringResultEvent.getProcessStatus().equals(ProcessStatus.INCIDENT_HAPPENED) ||
+                scoringResultEvent.getProcessStatus().equals(ProcessStatus.BUSINESS_ERROR)) {
+            log.error("Optimus incident or business error happened , processStatus - {}", scoringResultEvent.getProcessStatus());
             var telesalesOrderId = telesalesService.sendLead(trackId);
             updateOperationTelesalesOrderId(trackId, telesalesOrderId);
             sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
         }
 
     }
-
-/*
-    public void completeScoring(UUID trackId, String taskId) {
-        try {
-            var customerEntity = customerRepository.findById(trackId);
-            if (customerEntity.isPresent()) {
-                var additionalPhoneNumber1 = customerEntity.get().getAdditionalPhoneNumber1();
-                var additionalPhoneNumber2 = customerEntity.get().getAdditionalPhoneNumber2();
-                CompleteScoring completeScoring = CompleteScoring.builder()
-                        .trackId(trackId)
-                        .businessKey(taskId)
-                        .additionalNumber1(additionalPhoneNumber1)
-                        .additionalNumber2(additionalPhoneNumber2)
-                        .build();
-                scoringService.completeScoring(completeScoring);
-                log.info("product create create-scoring finish... track_id - [{}]", trackId);
-            }
-        } catch (ScoringCustomerException e) {
-            log.error("product create create-scoring finish. Redirect to telesales track_id - [{}]", trackId);
-            var telesalesOrderId = telesalesService.sendLead(trackId);
-            updateOperationTelesalesOrderId(trackId, telesalesOrderId);
-            sendDecision(UmicoDecisionStatus.PENDING, trackId, "", "");
-        }
-    }
-*/
 
     @Transactional
     public void sendDecision(UmicoDecisionStatus umicoDecisionStatus, UUID trackId, String dvsUrl) {
