@@ -167,6 +167,7 @@ public class ProductCreateService {
                             .currency(Currency.AZN.getCode())
                             .terminalName(terminalName)
                             .uid(customer.getCardId())
+                            .fee(order.getCommission())
                             .build();
                     var purchaseResponse = atlasClient.purchase(purchaseRequest);
 
