@@ -24,4 +24,5 @@ public class PurchaseRequest {
     String uid;
     String description;
     String terminalName;
+    BigDecimal fee;
 }

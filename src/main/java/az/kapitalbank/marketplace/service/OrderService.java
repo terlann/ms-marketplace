@@ -154,6 +154,7 @@ public class OrderService {
                         .description(ApplicationConstant.PURCHASE_DESCRIPTION)
                         .currency(Currency.AZN.getCode())
                         .terminalName(terminalName)
+                        .fee(orderEntity.getCommission())
                         .uid(cardUid)
                         .build();
                 var purchaseResponse = atlasClient.purchase(purchaseRequest);
@@ -217,6 +218,7 @@ public class OrderService {
                     .description(ApplicationConstant.COMPLETE_DESCRIPTION)
                     .rrn(rrn)
                     .terminalName(terminalName)
+                    .installments(order.getOperation().getLoanTerm())
                     .build();
 
             try {

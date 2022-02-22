@@ -73,15 +73,13 @@ public class ProductCreateService {
             var operationEntity = operationEntityOptional.get();
             try {
                 Optional<String> businessKey = scoringService.startScoring(trackId,
-                        operationEntity.getPin(),
-                        operationEntity.getMobileNumber());
+                        operationEntity.getPin(), operationEntity.getMobileNumber());
                 if (businessKey.isPresent()) {
                     operationEntity.setScoringLevel(ScoringLevel.START);
                     operationEntity.setBusinessKey(businessKey.get());
                     operationRepository.save(operationEntity);
                     log.info("ProductCreateService: optimus stared scoring.track_id - [{}], business_key - [{}]",
-                            trackId,
-                            businessKey);
+                            trackId, businessKey);
                 }
             } catch (ScoringException e) {
                 log.error("ProductCreateService: " +
@@ -97,12 +95,12 @@ public class ProductCreateService {
     @Transactional
     public void createScoring(ScoringResultEvent scoringResultEvent) {
         var businessKey = scoringResultEvent.getBusinessKey();
-        var operationEntity = operationRepository.findByBusinessKey(businessKey)
-                .orElseThrow(() -> new OperationNotFoundException("businessKey - " + businessKey));
+        var operationEntity = operationRepository.findByBusinessKey(businessKey).orElseThrow(
+                () -> new OperationNotFoundException("businessKey - " + businessKey));
         var trackId = operationEntity.getId();
         if (scoringResultEvent.getProcessStatus().equals(ProcessStatus.IN_USER_ACTIVITY)) {
-            var processResponse = scoringService.getProcess(trackId, businessKey)
-                    .orElseThrow(() -> new RuntimeException("Optimus getProcess is null"));
+            var processResponse = scoringService.getProcess(trackId, businessKey).orElseThrow(
+                    () -> new RuntimeException("Optimus getProcess is null"));
             InUserActivityData inUserActivityData = (InUserActivityData) scoringResultEvent.getData();
             String taskDefinitionKey = inUserActivityData.getTaskDefinitionKey();
             if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SCORING)) {
@@ -122,8 +120,6 @@ public class ProductCreateService {
                 try {
                     var dvsId = processResponse.getVariables().getDvsOrderId();
                     var taskId = processResponse.getTaskId();
-                    DvsGetDetailsResponse dvsGetDetailsResponse = verificationService.getDetails(trackId, dvsId)
-                            .orElseThrow(() -> new RuntimeException("DVS order getDetails response is null"));
 
                     var start = processResponse.getVariables().getCreateCardCreditRequest().getStartDate();
                     var end = processResponse.getVariables().getCreateCardCreditRequest().getEndDate();
@@ -133,6 +129,8 @@ public class ProductCreateService {
                     operationEntity.setDvsOrderId(dvsId);
                     operationRepository.save(operationEntity);
 
+                    DvsGetDetailsResponse dvsGetDetailsResponse = verificationService.getDetails(trackId, dvsId)
+                            .orElseThrow(() -> new RuntimeException("DVS order getDetails response is null"));
                     sendDecision(UmicoDecisionStatus.PREAPPROVED, trackId, dvsGetDetailsResponse.getWebUrl());
                 } catch (Exception e) {
                     optimusClient.deleteLoan(businessKey);
@@ -141,9 +139,11 @@ public class ProductCreateService {
                     sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
                 }
             }
-        } else if (scoringResultEvent.getProcessStatus().equals(ProcessStatus.INCIDENT_HAPPENED) ||
-                scoringResultEvent.getProcessStatus().equals(ProcessStatus.BUSINESS_ERROR)) {
-            log.error("Optimus incident or business error happened , processStatus - {}", scoringResultEvent.getProcessStatus());
+        } else if (scoringResultEvent.getProcessStatus()
+                .equals(ProcessStatus.INCIDENT_HAPPENED) || scoringResultEvent.getProcessStatus()
+                .equals(ProcessStatus.BUSINESS_ERROR)) {
+            log.error("Optimus incident or business error happened , processStatus - {}",
+                    scoringResultEvent.getProcessStatus());
             var telesalesOrderId = telesalesService.sendLead(trackId);
             updateOperationTelesalesOrderId(trackId, telesalesOrderId);
             sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
@@ -153,27 +153,21 @@ public class ProductCreateService {
 
     @Transactional
     public void sendDecision(UmicoDecisionStatus umicoDecisionStatus, UUID trackId, String dvsUrl) {
-        var operationEntity = operationRepository.findById(trackId)
-                .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
+        var operationEntity = operationRepository.findById(trackId).orElseThrow(
+                () -> new OperationNotFoundException("trackId - " + trackId));
         operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
         UmicoDecisionRequest umicoScoringDecisionRequest = UmicoDecisionRequest.builder()
-                .trackId(trackId)
-                .dvsUrl(dvsUrl)
-                .decisionStatus(umicoDecisionStatus)
-                .loanTerm(operationEntity.getLoanTerm())
-                .build();
-        log.info("product create send decision.track_id - [{}], Request - [{}]", trackId,
-                umicoScoringDecisionRequest);
+                .trackId(trackId).dvsUrl(dvsUrl).decisionStatus(umicoDecisionStatus)
+                .loanTerm(operationEntity.getLoanTerm()).build();
+        log.info("product create send decision.track_id - [{}], Request - [{}]",
+                trackId, umicoScoringDecisionRequest);
         try {
             UmicoDecisionResponse umicoScoringDecisionResponse = umicoClient
                     .sendDecisionToUmico(umicoScoringDecisionRequest, apiKey);
             log.info("product create send decision.track_id - [{}], Response - [{}]",
-                    trackId,
-                    umicoScoringDecisionResponse);
+                    trackId, umicoScoringDecisionResponse);
         } catch (FeignClientException e) {
-            log.error("product create send decision. track_id - [{}], FeignException - {}",
-                    trackId,
-                    e.getMessage());
+            log.error("product create send decision. track_id - [{}], FeignException - {}", trackId, e.getMessage());
         }
     }
 

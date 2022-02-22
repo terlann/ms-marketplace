@@ -132,6 +132,7 @@ public class OrderDvsStatusListener {
                                             .currency(Currency.AZN.getCode())
                                             .terminalName(terminalName)
                                             .uid(cardId)
+                                            .fee(order.getCommission())
                                             .build();
                                     var purchaseResponse = atlasClient.purchase(purchaseRequest);
 

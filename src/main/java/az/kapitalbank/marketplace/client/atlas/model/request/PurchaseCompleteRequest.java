@@ -21,5 +21,5 @@ public class PurchaseCompleteRequest {
     String description;
     String terminalName;
     String approvalCode;
-
+    Integer installments;
 }
