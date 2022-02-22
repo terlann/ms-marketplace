@@ -1,6 +1,5 @@
 package az.kapitalbank.marketplace.service;
 
-import java.time.LocalDate;
 import java.util.UUID;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
@@ -41,7 +40,6 @@ public class CustomerService {
         log.info("Pin found in IAMAS. Pin - {} ", pin);
     }
 
-
     public BalanceResponseDto getBalance(String umicoUserId, UUID customerId) {
         var customerEntity = customerRepository.findById(customerId)
                 .orElseThrow(() -> new CustomerNotFoundException("customerId - " + customerId));
@@ -64,7 +62,7 @@ public class CustomerService {
                 .loanUtilized(loanLimit.subtract(availableBalance))
                 .availableBalance(availableBalance)
                 .loanLimit(loanLimit)
-                .cardExpiryDate(LocalDate.from(cardDetailResponse.getExpiryDate()))
+                .cardExpiryDate(cardDetailResponse.getExpiryDate())
                 .build();
     }
 }

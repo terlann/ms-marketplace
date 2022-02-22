@@ -40,7 +40,6 @@ public interface AtlasClient {
     @GetMapping("/api/v1/cards/pan/{pan}")
     CardResponse findByPan(@PathVariable String pan);
 
-
     class FeignConfiguration {
         @Bean
         Logger.Level feignLoggerLevel() {
