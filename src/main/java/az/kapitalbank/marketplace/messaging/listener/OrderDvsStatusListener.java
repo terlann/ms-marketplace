@@ -4,16 +4,11 @@ import java.util.Objects;
 import java.util.function.Consumer;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
-import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.optimus.OptimusClient;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.CustomerDecision;
 import az.kapitalbank.marketplace.client.umico.UmicoClient;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
-import az.kapitalbank.marketplace.constant.ApplicationConstant;
-import az.kapitalbank.marketplace.constant.Currency;
 import az.kapitalbank.marketplace.constant.DvsStatus;
-import az.kapitalbank.marketplace.constant.ScoringLevel;
-import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.CompleteScoring;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
@@ -21,7 +16,6 @@ import az.kapitalbank.marketplace.messaging.event.OrderDvsStatusEvent;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.service.ScoringService;
-import az.kapitalbank.marketplace.utils.GenerateUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AccessLevel;
@@ -120,51 +114,11 @@ public class OrderDvsStatusListener {
                                 var cardPan = optimusClient.getProcessVariable(operationEntity.getBusinessKey(),
                                         "pan");
                                 var cardId = atlasClient.findByPan(cardPan).getUid();
-                                var orders = operationEntity.getOrders();
                                 log.info("Pan was taken and changed card uid.Purchase process starts. cardId - {}",
                                         cardId);
-                                for (var order : orders) {
-                                    var rrn = GenerateUtil.rrn();
-                                    var purchaseRequest = PurchaseRequest.builder()
-                                            .rrn(rrn)
-                                            .amount(order.getTotalAmount())
-                                            .description(ApplicationConstant.PURCHASE_DESCRIPTION)
-                                            .currency(Currency.AZN.getCode())
-                                            .terminalName(terminalName)
-                                            .uid(cardId)
-                                            .fee(order.getCommission())
-                                            .build();
-                                    var purchaseResponse = atlasClient.purchase(purchaseRequest);
-
-                                    order.setRrn(rrn);
-                                    order.setTransactionId(purchaseResponse.getId());
-                                    order.setApprovalCode(purchaseResponse.getApprovalCode());
-                                    order.setTransactionStatus(TransactionStatus.PURCHASE);
-                                    order.setOperation(operationEntity);
-                                }
-                                operationEntity.setOrders(orders);
-                                operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
-                                operationEntity.setDvsOrderStatus(DvsStatus.CONFIRMED);
-                                operationEntity.setScoringLevel(ScoringLevel.COMPLETE);
-                                operationRepository.save(operationEntity);
                                 var customerEntity = operationEntity.getCustomer();
                                 customerEntity.setCardId(cardId);
                                 customerRepository.save(customerEntity);
-                                log.info("Purchased all orders.");
-
-                                var umicoApprovedDecisionRequest = UmicoDecisionRequest.builder()
-                                        .trackId(operationEntity.getId())
-                                        .commission(operationEntity.getCommission())
-                                        .customerId(customerEntity.getId())
-                                        .decisionStatus(UmicoDecisionStatus.APPROVED)
-                                        .loanTerm(operationEntity.getLoanTerm())
-                                        .loanLimit(operationEntity.getTotalAmount())
-                                        .loanContractStartDate(operationEntity.getLoanContractStartDate())
-                                        .loanContractEndDate(operationEntity.getLoanContractEndDate())
-                                        .build();
-                                umicoClient.sendDecisionToUmico(umicoApprovedDecisionRequest, apiKey);
-                                log.info("Order Dvs status sent to umico like APPROVED. trackId - {}",
-                                        operationEntity.getId());
                                 break;
                             default:
                         }
