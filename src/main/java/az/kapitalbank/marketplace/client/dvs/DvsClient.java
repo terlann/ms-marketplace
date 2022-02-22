@@ -1,5 +1,7 @@
 package az.kapitalbank.marketplace.client.dvs;
 
+import java.util.UUID;
+
 import az.kapitalbank.marketplace.client.dvs.model.DvsCreateOrderRequest;
 import az.kapitalbank.marketplace.client.dvs.model.DvsCreateOrderResponse;
 import az.kapitalbank.marketplace.client.dvs.model.DvsGetDetailsResponse;
@@ -18,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 public interface DvsClient {
 
     @GetMapping("/dvs/link/{order-id}/{dvs-id}")
-    DvsGetDetailsResponse getDetails(@PathVariable("order-id") String orderId, @PathVariable("dvs-id") String dvsId);
+    DvsGetDetailsResponse getDetails(@PathVariable("order-id") UUID trackId, @PathVariable("dvs-id") Long dvsId);
 
     @PostMapping("/dvs")
     DvsCreateOrderResponse createOrder(@RequestBody DvsCreateOrderRequest request);

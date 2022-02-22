@@ -13,8 +13,8 @@ import static lombok.AccessLevel.PRIVATE;
 @FieldDefaults(level = PRIVATE)
 public class ProcessData {
     String cif;
-    int period;
-    int dvsOrderId;
+    Integer period;
+    Long dvsOrderId;
     String salaryPan;
     MainIncome mainIncome;
     SelectedOffer selectedOffer;

@@ -4,8 +4,6 @@ import javax.transaction.Transactional;
 import java.util.Optional;
 import java.util.UUID;
 
-import az.kapitalbank.marketplace.client.dvs.model.DvsCreateOrderRequest;
-import az.kapitalbank.marketplace.client.dvs.model.DvsCreateOrderResponse;
 import az.kapitalbank.marketplace.client.dvs.model.DvsGetDetailsResponse;
 import az.kapitalbank.marketplace.client.optimus.OptimusClient;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessData;
@@ -62,7 +60,7 @@ public class ProductCreateService {
 
         if (fraudResultStatus == FraudResultStatus.BLACKLIST) {
             log.info("ProductCreateService: this order was found in blacklist. track_id - [{}]", trackId);
-            sendDecision(UmicoDecisionStatus.DECLINED_BY_BLACKLIST, trackId, "", "");
+            sendDecision(UmicoDecisionStatus.DECLINED_BY_BLACKLIST, trackId, null);
             return;
         }
 
@@ -70,7 +68,7 @@ public class ProductCreateService {
             log.info("ProductCreateService: fraud case was found in order. track_id - [{}]", trackId);
             var telesalesOrderId = telesalesService.sendLead(trackId);
             updateOperationTelesalesOrderId(trackId, telesalesOrderId);
-            sendDecision(UmicoDecisionStatus.PENDING, trackId, "", "");
+            sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
             return;
         }
 
@@ -94,7 +92,7 @@ public class ProductCreateService {
                         "optimus start scoring was failed.Redirect to telesales track_id - [{}]", trackId);
                 var telesalesOrderId = telesalesService.sendLead(trackId);
                 updateOperationTelesalesOrderId(trackId, telesalesOrderId);
-                sendDecision(UmicoDecisionStatus.PENDING, trackId, "", "");
+                sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
             }
         }
 
@@ -118,7 +116,7 @@ public class ProductCreateService {
                 if (scoredAmount.compareTo(operationEntity.getTotalAmount().add(operationEntity.getCommission())) < 0) {
                     var telesalesOrderId = telesalesService.sendLead(trackId);
                     updateOperationTelesalesOrderId(trackId, telesalesOrderId);
-                    sendDecision(UmicoDecisionStatus.PENDING, trackId, "", "");
+                    sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
                     return;
                 }
                 operationEntity.setTaskId(taskId);
@@ -126,33 +124,27 @@ public class ProductCreateService {
                 scoringService.createScoring(trackId, taskId, scoredAmount);
             } else if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SIGN_DOCUMENTS)) {
                 try {
-                    DvsCreateOrderRequest dvsCreateOrderRequest = loanFormalizeMapper
-                            .toDvsCreateOrderRequest(operationEntity, processResponse);
-                    DvsCreateOrderResponse dvsCreateOrderResponse = verificationService
-                            .createOrder(dvsCreateOrderRequest, trackId)
-                            .orElseThrow(() -> new RuntimeException("DVS create order response is null"));
-                    String dvsId = dvsCreateOrderResponse.getOrderId();
+                    var dvsId = processResponse.getVariables().getDvsOrderId();
+                    var taskId = processResponse.getTaskId();
+                    DvsGetDetailsResponse dvsGetDetailsResponse = verificationService.getDetails(trackId, dvsId)
+                            .orElseThrow(() -> new RuntimeException("DVS order getDetails response is null"));
+
+                    sendDecision(UmicoDecisionStatus.PREAPPROVED, trackId, dvsGetDetailsResponse.getWebUrl());
+
+                    operationEntity.setTaskId(taskId);
                     operationEntity.setDvsOrderId(dvsId);
                     operationRepository.save(operationEntity);
-                    DvsGetDetailsResponse dvsGetDetailsResponse = verificationService.getDetails(trackId,
-                                    processResponse.getTaskId(),
-                                    dvsId)
-                            .orElseThrow(() -> new RuntimeException("DVS order getDetails response is null"));
-                    sendDecision(UmicoDecisionStatus.PREAPPROVED,
-                            trackId,
-                            dvsId,
-                            dvsGetDetailsResponse.getWebUrl());
                 } catch (Exception e) {
                     optimusClient.deleteLoan(businessKey);
                     var telesalesOrderId = telesalesService.sendLead(trackId);
                     updateOperationTelesalesOrderId(trackId, telesalesOrderId);
-                    sendDecision(UmicoDecisionStatus.PENDING, trackId, "", "");
+                    sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
                 }
             }
         } else if (scoringResultEvent.getProcessStatus().equals(ProcessStatus.INCIDENT_HAPPENED)) {
             var telesalesOrderId = telesalesService.sendLead(trackId);
             updateOperationTelesalesOrderId(trackId, telesalesOrderId);
-            sendDecision(UmicoDecisionStatus.PENDING, trackId, "", "");
+            sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
         }
 
     }
@@ -183,19 +175,16 @@ public class ProductCreateService {
 */
 
     @Transactional
-    public void sendDecision(UmicoDecisionStatus umicoDecisionStatus, UUID trackId, String dvsId, String dvsUrl) {
+    public void sendDecision(UmicoDecisionStatus umicoDecisionStatus, UUID trackId, String dvsUrl) {
         var operationEntity = operationRepository.findById(trackId)
-                .orElseThrow(() -> new RuntimeException("Operation not found: " + trackId));
+                .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
         operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
         UmicoDecisionRequest umicoScoringDecisionRequest = UmicoDecisionRequest.builder()
                 .trackId(trackId)
+                .dvsUrl(dvsUrl)
                 .decisionStatus(umicoDecisionStatus)
                 .loanTerm(operationEntity.getLoanTerm())
                 .build();
-        if (umicoDecisionStatus == UmicoDecisionStatus.APPROVED) {
-            umicoScoringDecisionRequest.setDvsUrl(dvsUrl);
-            operationEntity.setDvsOrderId(dvsId);
-        }
         log.info("product create send decision.track_id - [{}], Request - [{}]", trackId,
                 umicoScoringDecisionRequest);
         try {

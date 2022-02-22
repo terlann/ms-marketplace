@@ -1,5 +1,7 @@
 package az.kapitalbank.marketplace.messaging.event;
 
+import java.util.UUID;
+
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,6 +13,6 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OrderDvsStatusEvent {
-    String orderId;
+    UUID trackId;
     String status;
 }

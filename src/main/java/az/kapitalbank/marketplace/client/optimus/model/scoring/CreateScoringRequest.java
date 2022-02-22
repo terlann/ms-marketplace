@@ -10,6 +10,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateScoringRequest {
     String cardDemandedAmount;
+    String salesSource;
     String nameOnCard;
     String cashDemandedAmount;
     boolean preApproval;

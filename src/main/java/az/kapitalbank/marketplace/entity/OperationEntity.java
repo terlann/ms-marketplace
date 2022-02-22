@@ -56,7 +56,7 @@ public class OperationEntity extends BaseEntity {
     ScoringLevel scoringLevel;
     LocalDate loanContractStartDate;
     LocalDate loanContractEndDate;
-    String dvsOrderId;
+    Long dvsOrderId;
     DvsStatus dvsOrderStatus;
     @Enumerated(EnumType.STRING)
     UmicoDecisionStatus umicoDecisionStatus;
