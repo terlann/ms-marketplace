@@ -136,6 +136,5 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
         var message = Error.BAD_REQUEST.getMessage();
         var errorResponseDto = new ErrorResponseDto(code, message, warnings);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
-
     }
 }
