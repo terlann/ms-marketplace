@@ -32,7 +32,7 @@ public interface AtlasClient {
     @PutMapping("/transfers/{id}/reverse")
     ReverseResponse reverse(@PathVariable String id);
 
-    @GetMapping("/cards/{uid}/balance")
+    @GetMapping("/cards/uid/{uid}")
     CardDetailResponse findCardByUID(@PathVariable String uid,
                                      @RequestParam ResultType resultType);
 
