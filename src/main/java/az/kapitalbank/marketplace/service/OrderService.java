@@ -11,9 +11,7 @@ import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
-import az.kapitalbank.marketplace.client.atlas.model.request.ReversPurchaseRequest;
 import az.kapitalbank.marketplace.constant.AccountStatus;
-import az.kapitalbank.marketplace.constant.ApplicationConstant;
 import az.kapitalbank.marketplace.constant.Currency;
 import az.kapitalbank.marketplace.constant.OrderStatus;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
@@ -150,11 +148,10 @@ public class OrderService {
                 var rrn = GenerateUtil.rrn();
                 var purchaseRequest = PurchaseRequest.builder()
                         .rrn(rrn)
-                        .amount(orderEntity.getTotalAmount())
-                        .description(ApplicationConstant.PURCHASE_DESCRIPTION)
+                        .amount(orderEntity.getTotalAmount().add(orderEntity.getCommission()))
+                        .description("fee=" + orderEntity.getCommission())
                         .currency(Currency.AZN.getCode())
                         .terminalName(terminalName)
-                        .fee(orderEntity.getCommission())
                         .uid(cardUid)
                         .build();
                 var purchaseResponse = atlasClient.purchase(purchaseRequest);
@@ -215,7 +212,6 @@ public class OrderService {
                     .amount(totalPayment)
                     .approvalCode(order.getApprovalCode())
                     .currency(Currency.AZN.getCode())
-                    .description(ApplicationConstant.COMPLETE_DESCRIPTION)
                     .rrn(rrn)
                     .terminalName(terminalName)
                     .installments(order.getOperation().getLoanTerm())
@@ -256,13 +252,9 @@ public class OrderService {
         var orderEntity = orderRepository.findByOrderNo(orderNo)
                 .orElseThrow(() -> new OrderNotFoundException(orderNo));
 
-        var reversPurchaseRequest = ReversPurchaseRequest.builder()
-                .description(ApplicationConstant.REVERSE_DESCRIPTION)
-                .build();
-
         PurchaseResponseDto purchaseResponse = new PurchaseResponseDto();
         try {
-            var reverseResponse = atlasClient.reverse(orderEntity.getTransactionId(), reversPurchaseRequest);
+            var reverseResponse = atlasClient.reverse(orderEntity.getTransactionId());
             purchaseResponse.setStatus(OrderStatus.SUCCESS);
             orderEntity.setTransactionId(reverseResponse.getId());
             orderEntity.setTransactionStatus(TransactionStatus.REVERSE);

@@ -12,7 +12,6 @@ import az.kapitalbank.marketplace.client.optimus.model.process.ProcessData;
 import az.kapitalbank.marketplace.client.umico.UmicoClient;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionResponse;
-import az.kapitalbank.marketplace.constant.ApplicationConstant;
 import az.kapitalbank.marketplace.constant.Currency;
 import az.kapitalbank.marketplace.constant.DvsStatus;
 import az.kapitalbank.marketplace.constant.FraudResultStatus;
@@ -162,12 +161,11 @@ public class ProductCreateService {
                     var rrn = GenerateUtil.rrn();
                     var purchaseRequest = PurchaseRequest.builder()
                             .rrn(rrn)
-                            .amount(order.getTotalAmount())
-                            .description(ApplicationConstant.PURCHASE_DESCRIPTION)
+                            .amount(order.getTotalAmount().add(order.getCommission()))
+                            .description("fee=" + order.getCommission())
                             .currency(Currency.AZN.getCode())
                             .terminalName(terminalName)
                             .uid(customer.getCardId())
-                            .fee(order.getCommission())
                             .build();
                     var purchaseResponse = atlasClient.purchase(purchaseRequest);
 
@@ -222,7 +220,8 @@ public class ProductCreateService {
                 .decisionStatus(umicoDecisionStatus)
                 .loanTerm(operationEntity.getLoanTerm())
                 .build();
-        log.info("product create send decision.track_id - [{}], Request - [{}]", trackId,
+        log.info("product create send decision.track_id - [{}], Request - [{}]",
+                trackId,
                 umicoScoringDecisionRequest);
         try {
             UmicoDecisionResponse umicoScoringDecisionResponse = umicoClient
