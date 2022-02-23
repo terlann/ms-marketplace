@@ -3,8 +3,8 @@ package az.kapitalbank.marketplace.exception.handler;
 import javax.validation.UnexpectedTypeException;
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 import az.kapitalbank.marketplace.client.externalinteg.exception.ExternalIntegrationException;
 import az.kapitalbank.marketplace.constant.Error;
@@ -128,14 +128,13 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
                                                                   HttpStatus status,
                                                                   WebRequest request) {
         log.error("Request - [{}], Exception: ", request.toString(), ex);
-        List<String> errorFields = new ArrayList<>();
-        ex.getBindingResult().getAllErrors().forEach(error -> {
-            String fieldName = ((FieldError) error).getField();
-            errorFields.add(fieldName);
-        });
+        Map<String, String> warnings = new HashMap<>();
+        for (FieldError fieldError : ex.getBindingResult().getFieldErrors())
+            warnings.put(fieldError.getField(), fieldError.getDefaultMessage());
+
         var code = Error.BAD_REQUEST.getCode();
-        var message = String.format(Error.BAD_REQUEST.getMessage(), errorFields.toArray());
-        var errorResponseDto = new ErrorResponseDto(code, message);
+        var message = Error.BAD_REQUEST.getMessage();
+        var errorResponseDto = new ErrorResponseDto(code, message, warnings);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 }
