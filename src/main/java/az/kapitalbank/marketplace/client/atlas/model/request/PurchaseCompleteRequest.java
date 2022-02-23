@@ -11,14 +11,12 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PurchaseCompleteRequest {
-
     BigDecimal amount;
     Integer id;
     Integer currency;
     String pan;
     String rrn;
     String uid;
-    String description;
     String terminalName;
     String approvalCode;
     Integer installments;
