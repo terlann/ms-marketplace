@@ -19,24 +19,24 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(name = "adp-atlas",
-        url = "${client.adp-atlas.url}",
+        url = "${client.adp-atlas.url}/api/v1",
         configuration = AtlasClient.FeignConfiguration.class)
 public interface AtlasClient {
 
-    @PostMapping("/api/v1/transfers/purchase")
+    @PostMapping("/transfers/purchase")
     PurchaseResponse purchase(@RequestBody PurchaseRequest request);
 
-    @PutMapping("/api/v1/transfers/complete")
+    @PutMapping("/transfers/complete")
     PurchaseCompleteResponse complete(@RequestBody PurchaseCompleteRequest request);
 
-    @PutMapping("/api/v1/transfers/{id}/reverse")
+    @PutMapping("/transfers/{id}/reverse")
     ReverseResponse reverse(@PathVariable String id);
 
-    @GetMapping("/uid/{uid}")
+    @GetMapping("/cards/{uid}/balance")
     CardDetailResponse findCardByUID(@PathVariable String uid,
-                                     @RequestParam(required = false) ResultType resultType);
+                                     @RequestParam ResultType resultType);
 
-    @GetMapping("/api/v1/cards/pan/{pan}")
+    @GetMapping("/cards/pan/{pan}")
     CardResponse findByPan(@PathVariable String pan);
 
     class FeignConfiguration {
