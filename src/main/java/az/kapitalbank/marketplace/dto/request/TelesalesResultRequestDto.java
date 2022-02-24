@@ -18,10 +18,10 @@ public class TelesalesResultRequestDto {
     @NotNull
     ScoringStatus scoringStatus;
     @NotNull
-    LocalDate loanContractStartDate;
+    LocalDate loanStartDate;
     @NotNull
-    LocalDate loanContractEndDate;
+    LocalDate loanEndDate;
     @NotBlank
     @Size(min = 16, max = 16)
-    String cardPan;
+    String pan;
 }

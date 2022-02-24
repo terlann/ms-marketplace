@@ -2,11 +2,14 @@ package az.kapitalbank.marketplace.service;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import az.kapitalbank.marketplace.client.atlas.AtlasClient;
+import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.optimus.OptimusClient;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.CompleteScoringRequest;
@@ -20,18 +23,23 @@ import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringVaria
 import az.kapitalbank.marketplace.client.umico.UmicoClient;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionResponse;
+import az.kapitalbank.marketplace.constant.Currency;
 import az.kapitalbank.marketplace.constant.ScoringLevel;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
+import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.CompleteScoring;
 import az.kapitalbank.marketplace.dto.request.TelesalesResultRequestDto;
 import az.kapitalbank.marketplace.entity.OperationEntity;
+import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.exception.FeignClientException;
 import az.kapitalbank.marketplace.exception.OrderAlreadyScoringException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.ScoringException;
 import az.kapitalbank.marketplace.mappers.ScoringMapper;
 import az.kapitalbank.marketplace.repository.OperationRepository;
+import az.kapitalbank.marketplace.repository.OrderRepository;
+import az.kapitalbank.marketplace.utils.GenerateUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -56,10 +64,14 @@ public class ScoringService {
     @NonFinal
     @Value("${optimus.process.product-type}")
     String productType;
+    @Value("${purchase.terminal-name}")
+    String terminalName;
 
     OperationRepository operationRepository;
-    UmicoClient umicoClient;
+    OrderRepository orderRepository;
     OptimusClient optimusClient;
+    UmicoClient umicoClient;
+    AtlasClient atlasClient;
     ScoringMapper scoringMapper;
 
     @Transactional /* Optimus call this */
@@ -78,22 +90,41 @@ public class ScoringService {
         }
 
         if (request.getScoringStatus() == ScoringStatus.APPROVED) {
-            var cardUid = request.getCardPan(); // TODO optimus send me pan and change to cardUid
             operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
             operationEntity.setScoringStatus(ScoringStatus.APPROVED);
-            operationEntity.getCustomer().setCardId(cardUid);
-            operationEntity.setLoanContractStartDate(request.getLoanContractStartDate()); // TODO optimus send me
-            operationEntity.setLoanContractEndDate(request.getLoanContractEndDate()); // TODO optimus send me
+            operationEntity.setLoanContractStartDate(request.getLoanStartDate());
+            operationEntity.setLoanContractEndDate(request.getLoanEndDate());
             var customerEntity = operationEntity.getCustomer();
+            var cardUid = atlasClient.findByPan(request.getPan()).getUid();
+            customerEntity.setCardId(cardUid);
             customerEntity.setCompleteProcessDate(LocalDateTime.now());
             operationEntity.setCustomer(customerEntity);
         } else {
             operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
             operationEntity.setScoringStatus(ScoringStatus.REJECTED);
         }
-        operationRepository.save(operationEntity);
 
-        //TODO purchase all orders
+        var orderEntities = new ArrayList<OrderEntity>();
+        for (OrderEntity orderEntity : operationEntity.getOrders()) {
+            var rrn = GenerateUtil.rrn();
+            var purchaseRequest = PurchaseRequest.builder()
+                    .rrn(rrn)
+                    .amount(orderEntity.getTotalAmount().add(orderEntity.getCommission()))
+                    .description("fee=" + orderEntity.getCommission())
+                    .currency(Currency.AZN.getCode())
+                    .terminalName(terminalName)
+                    .uid(operationEntity.getCustomer().getCardId())
+                    .build();
+            var purchaseResponse = atlasClient.purchase(purchaseRequest);
+            orderEntity.setRrn(rrn);
+            orderEntity.setTransactionId(purchaseResponse.getId());
+            orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
+            orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
+            orderEntities.add(orderEntity);
+        }
+        operationEntity.setOrders(orderEntities);
+        operationEntity = operationRepository.save(operationEntity);
+
         try {
             sendDecisionScoring(operationEntity);
         } catch (Exception e) {
@@ -109,8 +140,8 @@ public class ScoringService {
             UmicoDecisionRequest umicoScoringDecisionRequest = UmicoDecisionRequest.builder()
                     .trackId(operationEntity.getId())
                     .decisionStatus(operationEntity.getUmicoDecisionStatus())
-                    .loanContractStartDate(null) // TODO ?
-                    .loanContractEndDate(null)  // TODO ?
+                    .loanContractStartDate(operationEntity.getLoanContractStartDate())
+                    .loanContractEndDate(operationEntity.getLoanContractEndDate())
                     .customerId(operationEntity.getCustomer().getId())
                     .commission(operationEntity.getCommission())
                     .loanLimit(operationEntity.getTotalAmount().add(operationEntity.getCommission()))

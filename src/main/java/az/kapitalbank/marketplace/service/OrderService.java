@@ -110,25 +110,14 @@ public class OrderService {
         for (OrderProductDeliveryInfo deliveryInfo : request.getDeliveryInfo()) {
             var commission = getCommission(deliveryInfo.getTotalAmount(), request.getLoanTerm());
             operationCommission = operationCommission.add(commission);
-            OrderEntity orderEntity = OrderEntity.builder()
-                    .totalAmount(deliveryInfo.getTotalAmount())
-                    .commission(commission)
-                    .orderNo(deliveryInfo.getOrderNo())
-                    .deliveryAddress(deliveryInfo.getDeliveryAddress())
-                    .operation(operationEntity)
-                    .build();
+            OrderEntity orderEntity = orderMapper.toOrderEntity(deliveryInfo, commission);
+            orderEntity.setOperation(operationEntity);
 
             for (OrderProductItem orderProductItem : request.getProducts()) {
                 if (deliveryInfo.getOrderNo().equals(orderProductItem.getOrderNo())) {
-                    ProductEntity productEntity = ProductEntity.builder()
-                            .productId(orderProductItem.getProductId())
-                            .productAmount(orderProductItem.getProductAmount())
-                            .productName(orderProductItem.getProductName())
-                            .itemType(orderProductItem.getItemType())
-                            .orderNo(orderEntity.getOrderNo())
-                            .partnerCmsId(orderProductItem.getPartnerCmsId())
-                            .order(orderEntity)
-                            .build();
+                    ProductEntity productEntity =
+                            orderMapper.toProductEntity(orderProductItem, orderEntity.getOrderNo());
+                    productEntity.setOrder(orderEntity);
                     productEntities.add(productEntity);
                 }
             }
@@ -138,11 +127,12 @@ public class OrderService {
         operationEntity.setCommission(operationCommission);
         operationEntity.setOrders(orderEntities);
         operationEntity = operationRepository.save(operationEntity);
-        customerEntity.getOperations().add(operationEntity);
+
         var trackId = operationEntity.getId();
         var approvedCustomerCount = operationRepository
                 .countByCustomerAndUmicoDecisionStatus(customerEntity, UmicoDecisionStatus.APPROVED);
         if (customerId != null && approvedCustomerCount > 0) {
+            var purchasedOrders = new ArrayList<OrderEntity>();
             var cardUid = customerEntity.getCardId();
             for (OrderEntity orderEntity : orderEntities) {
                 var rrn = GenerateUtil.rrn();
@@ -159,8 +149,9 @@ public class OrderService {
                 orderEntity.setTransactionId(purchaseResponse.getId());
                 orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
                 orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
-                orderEntities.add(orderEntity);
+                purchasedOrders.add(orderEntity);
             }
+            orderRepository.saveAll(purchasedOrders);
         } else {
             FraudCheckEvent fraudCheckEvent = createOrderMapper.toOrderEvent(request);
             fraudCheckEvent.setTrackId(trackId);
