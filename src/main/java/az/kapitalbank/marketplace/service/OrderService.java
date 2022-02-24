@@ -151,8 +151,7 @@ public class OrderService {
                 orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
                 purchasedOrders.add(orderEntity);
             }
-            operationEntity.setOrders(purchasedOrders);
-            orderRepository.saveAll(orderEntities);
+            orderRepository.saveAll(purchasedOrders);
         } else {
             FraudCheckEvent fraudCheckEvent = createOrderMapper.toOrderEvent(request);
             fraudCheckEvent.setTrackId(trackId);
