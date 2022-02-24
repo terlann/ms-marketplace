@@ -27,7 +27,6 @@ public class ProductEntity extends BaseEntity {
     String productId;
     BigDecimal productAmount;
     String productName;
-    String orderNo;
     String itemType;
     String partnerCmsId;
 

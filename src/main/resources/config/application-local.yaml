@@ -68,6 +68,8 @@ client:
     url: https://dev.adp-optimus.kapitalbank.az/
   adp-dvs:
     url: https://pre.adp-dvs.kapitalbank.az/v1
+  externalinteg:
+    url: http://dev.externalinteg.kapitalbank.az/api
 feign:
   httpclient:
     disable-ssl-validation: true
