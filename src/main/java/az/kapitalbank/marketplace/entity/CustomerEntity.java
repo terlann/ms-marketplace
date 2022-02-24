@@ -4,6 +4,7 @@ import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -30,6 +31,7 @@ public class CustomerEntity extends BaseEntity {
     Boolean isAgreement;
     String cardId;
     CustomerStatus status;
+    LocalDateTime completeProcessDate;
 
     @Builder.Default
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -5,7 +5,7 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import java.time.LocalDate;
 
-import az.kapitalbank.marketplace.constant.TelesalesResult;
+import az.kapitalbank.marketplace.constant.ScoringStatus;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
@@ -16,7 +16,7 @@ public class TelesalesResultRequestDto {
     @NotBlank
     String telesalesOrderId;
     @NotNull
-    TelesalesResult telesalesResult;
+    ScoringStatus scoringStatus;
     @NotNull
     LocalDate loanContractStartDate;
     @NotNull

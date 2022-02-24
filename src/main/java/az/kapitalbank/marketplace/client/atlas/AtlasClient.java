@@ -7,7 +7,7 @@ import az.kapitalbank.marketplace.client.atlas.model.response.CardResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseCompleteResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.ReverseResponse;
-import az.kapitalbank.marketplace.constants.ResultType;
+import az.kapitalbank.marketplace.constant.ResultType;
 import feign.Logger;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.context.annotation.Bean;

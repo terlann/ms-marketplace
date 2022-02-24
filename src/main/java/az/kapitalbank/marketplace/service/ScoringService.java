@@ -1,6 +1,7 @@
 package az.kapitalbank.marketplace.service;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -20,13 +21,12 @@ import az.kapitalbank.marketplace.client.umico.UmicoClient;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionResponse;
 import az.kapitalbank.marketplace.constant.ScoringLevel;
-import az.kapitalbank.marketplace.constant.TelesalesResult;
+import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.CompleteScoring;
 import az.kapitalbank.marketplace.dto.request.TelesalesResultRequestDto;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.exception.FeignClientException;
-import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderAlreadyScoringException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.ScoringException;
@@ -62,7 +62,7 @@ public class ScoringService {
     OptimusClient optimusClient;
     ScoringMapper scoringMapper;
 
-    @Transactional
+    @Transactional /* Optimus call this */
     public void telesalesResult(TelesalesResultRequestDto request) {
         String telesalesOrderId = request.getTelesalesOrderId().trim();
         log.info("telesales loan result start... telesales_order_id - [{}]", telesalesOrderId);
@@ -71,22 +71,25 @@ public class ScoringService {
                 .orElseThrow(() -> new OrderNotFoundException(exceptionMessage));
         log.info("telesales_order_id found in db. telesales_order_id - [{}]", telesalesOrderId);
 
-        if (operationEntity.getScoringLevel() != null) {
+        if (operationEntity.getScoringStatus() != null) {
             log.error("Order already have scored. telesales_order_id - [{}]",
                     telesalesOrderId);
             throw new OrderAlreadyScoringException(telesalesOrderId);
         }
 
-        if (request.getTelesalesResult() == TelesalesResult.APPROVED) {
+        if (request.getScoringStatus() == ScoringStatus.APPROVED) {
             var cardUid = request.getCardPan(); // TODO optimus send me pan and change to cardUid
             operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
-            operationEntity.setScoringLevel(ScoringLevel.COMPLETE);
+            operationEntity.setScoringStatus(ScoringStatus.APPROVED);
             operationEntity.getCustomer().setCardId(cardUid);
             operationEntity.setLoanContractStartDate(request.getLoanContractStartDate()); // TODO optimus send me
             operationEntity.setLoanContractEndDate(request.getLoanContractEndDate()); // TODO optimus send me
+            var customerEntity = operationEntity.getCustomer();
+            customerEntity.setCompleteProcessDate(LocalDateTime.now());
+            operationEntity.setCustomer(customerEntity);
         } else {
             operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
-            operationEntity.setScoringLevel(ScoringLevel.REJECT);
+            operationEntity.setScoringStatus(ScoringStatus.REJECTED);
         }
         operationRepository.save(operationEntity);
 
@@ -160,10 +163,6 @@ public class ScoringService {
         log.info("scoring service create-scoring. track_id - [{}], Request - {}", trackId, createScoringRequest);
         try {
             optimusClient.scoringCreate(taskId, createScoringRequest);
-            var operationEntity = operationRepository.findById(trackId)
-                    .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
-            operationEntity.setScoringLevel(ScoringLevel.CREATE);
-            operationRepository.save(operationEntity);
             log.info("scoring service create-scoring finish... track_id - [{}]", trackId);
         } catch (FeignClientException e) {
             log.error("scoring service create-scoring finish... track_id - [{}],FeignException - {}",

@@ -1,6 +1,7 @@
 package az.kapitalbank.marketplace.service;
 
 import javax.transaction.Transactional;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -16,7 +17,7 @@ import az.kapitalbank.marketplace.constant.Currency;
 import az.kapitalbank.marketplace.constant.DvsStatus;
 import az.kapitalbank.marketplace.constant.FraudResultStatus;
 import az.kapitalbank.marketplace.constant.ProcessStatus;
-import az.kapitalbank.marketplace.constant.ScoringLevel;
+import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.TaskDefinitionKey;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
@@ -86,7 +87,6 @@ public class ProductCreateService {
                         operationEntity.getPin(),
                         operationEntity.getMobileNumber());
                 if (businessKey.isPresent()) {
-                    operationEntity.setScoringLevel(ScoringLevel.START);
                     operationEntity.setBusinessKey(businessKey.get());
                     operationRepository.save(operationEntity);
                     log.info("ProductCreateService: optimus stared scoring.track_id - [{}], business_key - [{}]",
@@ -178,7 +178,11 @@ public class ProductCreateService {
                 operationEntity.setOrders(orders);
                 operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
                 operationEntity.setDvsOrderStatus(DvsStatus.CONFIRMED);
-                operationEntity.setScoringLevel(ScoringLevel.COMPLETE);
+                operationEntity.setScoringDate(LocalDateTime.now());
+                operationEntity.setScoringStatus(ScoringStatus.APPROVED);
+                var customerEntity = operationEntity.getCustomer();
+                customerEntity.setCompleteProcessDate(LocalDateTime.now());
+                operationEntity.setCustomer(customerEntity);
                 operationRepository.save(operationEntity);
                 log.info("Purchased all orders.");
 

@@ -1,4 +1,4 @@
-package az.kapitalbank.marketplace.constants;
+package az.kapitalbank.marketplace.constant;
 
 import lombok.Getter;
 
