@@ -8,7 +8,7 @@ import lombok.experimental.FieldDefaults;
 @Getter
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public enum TelesalesResult {
+public enum ScoringStatus {
     APPROVED(1),
     REJECTED(0);
 

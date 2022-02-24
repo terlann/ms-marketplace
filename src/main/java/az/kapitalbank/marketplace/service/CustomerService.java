@@ -6,7 +6,7 @@ import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.externalinteg.ExternalIntegrationClient;
 import az.kapitalbank.marketplace.client.externalinteg.model.IamasResponse;
 import az.kapitalbank.marketplace.constant.AccountStatus;
-import az.kapitalbank.marketplace.constants.ResultType;
+import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.dto.response.BalanceResponseDto;
 import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
 import az.kapitalbank.marketplace.exception.PersonNotFoundException;

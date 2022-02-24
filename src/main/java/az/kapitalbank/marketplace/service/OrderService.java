@@ -14,9 +14,9 @@ import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.constant.AccountStatus;
 import az.kapitalbank.marketplace.constant.Currency;
 import az.kapitalbank.marketplace.constant.OrderStatus;
+import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
-import az.kapitalbank.marketplace.constants.ResultType;
 import az.kapitalbank.marketplace.dto.DeliveryProductDto;
 import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
 import az.kapitalbank.marketplace.dto.OrderProductItem;
@@ -169,6 +169,7 @@ public class OrderService {
         return CreateOrderResponse.of(trackId);
     }
 
+    /* Optimus call this */
     public CheckOrderResponseDto checkOrder(String telesalesOrderId) {
         log.info("check order start... telesales_order_id  - [{}]", telesalesOrderId);
         var operationEntityOptional = operationRepository.findByTelesalesOrderId(telesalesOrderId);
@@ -177,8 +178,8 @@ public class OrderService {
         var operationEntity = operationEntityOptional.orElseThrow(
                 () -> new OrderNotFoundException(exceptionMessage));
 
-        var scoringLevel = operationEntity.getScoringLevel();
-        if (scoringLevel != null)
+        var scoringStatus = operationEntity.getScoringStatus();
+        if (scoringStatus != null)
             throw new OrderAlreadyScoringException(telesalesOrderId);
 
         CheckOrderResponseDto orderResponseDto = orderMapper.entityToDto(operationEntity);
