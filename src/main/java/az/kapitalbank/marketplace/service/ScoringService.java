@@ -90,13 +90,13 @@ public class ScoringService {
         }
 
         if (request.getScoringStatus() == ScoringStatus.APPROVED) {
-            var cardUid = atlasClient.findByPan(request.getCardPan()).getUid();
             operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
             operationEntity.setScoringStatus(ScoringStatus.APPROVED);
-            operationEntity.getCustomer().setCardId(cardUid);
-            operationEntity.setLoanContractStartDate(request.getLoanContractStartDate()); // TODO optimus send me
-            operationEntity.setLoanContractEndDate(request.getLoanContractEndDate()); // TODO optimus send me
+            operationEntity.setLoanContractStartDate(request.getLoanStartDate());
+            operationEntity.setLoanContractEndDate(request.getLoanEndDate());
             var customerEntity = operationEntity.getCustomer();
+            var cardUid = atlasClient.findByPan(request.getPan()).getUid();
+            customerEntity.setCardId(cardUid);
             customerEntity.setCompleteProcessDate(LocalDateTime.now());
             operationEntity.setCustomer(customerEntity);
         } else {
@@ -140,8 +140,8 @@ public class ScoringService {
             UmicoDecisionRequest umicoScoringDecisionRequest = UmicoDecisionRequest.builder()
                     .trackId(operationEntity.getId())
                     .decisionStatus(operationEntity.getUmicoDecisionStatus())
-                    .loanContractStartDate(null) // TODO ?
-                    .loanContractEndDate(null)  // TODO ?
+                    .loanContractStartDate(operationEntity.getLoanContractStartDate())
+                    .loanContractEndDate(operationEntity.getLoanContractEndDate())
                     .customerId(operationEntity.getCustomer().getId())
                     .commission(operationEntity.getCommission())
                     .loanLimit(operationEntity.getTotalAmount().add(operationEntity.getCommission()))
