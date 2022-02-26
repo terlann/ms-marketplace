@@ -369,7 +369,7 @@ public class ScoringService {
             var telesalesOrderId = telesalesService.sendLead(trackId);
             updateOperationTelesalesOrderId(trackId, telesalesOrderId);
             sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
-            log.error("Optimus complete scoring process was finished unsuccessfully... trackId - {},FeignException - {}",
+            log.error("Optimus complete scoring process was finished unsuccessfully...trackId - {},FeignException - {}",
                     trackId,
                     e.getMessage());
         }
@@ -379,13 +379,16 @@ public class ScoringService {
         log.info("Optimus get process is started... trackId - {},business_key - {}", trackId, businessKey);
         try {
             ProcessResponse processResponse = optimusClient.getProcess(businessKey);
-            log.info("Optimus get process scoring process was finished successfully. trackId - {}, Response - {}", trackId, processResponse);
+            log.info("Optimus get process scoring process was finished successfully. trackId - {}, Response - {}",
+                    trackId, processResponse);
             return Optional.of(processResponse);
         } catch (OptimusClientException f) {
             var telesalesOrderId = telesalesService.sendLead(trackId);
             updateOperationTelesalesOrderId(trackId, telesalesOrderId);
             sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
-            log.error("Optimus get process scoring process was finished unsuccessfully. trackId - {}, FeignException - {}", trackId, f.getMessage());
+            log.error("Optimus get process scoring process was finished unsuccessfully." +
+                            "trackId - {}, FeignException - {}",
+                    trackId, f.getMessage());
             return Optional.empty();
         }
     }

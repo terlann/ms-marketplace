@@ -41,7 +41,8 @@ public class TelesalesService {
                     createTelesalesOrderResponse);
             return Optional.of(createTelesalesOrderResponse.getOperationId());
         } catch (Exception e) {
-            log.error("Send lead to telesales was finished unsuccessfully. trackId -{}, Exception - {}", trackId, e.getMessage());
+            log.error("Send lead to telesales was finished unsuccessfully. trackId -{}, Exception - {}",
+                    trackId, e.getMessage());
             return Optional.empty();
         }
     }
