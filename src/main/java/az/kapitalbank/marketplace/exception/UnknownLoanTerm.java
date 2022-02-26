@@ -1,16 +1,12 @@
 package az.kapitalbank.marketplace.exception;
 
 import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 
-@Getter
-@Setter
-@FieldDefaults(level = AccessLevel.PRIVATE)
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UnknownLoanTerm extends RuntimeException {
 
-    static final String MESSAGE = "No such loan term - [%s]";
+    static String MESSAGE = "No such loan term. loanTerm - %s";
 
     public UnknownLoanTerm(int loanTerm) {
         super(String.format(MESSAGE, loanTerm));

@@ -1,8 +1,5 @@
 package az.kapitalbank.marketplace.exception.handler;
 
-import javax.validation.UnexpectedTypeException;
-import java.sql.SQLException;
-import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -11,15 +8,15 @@ import az.kapitalbank.marketplace.constant.Error;
 import az.kapitalbank.marketplace.dto.ErrorResponseDto;
 import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
 import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
-import az.kapitalbank.marketplace.exception.LoanAmountIncorrectException;
 import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
-import az.kapitalbank.marketplace.exception.OrderAlreadyScoringException;
+import az.kapitalbank.marketplace.exception.NoMatchLoanAmountException;
+import az.kapitalbank.marketplace.exception.OperationAlreadyScoredException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.PersonNotFoundException;
 import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
 import az.kapitalbank.marketplace.exception.UmicoUserNotFoundException;
+import az.kapitalbank.marketplace.exception.UniqueAdditionalNumberException;
 import az.kapitalbank.marketplace.exception.UnknownLoanTerm;
-import feign.FeignException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -35,19 +32,17 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @RestControllerAdvice
 public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
 
-    @ExceptionHandler({SQLIntegrityConstraintViolationException.class,
-            SQLException.class,
-            FeignException.class})
-    public ResponseEntity<ErrorResponseDto> multipleException(Exception ex) {
-        log.error("Exception: {}", ex.getMessage());
-        var errorResponseDto = new ErrorResponseDto(Error.INTERNAL_SERVER_ERROR);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponseDto);
-    }
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
+                                                                  HttpHeaders headers,
+                                                                  HttpStatus status,
+                                                                  WebRequest request) {
+        log.error("Request - {}, Exception: ", request.toString(), ex);
+        Map<String, String> warnings = new HashMap<>();
+        for (FieldError fieldError : ex.getBindingResult().getFieldErrors())
+            warnings.put(fieldError.getField(), fieldError.getDefaultMessage());
 
-    @ExceptionHandler(UnexpectedTypeException.class)
-    public ResponseEntity<ErrorResponseDto> unexpectedTypeException(UnexpectedTypeException ex) {
-        log.error("UnexpectedTypeException: {}", ex.getMessage());
-        var errorResponseDto = new ErrorResponseDto(Error.REQUEST_FIELD_TYPES);
+        var errorResponseDto = new ErrorResponseDto(Error.BAD_REQUEST, warnings);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
@@ -65,10 +60,10 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponseDto);
     }
 
-    @ExceptionHandler(LoanAmountIncorrectException.class)
-    public ResponseEntity<ErrorResponseDto> loanAmountIncorrect(LoanAmountIncorrectException ex) {
+    @ExceptionHandler(NoMatchLoanAmountException.class)
+    public ResponseEntity<ErrorResponseDto> loanAmountIncorrect(NoMatchLoanAmountException ex) {
         log.error(ex.getMessage());
-        var errorResponseDto = new ErrorResponseDto(Error.LOAN_AMOUNT_INCORRECT);
+        var errorResponseDto = new ErrorResponseDto(Error.NO_MATCH_LOAN_AMOUNT);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
@@ -93,10 +88,10 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
-    @ExceptionHandler(OrderAlreadyScoringException.class)
-    public ResponseEntity<ErrorResponseDto> orderAlreadyScoring(OrderAlreadyScoringException ex) {
+    @ExceptionHandler(OperationAlreadyScoredException.class)
+    public ResponseEntity<ErrorResponseDto> alreadyScored(OperationAlreadyScoredException ex) {
         log.error(ex.getMessage());
-        var errorResponseDto = new ErrorResponseDto(Error.ORDER_ALREADY_SCORING);
+        var errorResponseDto = new ErrorResponseDto(Error.OPERATION_ALREADY_SCORED);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
@@ -122,19 +117,11 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
-    @Override
-    protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
-                                                                  HttpHeaders headers,
-                                                                  HttpStatus status,
-                                                                  WebRequest request) {
-        log.error("Request - [{}], Exception: ", request.toString(), ex);
-        Map<String, String> warnings = new HashMap<>();
-        for (FieldError fieldError : ex.getBindingResult().getFieldErrors())
-            warnings.put(fieldError.getField(), fieldError.getDefaultMessage());
-
-        var code = Error.BAD_REQUEST.getCode();
-        var message = Error.BAD_REQUEST.getMessage();
-        var errorResponseDto = new ErrorResponseDto(code, message, warnings);
+    @ExceptionHandler(UniqueAdditionalNumberException.class)
+    public ResponseEntity<ErrorResponseDto> uniqueAdditionalNumberException(
+            UniqueAdditionalNumberException ex) {
+        log.error(ex.getMessage());
+        var errorResponseDto = new ErrorResponseDto(Error.UNIQUE_PHONE_NUMBER);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 }

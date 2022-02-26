@@ -17,11 +17,6 @@ public interface OperationRepository extends JpaRepository<OperationEntity, UUID
 
     Optional<OperationEntity> findByBusinessKey(String businessKey);
 
-    Optional<OperationEntity> findByDvsOrderId(String dvsOrderId);
-
-    long countByCustomerAndUmicoDecisionStatus(CustomerEntity customer,
-                                               UmicoDecisionStatus umicoDecisionStatus);
-
     long countByCustomerAndUmicoDecisionStatusIn(CustomerEntity customer,
                                                  List<UmicoDecisionStatus> umicoDecisionStatus);
 

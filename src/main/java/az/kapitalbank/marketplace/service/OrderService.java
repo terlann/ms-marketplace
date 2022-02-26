@@ -19,7 +19,6 @@ import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.DeliveryProductDto;
 import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
-import az.kapitalbank.marketplace.dto.OrderProductItem;
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
 import az.kapitalbank.marketplace.dto.request.PurchaseRequestDto;
 import az.kapitalbank.marketplace.dto.request.ReverseRequestDto;
@@ -27,21 +26,21 @@ import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
 import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
 import az.kapitalbank.marketplace.dto.response.PurchaseResponseDto;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
-import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.entity.ProductEntity;
 import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
 import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
-import az.kapitalbank.marketplace.exception.LoanAmountIncorrectException;
 import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
-import az.kapitalbank.marketplace.exception.OrderAlreadyScoringException;
+import az.kapitalbank.marketplace.exception.NoMatchLoanAmountException;
+import az.kapitalbank.marketplace.exception.OperationAlreadyScoredException;
+import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
+import az.kapitalbank.marketplace.exception.UniqueAdditionalNumberException;
 import az.kapitalbank.marketplace.mappers.CreateOrderMapper;
 import az.kapitalbank.marketplace.mappers.CustomerMapper;
 import az.kapitalbank.marketplace.mappers.OperationMapper;
 import az.kapitalbank.marketplace.mappers.OrderMapper;
-import az.kapitalbank.marketplace.messaging.event.FraudCheckEvent;
 import az.kapitalbank.marketplace.messaging.sender.FraudCheckSender;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
@@ -63,26 +62,33 @@ import static az.kapitalbank.marketplace.utils.AmountUtil.getCommission;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class OrderService {
 
-    OperationRepository operationRepository;
-    CustomerMapper customerMapper;
-    OperationMapper operationMapper;
-    CreateOrderMapper createOrderMapper;
-    CustomerRepository customerRepository;
-    FraudCheckSender customerOrderProducer;
-    AtlasClient atlasClient;
-    OrderMapper orderMapper;
-    OrderRepository orderRepository;
     @NonFinal
     @Value("${purchase.terminal-name}")
     String terminalName;
 
+    OrderMapper orderMapper;
+    AtlasClient atlasClient;
+    CustomerMapper customerMapper;
+    OrderRepository orderRepository;
+    OperationMapper operationMapper;
+    CreateOrderMapper createOrderMapper;
+    CustomerRepository customerRepository;
+    FraudCheckSender customerOrderProducer;
+    OperationRepository operationRepository;
+
     @Transactional
     public CreateOrderResponse createOrder(CreateOrderRequestDto request) {
-        log.info("create loan process start... Request - [{}]", request);
+        log.info("Create order process is started... Request - {}", request);
         validateOrderAmount(request);
         var customerId = request.getCustomerInfo().getCustomerId();
         CustomerEntity customerEntity;
         if (customerId == null) {
+            log.info("First order create process is started...");
+            var firstPhoneNumber = request.getCustomerInfo().getAdditionalPhoneNumber1();
+            var secondPhoneNumber = request.getCustomerInfo().getAdditionalPhoneNumber2();
+            if (firstPhoneNumber.equals(secondPhoneNumber))
+                throw new UniqueAdditionalNumberException(firstPhoneNumber, secondPhoneNumber);
+
             validatePurchaseAmountLimit(request);
             var customerByUmicoUserId =
                     customerRepository.findByUmicoUserId(request.getCustomerInfo().getUmicoUserId());
@@ -91,6 +97,7 @@ public class OrderService {
             } else {
                 customerEntity = customerMapper.toCustomerEntity(request.getCustomerInfo());
                 customerEntity = customerRepository.save(customerEntity);
+                log.info("New customer was created. customerId" + customerEntity.getId());
             }
         } else {
             customerEntity = customerRepository.findById(customerId).orElseThrow(
@@ -101,22 +108,21 @@ public class OrderService {
                 throw new CustomerNotCompletedProcessException("customerId - " + customerId);
             validateCustomerBalance(request, customerEntity.getCardId());
         }
-        OperationEntity operationEntity = operationMapper.toOperationEntity(request);
+        var operationEntity = operationMapper.toOperationEntity(request);
         operationEntity.setCustomer(customerEntity);
 
         var operationCommission = BigDecimal.ZERO;
-        List<OrderEntity> orderEntities = new ArrayList<>();
-        List<ProductEntity> productEntities = new ArrayList<>();
+        var orderEntities = new ArrayList<OrderEntity>();
+        var productEntities = new ArrayList<ProductEntity>();
         for (OrderProductDeliveryInfo deliveryInfo : request.getDeliveryInfo()) {
             var commission = getCommission(deliveryInfo.getTotalAmount(), request.getLoanTerm());
             operationCommission = operationCommission.add(commission);
-            OrderEntity orderEntity = orderMapper.toOrderEntity(deliveryInfo, commission);
+            var orderEntity = orderMapper.toOrderEntity(deliveryInfo, commission);
             orderEntity.setOperation(operationEntity);
 
-            for (OrderProductItem orderProductItem : request.getProducts()) {
+            for (var orderProductItem : request.getProducts()) {
                 if (deliveryInfo.getOrderNo().equals(orderProductItem.getOrderNo())) {
-                    ProductEntity productEntity =
-                            orderMapper.toProductEntity(orderProductItem, orderEntity.getOrderNo());
+                    var productEntity = orderMapper.toProductEntity(orderProductItem, orderEntity.getOrderNo());
                     productEntity.setOrder(orderEntity);
                     productEntities.add(productEntity);
                 }
@@ -129,12 +135,10 @@ public class OrderService {
         operationEntity = operationRepository.save(operationEntity);
 
         var trackId = operationEntity.getId();
-        var approvedCustomerCount = operationRepository
-                .countByCustomerAndUmicoDecisionStatus(customerEntity, UmicoDecisionStatus.APPROVED);
-        if (customerId != null && approvedCustomerCount > 0) {
+        if (customerId != null && customerEntity.getCompleteProcessDate() != null) {
             var purchasedOrders = new ArrayList<OrderEntity>();
             var cardUid = customerEntity.getCardId();
-            for (OrderEntity orderEntity : orderEntities) {
+            for (var orderEntity : orderEntities) {
                 var rrn = GenerateUtil.rrn();
                 var purchaseRequest = PurchaseRequest.builder()
                         .rrn(rrn)
@@ -152,39 +156,42 @@ public class OrderService {
                 purchasedOrders.add(orderEntity);
             }
             orderRepository.saveAll(purchasedOrders);
+            log.info("Regular order was created with purchase. customerId - {}, trackId - {}",
+                    customerEntity.getId(), trackId);
         } else {
-            FraudCheckEvent fraudCheckEvent = createOrderMapper.toOrderEvent(request);
+            var fraudCheckEvent = createOrderMapper.toOrderEvent(request);
             fraudCheckEvent.setTrackId(trackId);
             customerOrderProducer.sendMessage(fraudCheckEvent);
+            log.info("New customer started process. customerId - {}, trackId - {}", customerEntity.getId(), trackId);
         }
         return CreateOrderResponse.of(trackId);
     }
 
     /* Optimus call this */
     public CheckOrderResponseDto checkOrder(String telesalesOrderId) {
-        log.info("check order start... telesales_order_id  - [{}]", telesalesOrderId);
+        log.info("Check order is started... telesalesOrderId  - {}", telesalesOrderId);
         var operationEntityOptional = operationRepository.findByTelesalesOrderId(telesalesOrderId);
 
-        var exceptionMessage = String.format("telesales_order_id - [%s]", telesalesOrderId);
         var operationEntity = operationEntityOptional.orElseThrow(
-                () -> new OrderNotFoundException(exceptionMessage));
+                () -> new OperationNotFoundException("telesalesOrderId - " + telesalesOrderId));
 
         var scoringStatus = operationEntity.getScoringStatus();
         if (scoringStatus != null)
-            throw new OrderAlreadyScoringException(telesalesOrderId);
+            throw new OperationAlreadyScoredException("telesalesOrderId - " + telesalesOrderId);
 
-        CheckOrderResponseDto orderResponseDto = orderMapper.entityToDto(operationEntity);
-        log.info("check order finish... telesales_order_id - [{}]", telesalesOrderId);
+        var orderResponseDto = orderMapper.entityToDto(operationEntity);
+        log.info("Check order was finished... telesalesOrderId - {}", telesalesOrderId);
         return orderResponseDto;
 
     }
 
     public List<PurchaseResponseDto> purchase(PurchaseRequestDto request) {
+        log.info("Purchase process is started. request - {}", request);
         var customerId = request.getCustomerId();
         var customerEntity = customerRepository.findById(customerId)
                 .orElseThrow(() -> new CustomerNotFoundException("customerId - " + customerId));
 
-        List<PurchaseResponseDto> purchaseResponseDtoList = new ArrayList<>();
+        var purchaseResponseDtoList = new ArrayList<PurchaseResponseDto>();
         var cardId = customerEntity.getCardId();
         var orderNoList = request.getDeliveryOrders().stream()
                 .map(DeliveryProductDto::getOrderNo)
@@ -208,10 +215,10 @@ public class OrderService {
                     .terminalName(terminalName)
                     .installments(order.getOperation().getLoanTerm())
                     .build();
-
             try {
                 var purchaseCompleteResponse = atlasClient.complete(purchaseCompleteRequest);
-                order.setTransactionId(purchaseCompleteResponse.getId());
+                var transactionId = purchaseCompleteResponse.getId();
+                order.setTransactionId(transactionId);
                 order.setRrn(rrn);
                 order.setTransactionStatus(TransactionStatus.COMPLETE);
                 purchaseResponseDto.setStatus(OrderStatus.SUCCESS);
@@ -219,6 +226,7 @@ public class OrderService {
                 purchaseResponseDto.setStatus(OrderStatus.FAIL);
                 order.setTransactionStatus(TransactionStatus.FAIL_IN_COMPLETE);
                 order.setTransactionError(ex.getMessage());
+                log.error("Atlas complete process was failed. orderNo - {}", order.getOrderNo());
                 String errorMessager = "Atlas Exception: UUID - %s  ,  code - %s, message - %s";
                 log.error(String.format(errorMessager,
                         ex.getUuid(),
@@ -230,21 +238,23 @@ public class OrderService {
             orderRepository.save(order);
             purchaseResponseDtoList.add(purchaseResponseDto);
         }
-
+        log.info("Purchase process was finished. trackId - {}, customerId - {}",
+                request.getTrackId(), request.getCustomerId());
         return purchaseResponseDtoList;
     }
 
     @Transactional
     public PurchaseResponseDto reverse(ReverseRequestDto request) {
+        log.info("Reverse process is started. request - {}", request);
         var customerId = request.getCustomerId();
         customerRepository.findById(customerId)
                 .orElseThrow(() -> new CustomerNotFoundException("customerId - " + customerId));
 
         var orderNo = request.getOrderNo();
         var orderEntity = orderRepository.findByOrderNo(orderNo)
-                .orElseThrow(() -> new OrderNotFoundException(orderNo));
+                .orElseThrow(() -> new OrderNotFoundException("orderNo - " + orderNo));
 
-        PurchaseResponseDto purchaseResponse = new PurchaseResponseDto();
+        var purchaseResponse = new PurchaseResponseDto();
         try {
             var reverseResponse = atlasClient.reverse(orderEntity.getTransactionId());
             purchaseResponse.setStatus(OrderStatus.SUCCESS);
@@ -253,6 +263,7 @@ public class OrderService {
         } catch (AtlasClientException ex) {
             purchaseResponse.setStatus(OrderStatus.FAIL);
             orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_REVERSE);
+            log.error("Atlas reverse process was failed. orderNo - {}", orderEntity.getOrderNo());
             String errorMessager = "Atlas Exception: UUID - %s  ,  code - %s, message - %s";
             orderEntity.setTransactionError(String.format(errorMessager,
                     ex.getUuid(),
@@ -263,6 +274,8 @@ public class OrderService {
         purchaseResponse.setOrderNo(orderEntity.getOrderNo());
         orderEntity.setTransactionDate(LocalDateTime.now());
         orderRepository.save(orderEntity);
+        log.info("Reverse process was finished. orderNo - {}, customerId - {}",
+                request.getOrderNo(), request.getCustomerId());
         return purchaseResponse;
     }
 
@@ -281,14 +294,8 @@ public class OrderService {
                 .map(OrderProductDeliveryInfo::getTotalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        if (totalOrderAmount.compareTo(loanAmount) != 0) {
-            log.error("create order total amount is incorrect . Request - [{}]," +
-                            " total amount - [{}],expected amount - [{}]",
-                    createOrderRequestDto,
-                    loanAmount,
-                    totalOrderAmount);
-            throw new LoanAmountIncorrectException(totalOrderAmount);
-        }
+        if (totalOrderAmount.compareTo(loanAmount) != 0)
+            throw new NoMatchLoanAmountException(loanAmount, totalOrderAmount);
     }
 
     private void validatePurchaseAmountLimit(CreateOrderRequestDto request) {
@@ -296,17 +303,16 @@ public class OrderService {
         var minLimit = BigDecimal.valueOf(50);
         var maxLimit = BigDecimal.valueOf(20000);
 
-        if (purchaseAmount.compareTo(minLimit) < 0 || purchaseAmount.compareTo(maxLimit) > 0) {
-            throw new TotalAmountLimitException(String.valueOf(purchaseAmount));
-        }
+        if (purchaseAmount.compareTo(minLimit) < 0 || purchaseAmount.compareTo(maxLimit) > 0)
+            throw new TotalAmountLimitException(purchaseAmount);
     }
 
     private BigDecimal getPurchaseAmount(CreateOrderRequestDto request) {
-        BigDecimal totalAmount = request.getTotalAmount();
-        BigDecimal totalCommission = BigDecimal.ZERO;
+        var totalAmount = request.getTotalAmount();
+        var totalCommission = BigDecimal.ZERO;
 
         for (var order : request.getDeliveryInfo()) {
-            BigDecimal commission = getCommission(order.getTotalAmount(), request.getLoanTerm());
+            var commission = getCommission(order.getTotalAmount(), request.getLoanTerm());
             totalCommission = totalCommission.add(commission);
         }
         return totalAmount.add(totalCommission);
@@ -315,11 +321,15 @@ public class OrderService {
     private BigDecimal getAvailableBalance(String cardId) {
         var cardDetailResponse = atlasClient.findCardByUID(cardId, ResultType.ACCOUNT);
 
-        var accountResponseList = cardDetailResponse.getAccounts()
+        var primaryAccount = cardDetailResponse.getAccounts()
                 .stream()
-                .filter(x -> x.getStatus() == AccountStatus.OPEN_PRIMARY).findFirst()
-                .orElseThrow(() -> new RuntimeException("Open Primary Account not Found in Account Response"));
-        return accountResponseList.getAvailableBalance();
+                .filter(x -> x.getStatus() == AccountStatus.OPEN_PRIMARY)
+                .findFirst();
+        if (primaryAccount.isEmpty()) {
+            log.error("Account not found in open primary status.cardId - {}", cardId);
+            return BigDecimal.ZERO;
+        }
+        return primaryAccount.get().getAvailableBalance();
     }
 
 }
