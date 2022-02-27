@@ -19,7 +19,7 @@ public class AmountUtil {
     }
 
     public static BigDecimal getCommission(BigDecimal amount, int loanTerm) {
-        BigDecimal percent = commissionProperties.getValues().get(loanTerm);
+        var percent = commissionProperties.getValues().get(loanTerm);
         if (percent == null) {
             throw new UnknownLoanTerm(loanTerm);
         }

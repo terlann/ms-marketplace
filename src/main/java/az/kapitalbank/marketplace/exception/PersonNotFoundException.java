@@ -1,14 +1,12 @@
 package az.kapitalbank.marketplace.exception;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.AccessLevel;
+import lombok.experimental.FieldDefaults;
 
-@Getter
-@Setter
-@ToString
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class PersonNotFoundException extends RuntimeException {
-    private static final String PERSON_NOT_FOUND = "Person not found in IAMAS. %s";
+
+    static String PERSON_NOT_FOUND = "Person not found in IAMAS. %s";
 
     public PersonNotFoundException(String message) {
         super(String.format(PERSON_NOT_FOUND, message));

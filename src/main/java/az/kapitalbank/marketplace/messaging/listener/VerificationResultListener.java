@@ -12,7 +12,7 @@ import az.kapitalbank.marketplace.constant.DvsStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.CompleteScoring;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
-import az.kapitalbank.marketplace.messaging.event.OrderDvsStatusEvent;
+import az.kapitalbank.marketplace.messaging.event.DvsResultEvent;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.service.ScoringService;
@@ -31,7 +31,7 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class OrderDvsStatusListener {
+public class VerificationResultListener {
 
     AtlasClient atlasClient;
     ObjectMapper objectMapper;
@@ -42,10 +42,6 @@ public class OrderDvsStatusListener {
     UmicoClient umicoClient;
 
     @NonFinal
-    @Value("${purchase.terminal-name}")
-    String terminalName;
-
-    @NonFinal
     @Value("${umico.api-key}")
     String apiKey;
 
@@ -54,9 +50,8 @@ public class OrderDvsStatusListener {
         return message -> {
             if (Objects.nonNull(message)) {
                 try {
-                    OrderDvsStatusEvent orderDvsStatusEvent = objectMapper
-                            .readValue(message, OrderDvsStatusEvent.class);
-                    log.info("order dvs status consumer. Message - [{}]", orderDvsStatusEvent);
+                    var orderDvsStatusEvent = objectMapper.readValue(message, DvsResultEvent.class);
+                    log.info("order dvs status consumer. Message - {}", orderDvsStatusEvent);
                     if (orderDvsStatusEvent != null) {
                         var trackId = orderDvsStatusEvent.getTrackId();
                         var operationEntity = operationRepository.findById(trackId)
@@ -65,7 +60,7 @@ public class OrderDvsStatusListener {
                         var dvsOrderStatus = orderDvsStatusEvent.getStatus();
                         switch (dvsOrderStatus) {
                             case "pending":
-                                log.info("Order Dvs status in pending. Order dvs status response - [{}]",
+                                log.info("Order Dvs status in pending. Order dvs status response - {}",
                                         orderDvsStatusEvent);
                                 var umicoPendingDecisionRequest = UmicoDecisionRequest.builder()
                                         .trackId(operationEntity.getId())
@@ -79,7 +74,7 @@ public class OrderDvsStatusListener {
                                 operationRepository.save(operationEntity);
                                 break;
                             case "rejected":
-                                log.info("Order Dvs status in rejected. Order dvs status response - [{}]",
+                                log.info("Order Dvs status in rejected. Order dvs status response - {}",
                                         orderDvsStatusEvent);
                                 optimusClient.deleteLoan(operationEntity.getBusinessKey());
                                 log.info("Loan deleted in optimus. businessKey - {}",
@@ -97,7 +92,7 @@ public class OrderDvsStatusListener {
                                 operationRepository.save(operationEntity);
                                 break;
                             case "confirmed":
-                                log.info("Order Dvs status in confirmed. Order dvs status response - [{}]",
+                                log.info("Order Dvs status in confirmed. Order dvs status response - {}",
                                         orderDvsStatusEvent);
                                 var completeScoringWithConfirm = CompleteScoring.builder()
                                         .trackId(operationEntity.getId())
@@ -114,7 +109,7 @@ public class OrderDvsStatusListener {
                                 var cardPan = optimusClient.getProcessVariable(operationEntity.getBusinessKey(),
                                         "pan");
                                 var cardId = atlasClient.findByPan(cardPan).getUid();
-                                log.info("Pan was taken and changed card uid.Purchase process starts. cardId - {}",
+                                log.info("Pan was taken and changed to card uid.Purchase process starts. cardId - {}",
                                         cardId);
                                 var customerEntity = operationEntity.getCustomer();
                                 customerEntity.setCardId(cardId);
@@ -124,7 +119,7 @@ public class OrderDvsStatusListener {
                         }
                     }
                 } catch (JsonProcessingException j) {
-                    log.error("order dvs status consume.Message - [{}], JsonProcessingException - {}",
+                    log.error("order dvs status consume.Message - {}, JsonProcessingException - {}",
                             message,
                             j.getMessage());
                 }

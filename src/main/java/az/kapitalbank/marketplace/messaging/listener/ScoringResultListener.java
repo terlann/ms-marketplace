@@ -4,7 +4,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 
 import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
-import az.kapitalbank.marketplace.service.ProductCreateService;
+import az.kapitalbank.marketplace.service.ScoringService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AccessLevel;
@@ -21,19 +21,19 @@ import org.springframework.stereotype.Component;
 public class ScoringResultListener {
 
     ObjectMapper objectMapper;
-    ProductCreateService productCreateService;
+    ScoringService scoringService;
 
     @Bean
     public Consumer<String> startScoringResult() {
         return message -> {
             if (Objects.nonNull(message)) {
                 try {
-                    ScoringResultEvent startScoringResult = objectMapper.readValue(message, ScoringResultEvent.class);
-                    log.info("start scoring result consumer. Message - [{}]", startScoringResult);
+                    var startScoringResult = objectMapper.readValue(message, ScoringResultEvent.class);
+                    log.info("start scoring result consumer. Message - {}", startScoringResult);
 
-                    productCreateService.createScoring(startScoringResult);
+                    scoringService.scoringResultProcess(startScoringResult);
                 } catch (JsonProcessingException j) {
-                    log.error("start scoring result consume.Message - [{}], JsonProcessingException - {}",
+                    log.error("start scoring result consume.Message - {}, JsonProcessingException - {}",
                             message,
                             j.getMessage());
                 }

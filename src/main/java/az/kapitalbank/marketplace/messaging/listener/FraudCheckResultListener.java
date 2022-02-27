@@ -4,7 +4,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 
 import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
-import az.kapitalbank.marketplace.service.ProductCreateService;
+import az.kapitalbank.marketplace.service.ScoringService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AccessLevel;
@@ -21,19 +21,18 @@ import org.springframework.stereotype.Component;
 public class FraudCheckResultListener {
 
     ObjectMapper objectMapper;
-    ProductCreateService productCreateService;
+    ScoringService scoringService;
 
     @Bean
     public Consumer<String> checkFraudResult() {
         return message -> {
             if (Objects.nonNull(message)) {
                 try {
-                    FraudCheckResultEvent fraudCheckResultEvent = objectMapper
-                            .readValue(message, FraudCheckResultEvent.class);
-                    log.info("check fraud result consumer. Message - [{}]", fraudCheckResultEvent);
-                    productCreateService.startScoring(fraudCheckResultEvent);
+                    var fraudCheckResultEvent = objectMapper.readValue(message, FraudCheckResultEvent.class);
+                    log.info("check fraud result consumer. Message - {}", fraudCheckResultEvent);
+                    scoringService.fraudResultProcess(fraudCheckResultEvent);
                 } catch (JsonProcessingException j) {
-                    log.error("check fraud result consume.Message - [{}], JsonProcessingException - {}",
+                    log.error("check fraud result consume.Message - {}, JsonProcessingException - {}",
                             message,
                             j.getMessage());
                 }

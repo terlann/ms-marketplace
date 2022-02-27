@@ -1,13 +1,12 @@
 package az.kapitalbank.marketplace.exception;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.AccessLevel;
+import lombok.experimental.FieldDefaults;
 
-@Getter
-@Setter
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UmicoUserNotFoundException extends RuntimeException {
 
-    private static final String MESSAGE = "Umico user not found. umico_user_id - %S";
+    static String MESSAGE = "Umico user not found. %s";
 
     public UmicoUserNotFoundException(String message) {
         super(String.format(MESSAGE, message));

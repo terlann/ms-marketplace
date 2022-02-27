@@ -1,5 +1,6 @@
 package az.kapitalbank.marketplace.service;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
@@ -36,7 +37,7 @@ public class CustomerService {
                 .findFirst();
 
         if (iamasResponse.isEmpty())
-            throw new PersonNotFoundException("Pin - " + pin);
+            throw new PersonNotFoundException("pin - " + pin);
         log.info("Pin found in IAMAS. Pin - {} ", pin);
     }
 
@@ -45,19 +46,26 @@ public class CustomerService {
                 .orElseThrow(() -> new CustomerNotFoundException("customerId - " + customerId));
 
         if (!customerEntity.getUmicoUserId().equals(umicoUserId)) {
-            throw new UmicoUserNotFoundException(umicoUserId);
+            throw new UmicoUserNotFoundException("umicoUserId - " + umicoUserId);
         }
         var cardUUID = customerEntity.getCardId();
         var cardDetailResponse = atlasClient.findCardByUID(cardUUID, ResultType.ACCOUNT);
 
-        var accountResponseList = cardDetailResponse.getAccounts()
+        var primaryAccount = cardDetailResponse.getAccounts()
                 .stream()
                 .filter(x -> x.getStatus() == AccountStatus.OPEN_PRIMARY)
-                .findFirst()
-                .orElseThrow(() -> new RuntimeException("Open Primary Account not Found in Account Response"));
-
-        var loanLimit = accountResponseList.getOverdraftLimit();
-        var availableBalance = accountResponseList.getAvailableBalance();
+                .findFirst();
+        if (primaryAccount.isEmpty()) {
+            log.error("Account not found in open primary status.cardId - {}", cardUUID);
+            return BalanceResponseDto.builder()
+                    .loanUtilized(BigDecimal.ZERO)
+                    .availableBalance(BigDecimal.ZERO)
+                    .loanLimit(BigDecimal.ZERO)
+                    .cardExpiryDate(cardDetailResponse.getExpiryDate())
+                    .build();
+        }
+        var loanLimit = primaryAccount.get().getOverdraftLimit();
+        var availableBalance = primaryAccount.get().getAvailableBalance();
         return BalanceResponseDto.builder()
                 .loanUtilized(loanLimit.subtract(availableBalance))
                 .availableBalance(availableBalance)

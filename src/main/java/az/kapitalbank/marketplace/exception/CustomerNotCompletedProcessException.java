@@ -1,13 +1,12 @@
 package az.kapitalbank.marketplace.exception;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.AccessLevel;
+import lombok.experimental.FieldDefaults;
 
-@Getter
-@Setter
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class CustomerNotCompletedProcessException extends RuntimeException {
 
-    private static final String MESSAGE = "Customer has not yet completed the process. %s";
+    static String MESSAGE = "Customer has not yet completed the process. %s";
 
     public CustomerNotCompletedProcessException(String message) {
         super(String.format(MESSAGE, message));

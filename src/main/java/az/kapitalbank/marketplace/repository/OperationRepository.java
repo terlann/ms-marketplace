@@ -1,7 +1,7 @@
 package az.kapitalbank.marketplace.repository;
 
-import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
@@ -17,12 +17,7 @@ public interface OperationRepository extends JpaRepository<OperationEntity, UUID
 
     Optional<OperationEntity> findByBusinessKey(String businessKey);
 
-    Optional<OperationEntity> findByDvsOrderId(String dvsOrderId);
-
-    long countByCustomerAndUmicoDecisionStatus(CustomerEntity customer,
-                                               UmicoDecisionStatus umicoDecisionStatus);
-
-    long countByCustomerAndUmicoDecisionStatusIn(CustomerEntity customer,
-                                                 List<UmicoDecisionStatus> umicoDecisionStatus);
+    boolean existsByCustomerAndUmicoDecisionStatusIn(CustomerEntity customer,
+                                                     Set<UmicoDecisionStatus> umicoDecisionStatus);
 
 }
