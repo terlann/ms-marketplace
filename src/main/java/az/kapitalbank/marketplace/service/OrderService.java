@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
@@ -102,9 +103,10 @@ public class OrderService {
         } else {
             customerEntity = customerRepository.findById(customerId).orElseThrow(
                     () -> new CustomerNotFoundException("customerId - " + customerId));
-            var pendingCustomer = operationRepository.countByCustomerAndUmicoDecisionStatusIn(customerEntity,
-                    List.of(UmicoDecisionStatus.PENDING, UmicoDecisionStatus.PREAPPROVED));
-            if (pendingCustomer > 0)
+            var isExistsCustomerByDecisionStatus = operationRepository
+                    .existsByCustomerAndUmicoDecisionStatusIn(customerEntity,
+                            Set.of(UmicoDecisionStatus.PENDING, UmicoDecisionStatus.PREAPPROVED));
+            if (isExistsCustomerByDecisionStatus)
                 throw new CustomerNotCompletedProcessException("customerId - " + customerId);
             validateCustomerBalance(request, customerEntity.getCardId());
         }
