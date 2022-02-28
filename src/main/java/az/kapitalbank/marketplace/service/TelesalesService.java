@@ -2,8 +2,11 @@ package az.kapitalbank.marketplace.service;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import az.kapitalbank.marketplace.client.telesales.TelesalesClient;
+import az.kapitalbank.marketplace.constant.FraudMark;
+import az.kapitalbank.marketplace.entity.FraudEntity;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.mappers.TelesalesMapper;
 import az.kapitalbank.marketplace.repository.FraudRepository;
@@ -30,7 +33,10 @@ public class TelesalesService {
         try {
             var operationEntity = operationRepository.findById(trackId)
                     .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
-            var fraudReasons = fraudRepository.getAllSuspiciousFraudReasonByTrackId(trackId);
+            var fraudReasons = fraudRepository.findByIdAndFraudMark(trackId, FraudMark.SUSPICIOUS)
+                    .stream()
+                    .map(FraudEntity::getFraudReason)
+                    .collect(Collectors.toList());
             var createTelesalesOrderRequest = telesalesMapper
                     .toTelesalesOrder(operationEntity, fraudReasons);
             var amountWithCommission = operationEntity.getTotalAmount().add(operationEntity.getCommission());
