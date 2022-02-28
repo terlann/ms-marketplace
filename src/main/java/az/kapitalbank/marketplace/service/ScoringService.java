@@ -236,9 +236,13 @@ public class ScoringService {
                         operationRepository.save(operationEntity);
                         try {
                             var webUrl = dvsClient.getDetails(trackId, dvsId).getWebUrl();
+                            log.info("Dvs client web url - {}", webUrl);
                             sendDecision(UmicoDecisionStatus.PREAPPROVED, trackId, webUrl);
                         } catch (DvsClientException e) {
+                            log.info("Dvs client get details exception. trackId - {}, exception - {}",
+                                    trackId, e.getMessage());
                             optimusClient.deleteLoan(businessKey);
+                            log.info("Optimus delete loan. trackId - {}", trackId);
                             var telesalesOrderId = telesalesService.sendLead(trackId);
                             updateOperationTelesalesOrderId(trackId, telesalesOrderId);
                             sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
@@ -342,12 +346,12 @@ public class ScoringService {
             optimusClient.scoringCreate(taskId, createScoringRequest);
             log.info("Optimus create scoring process was finished successfully.. trackId - {}", trackId);
         } catch (OptimusClientException e) {
-            var telesalesOrderId = telesalesService.sendLead(trackId);
-            updateOperationTelesalesOrderId(trackId, telesalesOrderId);
-            sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
             log.error("Optimus create scoring process was finished unsuccessfully... trackId - {},FeignException - {}",
                     trackId,
                     e.getMessage());
+            var telesalesOrderId = telesalesService.sendLead(trackId);
+            updateOperationTelesalesOrderId(trackId, telesalesOrderId);
+            sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
         }
     }
 

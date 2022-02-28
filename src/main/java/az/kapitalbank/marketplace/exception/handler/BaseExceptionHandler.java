@@ -11,6 +11,7 @@ import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
 import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
 import az.kapitalbank.marketplace.exception.NoMatchLoanAmountException;
 import az.kapitalbank.marketplace.exception.OperationAlreadyScoredException;
+import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.PersonNotFoundException;
 import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
@@ -93,6 +94,13 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
         log.error(ex.getMessage());
         var errorResponseDto = new ErrorResponseDto(Error.OPERATION_ALREADY_SCORED);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(OperationNotFoundException.class)
+    public ResponseEntity<ErrorResponseDto> alreadyScored(OperationNotFoundException ex) {
+        log.error(ex.getMessage());
+        var errorResponseDto = new ErrorResponseDto(Error.OPERATION_NOT_FOUND);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponseDto);
     }
 
     @ExceptionHandler(CustomerNotFoundException.class)
