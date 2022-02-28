@@ -41,6 +41,7 @@ public class TelesalesService {
                     .toTelesalesOrder(operationEntity, fraudReasons);
             var amountWithCommission = operationEntity.getTotalAmount().add(operationEntity.getCommission());
             createTelesalesOrderRequest.setLoanAmount(amountWithCommission);
+            log.info("Send lead to telesales : request - {}", createTelesalesOrderRequest);
             var createTelesalesOrderResponse = telesalesClient.sendLead(createTelesalesOrderRequest);
             log.info("Send lead to telesales was finished successfully... trackId -{}, Response - {}",
                     trackId,
