@@ -3,7 +3,7 @@ package az.kapitalbank.marketplace.exception.handler;
 import java.util.HashMap;
 import java.util.Map;
 
-import az.kapitalbank.marketplace.client.externalinteg.exception.ExternalIntegrationException;
+import az.kapitalbank.marketplace.client.integration.exception.IamasClientException;
 import az.kapitalbank.marketplace.constant.Error;
 import az.kapitalbank.marketplace.dto.ErrorResponseDto;
 import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
@@ -47,7 +47,7 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
-    @ExceptionHandler({PersonNotFoundException.class, ExternalIntegrationException.class})
+    @ExceptionHandler({PersonNotFoundException.class, IamasClientException.class})
     public ResponseEntity<ErrorResponseDto> personNotFound(Exception ex) {
         log.error(ex.getMessage());
         var errorResponseDto = new ErrorResponseDto(Error.PERSON_NOT_FOUND);
