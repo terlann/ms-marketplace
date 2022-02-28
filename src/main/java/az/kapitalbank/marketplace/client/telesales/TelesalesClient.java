@@ -19,7 +19,7 @@ public interface TelesalesClient {
     class FeignConfiguration {
         @Bean
         Logger.Level loggerLevel() {
-            return Logger.Level.BASIC;
+            return Logger.Level.FULL;
         }
 
         @Bean
