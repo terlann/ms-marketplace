@@ -208,8 +208,11 @@ public class ScoringService {
                     var taskDefinitionKey = inUserActivityData.getTaskDefinitionKey();
                     if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SCORING)) {
                         var taskId = processResponse.get().getTaskId();
-                        var processData = processResponse.get().getVariables();
-                        var scoredAmount = processData.getSelectedOffer().getCashOffer().getAvailableLoanAmount();
+                        var scoredAmount = processResponse.get()
+                                .getVariables()
+                                .getSelectedOffer()
+                                .getCardOffer()
+                                .getAvailableLoanAmount();
                         var selectedAmount = operationEntity.getTotalAmount().add(operationEntity.getCommission());
                         if (scoredAmount.compareTo(selectedAmount) < 0) {
                             var telesalesOrderId = telesalesService.sendLead(trackId);
