@@ -69,6 +69,7 @@ public class ScoringService {
     @NonFinal
     @Value("${optimus.process.product-type}")
     String productType;
+    @NonFinal
     @Value("${purchase.terminal-name}")
     String terminalName;
 
