@@ -4,8 +4,8 @@ import java.math.BigDecimal;
 import java.util.UUID;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
-import az.kapitalbank.marketplace.client.externalinteg.ExternalIntegrationClient;
-import az.kapitalbank.marketplace.client.externalinteg.model.IamasResponse;
+import az.kapitalbank.marketplace.client.integration.IamasClient;
+import az.kapitalbank.marketplace.client.integration.model.IamasResponse;
 import az.kapitalbank.marketplace.constant.AccountStatus;
 import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.dto.response.BalanceResponseDto;
@@ -27,11 +27,11 @@ public class CustomerService {
 
     AtlasClient atlasClient;
     CustomerRepository customerRepository;
-    ExternalIntegrationClient externalIntegrationClient;
+    IamasClient iamasClient;
 
     public void checkPerson(String pin) {
         log.info("Checking starts by pin in IAMAS. Pin - {} ", pin);
-        var iamasResponse = externalIntegrationClient.getData(pin)
+        var iamasResponse = iamasClient.findPersonByPin(pin)
                 .stream()
                 .filter(IamasResponse::isActive)
                 .findFirst();

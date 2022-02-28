@@ -1,4 +1,4 @@
-package az.kapitalbank.marketplace.client.externalinteg.model;
+package az.kapitalbank.marketplace.client.integration.model;
 
 import java.time.LocalDate;
 
@@ -12,17 +12,18 @@ import lombok.experimental.FieldDefaults;
 @Setter
 @ToString
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class IamasPerson {
+public class IamasResponse {
     boolean active;
-    IamasBirthDate birthDate;
+    String documentNumber;
+    String pin;
+    IamasPerson personAz;
 
     @Getter
     @Setter
     @ToString
     @FieldDefaults(level = AccessLevel.PRIVATE)
-    public static class IamasBirthDate {
+    static class ExpiryDate {
         LocalDate date;
         LocalDate dateEx;
     }
-
 }
