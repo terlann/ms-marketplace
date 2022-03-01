@@ -264,7 +264,7 @@ public class OrderService {
         try {
             var reverseResponse = atlasClient.reverse(orderEntity.getTransactionId(), reversRequest);
             purchaseResponse.setStatus(OrderStatus.SUCCESS);
-            orderEntity.setTransactionId(reverseResponse.getId());
+            orderEntity.setTransactionId(String.valueOf(reverseResponse.getId()));
             orderEntity.setTransactionStatus(TransactionStatus.REVERSE);
         } catch (AtlasClientException ex) {
             purchaseResponse.setStatus(OrderStatus.FAIL);
