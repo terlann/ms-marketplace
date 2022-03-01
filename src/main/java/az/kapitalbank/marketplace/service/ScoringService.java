@@ -23,7 +23,6 @@ import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringReque
 import az.kapitalbank.marketplace.client.umico.UmicoClient;
 import az.kapitalbank.marketplace.client.umico.exception.UmicoClientException;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
-import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionResponse;
 import az.kapitalbank.marketplace.constant.ApplicationConstant;
 import az.kapitalbank.marketplace.constant.Currency;
 import az.kapitalbank.marketplace.constant.DvsStatus;
@@ -292,7 +291,9 @@ public class ScoringService {
                         .loanContractStartDate(operationEntity.getLoanContractStartDate())
                         .loanContractEndDate(operationEntity.getLoanContractEndDate())
                         .build();
-                umicoClient.sendDecisionToUmico(umicoApprovedDecisionRequest, apiKey);
+                log.info("Optimus in complete. Send decision request - {}",
+                        umicoApprovedDecisionRequest);
+//                umicoClient.sendDecisionToUmico(umicoApprovedDecisionRequest, apiKey);
                 log.info("Order Dvs status sent to umico like APPROVED. trackId - {}",
                         operationEntity.getId());
                 break;
@@ -426,11 +427,12 @@ public class ScoringService {
                 trackId,
                 umicoScoringDecisionRequest);
         try {
-            UmicoDecisionResponse umicoScoringDecisionResponse = umicoClient
-                    .sendDecisionToUmico(umicoScoringDecisionRequest, apiKey);
-            log.info("Umico send decision was finished successfully.trackId - {}, Response - {}",
-                    trackId,
-                    umicoScoringDecisionResponse);
+//            UmicoDecisionResponse umicoScoringDecisionResponse = umicoClient
+//                    .sendDecisionToUmico(umicoScoringDecisionRequest, apiKey);
+            log.info("Umico send decision was finished successfully.trackId - {}",
+                    trackId
+                    //,                    umicoScoringDecisionResponse
+            );
         } catch (UmicoClientException e) {
             log.error("Umico send decision was finished unsuccessfully. trackId - {}, FeignException - {}",
                     trackId,

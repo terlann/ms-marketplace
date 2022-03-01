@@ -67,7 +67,9 @@ public class VerificationResultListener {
                                         .decisionStatus(UmicoDecisionStatus.PENDING)
                                         .loanTerm(operationEntity.getLoanTerm())
                                         .build();
-                                umicoClient.sendDecisionToUmico(umicoPendingDecisionRequest, apiKey);
+                                log.info("Order Dvs status in pending. Send decision request - {}",
+                                        umicoPendingDecisionRequest);
+//                                umicoClient.sendDecisionToUmico(umicoPendingDecisionRequest, apiKey);
                                 log.info("Order Dvs status sent to umico like PENDING.");
                                 operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.PENDING);
                                 operationEntity.setDvsOrderStatus(DvsStatus.PENDING);
@@ -84,7 +86,9 @@ public class VerificationResultListener {
                                         .decisionStatus(UmicoDecisionStatus.REJECTED)
                                         .loanTerm(operationEntity.getLoanTerm())
                                         .build();
-                                umicoClient.sendDecisionToUmico(umicoRejectedDecisionRequest, apiKey);
+                                log.info("Order Dvs status in rejected. Send decision request - {}",
+                                        umicoRejectedDecisionRequest);
+//                                umicoClient.sendDecisionToUmico(umicoRejectedDecisionRequest, apiKey);
                                 log.info("Order Dvs status sent to umico like REJECTED. trackId - {}",
                                         operationEntity.getId());
                                 operationEntity.setDvsOrderStatus(DvsStatus.REJECTED);
