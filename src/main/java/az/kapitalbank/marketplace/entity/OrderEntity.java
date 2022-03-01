@@ -35,6 +35,7 @@ import lombok.experimental.SuperBuilder;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OrderEntity extends BaseEntity {
     BigDecimal totalAmount;
+    @Column(unique = true)
     String orderNo;
     @Column(length = 500)
     String deliveryAddress;

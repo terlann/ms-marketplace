@@ -12,6 +12,7 @@ import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
+import az.kapitalbank.marketplace.client.atlas.model.request.ReversPurchaseRequest;
 import az.kapitalbank.marketplace.constant.AccountStatus;
 import az.kapitalbank.marketplace.constant.Currency;
 import az.kapitalbank.marketplace.constant.OrderStatus;
@@ -31,6 +32,7 @@ import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.entity.ProductEntity;
 import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
 import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
+import az.kapitalbank.marketplace.exception.CustomerNotLinkedToCustomer;
 import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
 import az.kapitalbank.marketplace.exception.NoMatchLoanAmountException;
 import az.kapitalbank.marketplace.exception.OperationAlreadyScoredException;
@@ -249,16 +251,17 @@ public class OrderService {
     public PurchaseResponseDto reverse(ReverseRequestDto request) {
         log.info("Reverse process is started. request - {}", request);
         var customerId = request.getCustomerId();
-        customerRepository.findById(customerId)
-                .orElseThrow(() -> new CustomerNotFoundException("customerId - " + customerId));
-
         var orderNo = request.getOrderNo();
         var orderEntity = orderRepository.findByOrderNo(orderNo)
                 .orElseThrow(() -> new OrderNotFoundException("orderNo - " + orderNo));
-
+        var customerEntity = orderEntity.getOperation().getCustomer();
+        if (!customerEntity.getId().equals(request.getCustomerId())) {
+            throw new CustomerNotLinkedToCustomer("CustomerId - " + customerId);
+        }
         var purchaseResponse = new PurchaseResponseDto();
+        var reversRequest = ReversPurchaseRequest.builder().description("").build();
         try {
-            var reverseResponse = atlasClient.reverse(orderEntity.getTransactionId());
+            var reverseResponse = atlasClient.reverse(orderEntity.getTransactionId(), reversRequest);
             purchaseResponse.setStatus(OrderStatus.SUCCESS);
             orderEntity.setTransactionId(reverseResponse.getId());
             orderEntity.setTransactionStatus(TransactionStatus.REVERSE);

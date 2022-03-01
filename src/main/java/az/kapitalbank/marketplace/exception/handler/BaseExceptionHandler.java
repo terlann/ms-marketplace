@@ -8,6 +8,7 @@ import az.kapitalbank.marketplace.constant.Error;
 import az.kapitalbank.marketplace.dto.ErrorResponseDto;
 import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
 import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
+import az.kapitalbank.marketplace.exception.CustomerNotLinkedToCustomer;
 import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
 import az.kapitalbank.marketplace.exception.NoMatchLoanAmountException;
 import az.kapitalbank.marketplace.exception.OperationAlreadyScoredException;
@@ -128,6 +129,13 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(UniqueAdditionalNumberException.class)
     public ResponseEntity<ErrorResponseDto> uniqueAdditionalNumberException(
             UniqueAdditionalNumberException ex) {
+        log.error(ex.getMessage());
+        var errorResponseDto = new ErrorResponseDto(Error.UNIQUE_PHONE_NUMBER);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(CustomerNotLinkedToCustomer.class)
+    public ResponseEntity<ErrorResponseDto> uniqueAdditionalNumberException(CustomerNotLinkedToCustomer ex) {
         log.error(ex.getMessage());
         var errorResponseDto = new ErrorResponseDto(Error.UNIQUE_PHONE_NUMBER);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
