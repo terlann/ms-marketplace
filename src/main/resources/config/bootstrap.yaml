@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: ms-marketplace
+  profiles:
+    active: ${DEPLOY_ENV}
+  cloud:
+    consul:
+      host: consul.kapitalbank.az
+      port: 8500
+      config:
+        enabled: true
+        fail-fast: true
+        format: yaml
+        profile-separator: '-'
+        prefixes: config/marketplace/${spring.application.name}
+    vault:
+      host: vault.kapitalbank.az
+      port: 8200
+      scheme: http
+      fail-fast: true
+      authentication: APPROLE
+      generic:
+        enable: false
+      app-role:
+        role-id: ${VAULT_ROLE_ID}
+        secret-id: ${VAULT_SECRET_ID}
+        app-role-path: approle
+      kv:
+        default-context: marketplace
+      connection-timeout: 10000
+      read-timeout: 20000

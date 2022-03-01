@@ -1,13 +1,13 @@
 plugins {
-    id 'org.springframework.boot' version '2.4.5'
-    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'org.springframework.boot' version "$springBootPluginVersion"
+    id 'io.spring.dependency-management' version "$springDependencyVersion"
     id 'java'
     id 'org.sonarqube' version '3.0'
     id 'jacoco'
     id 'checkstyle'
 }
 
-group = 'az.kapitalbank.ms'
+group = 'az.kapitalbank.marketplace'
 version = "0.0.1-SNAPSHOT"
 sourceCompatibility = 11
 
@@ -17,67 +17,74 @@ configurations {
     }
 }
 
-repositories {
-    if (!hasProperty('jenkins')) {
-        mavenLocal()
-        mavenCentral()
-        maven { url 'https://repo.spring.io/milestone' }
-    }
-    maven { url "https://nexus.kblab.local/repository/maven-public" }
+jar {
+    enabled = false
 }
 
-dependencyManagement {
-    imports {
-        mavenBom "org.springframework.cloud:spring-cloud-dependencies:2020.0.1"
+
+repositories {
+    mavenCentral()
+    maven { url 'https://repo.spring.io/milestone' }
+    maven { url 'https://repo.spring.io/snapshot' }
+
+    maven {
+        url "https://nexus.kblab.local/repository/maven-public"
     }
 }
 
 dependencies {
-    implementation 'org.springframework.boot:spring-boot-starter-web'
-    implementation 'org.springframework.boot:spring-boot-starter-web-services'
-    implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-    implementation 'org.springframework.cloud:spring-cloud-starter-config'
-    implementation 'org.springframework.cloud:spring-cloud-starter-consul-config'
-    implementation 'org.springframework.cloud:spring-cloud-starter-vault-config'
-    implementation 'org.springframework.cloud:spring-cloud-starter-sleuth:2.2.6.RELEASE'
+    implementation "org.springframework.boot:spring-boot-starter-actuator:$springBootVersion"
+    implementation "org.springframework.boot:spring-boot-starter-web:$springBootVersion"
+    implementation "org.springframework.boot:spring-boot-starter-data-jpa:$springBootVersion"
+    implementation "org.springframework.boot:spring-boot-starter-validation:$springBootVersion"
+    implementation 'org.springframework.cloud:spring-cloud-starter-stream-kafka'
+    implementation 'org.springframework.cloud:spring-cloud-stream-binder-kafka-streams'
+    implementation "org.springframework.cloud:spring-cloud-starter-bootstrap:$springCloudVersion"
+    implementation "org.springframework.cloud:spring-cloud-starter-consul-config:$springCloudVersion"
+    implementation "org.springframework.cloud:spring-cloud-starter-vault-config:$springCloudVersion"
+    implementation "org.springframework.cloud:spring-cloud-starter-openfeign:$springCloudVersion"
+    implementation "org.springframework.kafka:spring-kafka:$kafkaVersion"
+    implementation "com.oracle.database.jdbc:ojdbc8:$oracleVersion"
+    implementation "io.springfox:springfox-swagger2:$swaggerVersion"
+    implementation "io.springfox:springfox-swagger-ui:$swaggerVersion"
+    implementation "io.springfox:springfox-bean-validators:$beanValidatorVersion"
+    implementation "io.github.openfeign:feign-jackson:$openFeignVersion"
+    implementation "io.github.openfeign:feign-annotation-error-decoder:$openFeignVersion"
+    implementation "org.mapstruct:mapstruct:$mapStructversion"
+    implementation 'org.junit.jupiter:junit-jupiter:5.7.0'
+    annotationProcessor "org.mapstruct:mapstruct-processor:$mapStructversion"
+    compileOnly "org.projectlombok:lombok:$lombokVersion"
+    annotationProcessor "org.projectlombok:lombok:$lombokVersion"
+    annotationProcessor "org.projectlombok:lombok-mapstruct-binding:$lombokMapstructVersion"
+    annotationProcessor "org.springframework.boot:spring-boot-configuration-processor"
+    testImplementation "org.junit.jupiter:junit-jupiter-engine:$junitVersion"
+    testImplementation "org.mockito:mockito-core:$mockitoVersion"
+    testImplementation "org.springframework.boot:spring-boot-starter-test:$springBootVersion"
+    testImplementation "org.assertj:assertj-core:$assertJVersion"
 
-    implementation "io.springfox:springfox-swagger-ui:2.9.2"
-    implementation "io.springfox:springfox-swagger2:2.9.2"
-    implementation "io.springfox:springfox-bean-validators:2.9.2"
-
-    implementation 'org.hibernate:hibernate-validator:6.1.6.Final'
-    implementation "net.logstash.logback:logstash-logback-encoder:6.0"
-    implementation 'ch.qos.logback:logback-classic'
-
-    implementation "io.github.openfeign:feign-okhttp:11.0"
-    implementation "io.github.openfeign:feign-gson:11.0"
-
-    implementation "junit:junit:4.13"
-    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml'
-    implementation 'org.apache.commons:commons-lang3'
-
-    runtimeOnly('com.h2database:h2')
-    developmentOnly 'org.springframework.boot:spring-boot-devtools'
-
-    implementation "org.mapstruct:mapstruct:1.4.1.Final"
-    annotationProcessor "org.mapstruct:mapstruct-processor:1.4.1.Final"
-    compileOnly 'org.projectlombok:lombok'
-    annotationProcessor 'org.projectlombok:lombok'
-    annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
-
-    testCompile 'org.powermock:powermock-api-mockito2:2.0.7'
-    testImplementation('org.springframework.boot:spring-boot-starter-test') {
-        exclude group: 'org.junit.vintage', module: 'junit-vintage-engine'
-    }
 }
 
-bootJar {
-    archiveName 'app.jar'
+dependencyManagement {
+    imports {
+        mavenBom "org.springframework.cloud:spring-cloud-dependencies:${springCloudDependencyVersion}"
+    }
 }
 
 test {
     useJUnitPlatform()
+}
+
+checkstyle {
+    toolVersion = "${checkstyleVersion}"
+    configFile = file("qa/checkstyle/checkstyle.xml")
+}
+
+checkstyleMain {
+    source = 'src/main/java'
+}
+
+checkstyleTest {
+    source = 'src/test/java'
 }
 
 sonarqube {
@@ -105,15 +112,12 @@ jacocoTestReport {
     }
 }
 
-checkstyle {
-    toolVersion = "8.15"
-    configFile = file("${rootProject.projectDir}/checkstyle/checkstyle.xml")
-    ignoreFailures = false
-}
+
 
 tasks.withType(Checkstyle) {
     reports {
         xml.enabled true
         html.enabled true
     }
+
 }

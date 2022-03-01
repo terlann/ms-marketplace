@@ -1,0 +1,94 @@
+spring:
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    database-platform: org.hibernate.dialect.Oracle12cDialect
+  datasource:
+    hikari:
+      pool-name: marketplace-pool
+    url: jdbc:oracle:thin:@//10.0.32.28:1521/umico
+    username: umico
+    password: Z3]:Fnd!j9=2.u9/?P)8
+  cloud:
+    function:
+      definition: checkFraud;checkFraudResult;startScoringResult;orderDvsStatus
+    stream:
+      binders:
+        kafka-bpm:
+          type: kafka
+          environment.spring.cloud.stream.kafka.binder:
+            brokers: 10.0.80.75
+        kafka-mp:
+          type: kafka
+          environment.spring.cloud.stream.kafka.binder:
+            brokers: localhost:9092
+      bindings:
+        startScoringResult-in-0:
+          binder: kafka-bpm
+          contentType: application/json
+          destination: bpm-market-place-online-state
+        checkFraudResult-in-0:
+          binder: kafka-mp
+          contentType: application/json
+          group: marketplace-fraud-result
+          destination: mp-customer-validation-result
+        checkFraud-out-0:
+          binder: kafka-mp
+          contentType: application/json
+          group: marketplace-fraud
+          destination: mp-customer-validation
+        orderDvsStatus-in-0:
+          binder: kafka-mp
+          contentType: application/json
+          group: marketplace-dvs
+          destination: mp-order-dvs
+
+optimus:
+  process:
+    key: process_credit_online
+    product-type: CONSUMER_LOAN_MARKET_PLACE_ONLINE
+
+umico:
+  api-key: 978f22df-62cb-4894-9811-ea26212c0b38
+
+client:
+  zeus:
+    url: http://testzeusws.kapitalcard.az
+  ete:
+    url: http://testsrsws.kapitalcard.az
+  umico:
+    url: https://broker-dev.umico.az
+  checker:
+    url: https://dev.ms-checker.kapitalbank.az
+  adp-atlas:
+    url: https://dev.adp-atlas.kapitalbank.az
+  adp-optimus:
+    url: https://dev.adp-optimus.kapitalbank.az/
+  adp-dvs:
+    url: https://pre.adp-dvs.kapitalbank.az/v1
+  externalinteg:
+    url: http://dev.externalinteg.kapitalbank.az/api
+feign:
+  httpclient:
+    disable-ssl-validation: true
+    enabled: false
+  okhttp:
+    enabled: true
+
+server:
+  port: 8080
+
+purchase:
+  terminal-name: R1020002
+
+commission:
+  values:
+    1: 2.50
+    2: 3.50
+    3: 5.00
+    6: 7.50
+    12: 13.50
+    18: 18.50
+    24: 23.50

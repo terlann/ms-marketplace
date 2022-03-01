@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: ms-marketplace
+  cloud:
+    consul:
+      enabled: false
+    vault:
+      enabled: false
