@@ -4,11 +4,11 @@ import lombok.AccessLevel;
 import lombok.experimental.FieldDefaults;
 
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class CustomerNotLinkedToCustomer extends RuntimeException {
+public class OrderNotLinkedToCustomer extends RuntimeException {
 
-    static final String MESSAGE = "Customer is not linked to customer. %s";
+    static final String MESSAGE = "Order is not linked to customer. %s";
 
-    public CustomerNotLinkedToCustomer(String message) {
+    public OrderNotLinkedToCustomer(String message) {
         super(String.format(MESSAGE, message));
     }
 }

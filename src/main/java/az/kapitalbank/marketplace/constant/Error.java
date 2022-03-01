@@ -22,7 +22,8 @@ public enum Error {
     UMICO_USER_NOT_FOUND("E109", "Umico user not found"),
     OPERATION_NOT_FOUND("E110", "Operation not found"),
     OPERATION_ALREADY_SCORED("E111", "Operation had already scored"),
-    UNIQUE_PHONE_NUMBER("E112", "Additional numbers must be different");
+    UNIQUE_PHONE_NUMBER("E112", "Additional numbers must be different"),
+    ORDER_NOT_LINKED_TO_CUSTOMER("E113", "Order is not linked to customer");
 
     String code;
     String message;

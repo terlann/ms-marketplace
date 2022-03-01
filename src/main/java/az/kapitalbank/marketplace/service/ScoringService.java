@@ -204,6 +204,7 @@ public class ScoringService {
                 var processResponse = getProcess(trackId, businessKey);
                 if (processResponse.isPresent()) {
                     var inUserActivityData = (InUserActivityData) scoringResultEvent.getData();
+
                     var taskDefinitionKey = inUserActivityData.getTaskDefinitionKey();
                     if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SCORING)) {
                         var taskId = processResponse.get().getTaskId();

@@ -32,12 +32,12 @@ import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.entity.ProductEntity;
 import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
 import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
-import az.kapitalbank.marketplace.exception.CustomerNotLinkedToCustomer;
 import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
 import az.kapitalbank.marketplace.exception.NoMatchLoanAmountException;
 import az.kapitalbank.marketplace.exception.OperationAlreadyScoredException;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
+import az.kapitalbank.marketplace.exception.OrderNotLinkedToCustomer;
 import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
 import az.kapitalbank.marketplace.exception.UniqueAdditionalNumberException;
 import az.kapitalbank.marketplace.mappers.CreateOrderMapper;
@@ -256,10 +256,11 @@ public class OrderService {
                 .orElseThrow(() -> new OrderNotFoundException("orderNo - " + orderNo));
         var customerEntity = orderEntity.getOperation().getCustomer();
         if (!customerEntity.getId().equals(request.getCustomerId())) {
-            throw new CustomerNotLinkedToCustomer("CustomerId - " + customerId);
+            throw new OrderNotLinkedToCustomer("CustomerId - " + customerId);
         }
         var purchaseResponse = new PurchaseResponseDto();
-        var reversRequest = ReversPurchaseRequest.builder().description("").build();
+        var reversRequest = ReversPurchaseRequest.builder()
+                .description("umico-marketplace reverse operation").build();
         try {
             var reverseResponse = atlasClient.reverse(orderEntity.getTransactionId(), reversRequest);
             purchaseResponse.setStatus(OrderStatus.SUCCESS);
