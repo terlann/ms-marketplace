@@ -189,6 +189,7 @@ public class OrderService {
 
     }
 
+    @Transactional
     public List<PurchaseResponseDto> purchase(PurchaseRequestDto request) {
         log.info("Purchase process is started. request - {}", request);
         var customerId = request.getCustomerId();
