@@ -210,7 +210,7 @@ public class OrderService {
             var totalPayment = commission.add(amount);
             var rrn = GenerateUtil.rrn();
             var purchaseCompleteRequest = PurchaseCompleteRequest.builder()
-                    .id(Integer.valueOf(order.getTransactionId()))
+                    .id(Long.valueOf(order.getTransactionId()))
                     .uid(cardId)
                     .amount(totalPayment)
                     .approvalCode(order.getApprovalCode())

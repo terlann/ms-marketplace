@@ -12,7 +12,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PurchaseCompleteRequest {
     BigDecimal amount;
-    Integer id;
+    Long id;
     Integer currency;
     String pan;
     String rrn;
