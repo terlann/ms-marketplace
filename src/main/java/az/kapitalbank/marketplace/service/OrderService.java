@@ -256,7 +256,7 @@ public class OrderService {
                 .orElseThrow(() -> new OrderNotFoundException("orderNo - " + orderNo));
         var customerEntity = orderEntity.getOperation().getCustomer();
         if (!customerEntity.getId().equals(request.getCustomerId())) {
-            throw new OrderNotLinkedToCustomer("CustomerId - " + customerId);
+            throw new OrderNotLinkedToCustomer("OrderId - " + orderNo + ", CustomerId - " + customerId);
         }
         var purchaseResponse = new PurchaseResponseDto();
         var reversRequest = ReversPurchaseRequest.builder()
