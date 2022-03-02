@@ -1,5 +1,9 @@
 package az.kapitalbank.marketplace.constant;
 
-public interface ApplicationConstant {
-    String UMICO_MARKETPLACE = "umico_marketplace";
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public final class ApplicationConstant {
+    public static final String UMICO_MARKETPLACE = "umico_marketplace";
 }

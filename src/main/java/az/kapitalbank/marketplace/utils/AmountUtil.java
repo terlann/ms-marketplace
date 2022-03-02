@@ -5,20 +5,16 @@ import java.math.RoundingMode;
 
 import az.kapitalbank.marketplace.config.CommissionProperties;
 import az.kapitalbank.marketplace.exception.UnknownLoanTerm;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 @Component
+@RequiredArgsConstructor
 public class AmountUtil {
 
-    private static CommissionProperties commissionProperties;
+    private final CommissionProperties commissionProperties;
 
-    @Autowired
-    public AmountUtil(CommissionProperties commissionProperties) {
-        AmountUtil.commissionProperties = commissionProperties;
-    }
-
-    public static BigDecimal getCommission(BigDecimal amount, int loanTerm) {
+    public BigDecimal getCommission(BigDecimal amount, int loanTerm) {
         var percent = commissionProperties.getValues().get(loanTerm);
         if (percent == null) {
             throw new UnknownLoanTerm(loanTerm);

@@ -20,6 +20,7 @@ import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
 import az.kapitalbank.marketplace.exception.UmicoUserNotFoundException;
 import az.kapitalbank.marketplace.exception.UniqueAdditionalNumberException;
 import az.kapitalbank.marketplace.exception.UnknownLoanTerm;
+import az.kapitalbank.marketplace.service.OrderMustNotComplete;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -51,11 +52,8 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(AtlasClientException.class)
     public ResponseEntity<ErrorResponseDto> atlasClientException(AtlasClientException ex) {
-        log.error(ex.getMessage());
-        var errorResponseDto = ErrorResponseDto.builder()
-                .code(ex.getCode())
-                .message(ex.getMessage())
-                .build();
+        log.error("Atlas Exception: {}", ex.toString());
+        var errorResponseDto = new ErrorResponseDto(Error.ATLAS_EXCEPTION);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
@@ -149,6 +147,13 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<ErrorResponseDto> orderNotLinkedToCustomerException(OrderNotLinkedToCustomer ex) {
         log.error(ex.getMessage());
         var errorResponseDto = new ErrorResponseDto(Error.ORDER_NOT_LINKED_TO_CUSTOMER);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(OrderMustNotComplete.class)
+    public ResponseEntity<ErrorResponseDto> orderMustNotCompleteException(OrderMustNotComplete ex) {
+        log.error(ex.getMessage());
+        var errorResponseDto = new ErrorResponseDto(Error.ORDER_MUST_NOT_COMPLETE);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 }

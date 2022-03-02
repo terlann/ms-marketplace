@@ -43,7 +43,6 @@ dependencies {
     implementation "org.springframework.cloud:spring-cloud-starter-consul-config:$springCloudVersion"
     implementation "org.springframework.cloud:spring-cloud-starter-vault-config:$springCloudVersion"
     implementation "org.springframework.cloud:spring-cloud-starter-openfeign:$springCloudVersion"
-    implementation "org.springframework.kafka:spring-kafka:$kafkaVersion"
     implementation "com.oracle.database.jdbc:ojdbc8:$oracleVersion"
     implementation "io.springfox:springfox-swagger2:$swaggerVersion"
     implementation "io.springfox:springfox-swagger-ui:$swaggerVersion"
@@ -90,14 +89,16 @@ checkstyleTest {
 sonarqube {
     properties {
         property "sonar.java.coveragePlugin", "jacoco"
+        property "sonar.debug", "true"
         property "sonar.jacoco.reportPath", "build/jacoco/test.exec"
         property "sonar.junit.reportsPath", "build/test-results/test"
         property "sonar.projectKey", rootProject.name
         property "sonar.host.url", "https://sonarqube.kapitalbank.az"
         property "sonar.scm.forceReloadAll", "true"
         property "sonar.java.checkstyle.reportPaths", "build/reports/checkstyle/main.xml"
-        property "sonar.coverage.exclusions", "**/az/kapitalbank/ms/***"
         property "sonar.cpd.exclusions", "**/az/kapitalbank/ms/**"
+        property "sonar.coverage.exclusions", "**/az/kapitalbank/marketplace/**,"
+
     }
 }
 jacoco {
@@ -111,8 +112,6 @@ jacocoTestReport {
         csv.enabled false
     }
 }
-
-
 
 tasks.withType(Checkstyle) {
     reports {
