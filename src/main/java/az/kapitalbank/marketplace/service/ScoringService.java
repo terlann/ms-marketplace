@@ -42,6 +42,7 @@ import az.kapitalbank.marketplace.mappers.ScoringMapper;
 import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
 import az.kapitalbank.marketplace.messaging.event.InUserActivityData;
 import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
+import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.utils.GenerateUtil;
 import lombok.AccessLevel;
@@ -79,6 +80,7 @@ public class ScoringService {
     ScoringMapper scoringMapper;
     TelesalesService telesalesService;
     OperationRepository operationRepository;
+    CustomerRepository customerRepository;
 
     @Transactional /* Optimus call this */
     public void telesalesResult(TelesalesResultRequestDto request) {
@@ -251,6 +253,14 @@ public class ScoringService {
                 }
                 break;
             case COMPLETED:
+                var cardPan = optimusClient.getProcessVariable(operationEntity.getBusinessKey(),
+                        "pan");
+                var cardId = atlasClient.findByPan(cardPan).getUid();
+                log.info("Pan was taken and changed to card uid.Purchase process starts. cardId - {}",
+                        cardId);
+                var customerEntity = operationEntity.getCustomer();
+                customerEntity.setCardId(cardId);
+                customerRepository.save(customerEntity);
                 var orders = operationEntity.getOrders();
                 var customer = operationEntity.getCustomer();
                 for (var order : orders) {
@@ -276,7 +286,6 @@ public class ScoringService {
                 operationEntity.setDvsOrderStatus(DvsStatus.CONFIRMED);
                 operationEntity.setScoringDate(LocalDateTime.now());
                 operationEntity.setScoringStatus(ScoringStatus.APPROVED);
-                var customerEntity = operationEntity.getCustomer();
                 customerEntity.setCompleteProcessDate(LocalDateTime.now());
                 operationEntity.setCustomer(customerEntity);
                 operationRepository.save(operationEntity);

@@ -109,15 +109,6 @@ public class VerificationResultListener {
                                 scoringService.completeScoring(completeScoringWithConfirm);
                                 log.info("Optimus complete process was confirmed. businessKey - {}",
                                         operationEntity.getBusinessKey());
-
-                                var cardPan = optimusClient.getProcessVariable(operationEntity.getBusinessKey(),
-                                        "pan");
-                                var cardId = atlasClient.findByPan(cardPan).getUid();
-                                log.info("Pan was taken and changed to card uid.Purchase process starts. cardId - {}",
-                                        cardId);
-                                var customerEntity = operationEntity.getCustomer();
-                                customerEntity.setCardId(cardId);
-                                customerRepository.save(customerEntity);
                                 break;
                             default:
                         }
