@@ -23,7 +23,9 @@ public enum Error {
     OPERATION_NOT_FOUND("E110", "Operation not found"),
     OPERATION_ALREADY_SCORED("E111", "Operation had already scored"),
     UNIQUE_PHONE_NUMBER("E112", "Additional numbers must be different"),
-    ORDER_NOT_LINKED_TO_CUSTOMER("E113", "Order is not linked to customer");
+    ORDER_NOT_LINKED_TO_CUSTOMER("E113", "Order is not linked to customer"),
+    ORDER_MUST_NOT_COMPLETE("E114", "Order must not complete"),
+    ATLAS_EXCEPTION("E115", "Exception in Complete");
 
     String code;
     String message;
