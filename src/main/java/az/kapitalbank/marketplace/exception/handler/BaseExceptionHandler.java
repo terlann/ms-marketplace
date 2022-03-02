@@ -3,6 +3,7 @@ package az.kapitalbank.marketplace.exception.handler;
 import java.util.HashMap;
 import java.util.Map;
 
+import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
 import az.kapitalbank.marketplace.client.integration.exception.IamasClientException;
 import az.kapitalbank.marketplace.constant.Error;
 import az.kapitalbank.marketplace.dto.ErrorResponseDto;
@@ -45,6 +46,16 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
             warnings.put(fieldError.getField(), fieldError.getDefaultMessage());
 
         var errorResponseDto = new ErrorResponseDto(Error.BAD_REQUEST, warnings);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(AtlasClientException.class)
+    public ResponseEntity<ErrorResponseDto> atlasClientException(AtlasClientException ex) {
+        log.error(ex.getMessage());
+        var errorResponseDto = ErrorResponseDto.builder()
+                .code(ex.getCode())
+                .message(ex.getMessage())
+                .build();
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
