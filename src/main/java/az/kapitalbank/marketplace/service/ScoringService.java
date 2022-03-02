@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,7 +28,6 @@ import az.kapitalbank.marketplace.constant.ApplicationConstant;
 import az.kapitalbank.marketplace.constant.Currency;
 import az.kapitalbank.marketplace.constant.DvsStatus;
 import az.kapitalbank.marketplace.constant.FraudResultStatus;
-import az.kapitalbank.marketplace.constant.ProcessStatus;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.TaskDefinitionKey;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
@@ -200,13 +200,13 @@ public class ScoringService {
                 .orElseThrow(() -> new OperationNotFoundException("businessKey - " + businessKey));
         var trackId = operationEntity.getId();
         switch (scoringResultEvent.getProcessStatus()) {
-            case ProcessStatus.IN_USER_ACTIVITY:
+            case IN_USER_ACTIVITY:
                 var processResponse = getProcess(trackId, businessKey);
                 if (processResponse.isPresent()) {
                     var inUserActivityData = (InUserActivityData) scoringResultEvent.getData();
 
-                    var taskDefinitionKey = inUserActivityData.getTaskDefinitionKey();
-                    if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SCORING)) {
+                    var taskDefinitionKey = inUserActivityData.getTaskDefinitionKey().toUpperCase(Locale.ROOT);
+                    if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SCORING.name())) {
                         var taskId = processResponse.get().getTaskId();
                         var scoredAmount = processResponse.get()
                                 .getVariables()
@@ -223,7 +223,7 @@ public class ScoringService {
                         operationEntity.setTaskId(taskId);
                         operationRepository.save(operationEntity);
                         createScoring(trackId, taskId, scoredAmount);
-                    } else if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SIGN_DOCUMENTS)) {
+                    } else if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SIGN_DOCUMENTS.name())) {
                         var dvsId = processResponse.get().getVariables().getDvsOrderId();
                         var taskId = processResponse.get().getTaskId();
 
@@ -250,7 +250,7 @@ public class ScoringService {
                     }
                 }
                 break;
-            case ProcessStatus.COMPLETED:
+            case COMPLETED:
                 var orders = operationEntity.getOrders();
                 var customer = operationEntity.getCustomer();
                 for (var order : orders) {
@@ -298,8 +298,8 @@ public class ScoringService {
                 log.info("Order Dvs status sent to umico like APPROVED. trackId - {}",
                         operationEntity.getId());
                 break;
-            case ProcessStatus.INCIDENT_HAPPENED:
-            case ProcessStatus.BUSINESS_ERROR:
+            case INCIDENT_HAPPENED:
+            case BUSINESS_ERROR:
                 log.error("Optimus incident or business error happened , response - {}",
                         scoringResultEvent);
                 var telesalesOrderId = telesalesService.sendLead(trackId);
@@ -403,7 +403,6 @@ public class ScoringService {
         }
     }
 
-    @Transactional
     void updateOperationTelesalesOrderId(UUID trackId, Optional<String> telesalesOrderId) {
         var operationEntityOptional = operationRepository.findById(trackId);
         if (operationEntityOptional.isPresent() && telesalesOrderId.isPresent()) {
@@ -413,7 +412,6 @@ public class ScoringService {
     }
 
 
-    @Transactional
     public void sendDecision(UmicoDecisionStatus umicoDecisionStatus, UUID trackId, String dvsUrl) {
         var operationEntity = operationRepository.findById(trackId)
                 .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));

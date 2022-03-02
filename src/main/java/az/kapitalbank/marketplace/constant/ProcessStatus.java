@@ -1,8 +1,13 @@
 package az.kapitalbank.marketplace.constant;
 
-public interface ProcessStatus {
-    String COMPLETED = "COMPLETED";
-    String BUSINESS_ERROR = "BUSINESS_ERROR";
-    String IN_USER_ACTIVITY = "IN_USER_ACTIVITY";
-    String INCIDENT_HAPPENED = "INCIDENT_HAPPENED";
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@NoArgsConstructor
+public enum ProcessStatus {
+    COMPLETED,
+    BUSINESS_ERROR,
+    IN_USER_ACTIVITY,
+    INCIDENT_HAPPENED
 }

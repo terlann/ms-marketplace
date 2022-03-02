@@ -9,17 +9,17 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CustomerNumber {
     String name;
-    Number number;
+    NumberDto number;
 
     public CustomerNumber(String name, String number) {
         this.name = name;
-        this.number = new Number(number);
+        this.number = new NumberDto(number);
     }
 
     @Data
     @AllArgsConstructor
     @FieldDefaults(level = AccessLevel.PRIVATE)
-    public static class Number {
+    class NumberDto {
         String number;
     }
 }

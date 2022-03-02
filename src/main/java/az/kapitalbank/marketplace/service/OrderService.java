@@ -6,6 +6,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
@@ -48,6 +49,7 @@ import az.kapitalbank.marketplace.messaging.sender.FraudCheckSender;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
+import az.kapitalbank.marketplace.utils.AmountUtil;
 import az.kapitalbank.marketplace.utils.GenerateUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -56,8 +58,6 @@ import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
-import static az.kapitalbank.marketplace.utils.AmountUtil.getCommission;
 
 @Slf4j
 @Service
@@ -68,7 +68,7 @@ public class OrderService {
     @NonFinal
     @Value("${purchase.terminal-name}")
     String terminalName;
-
+    AmountUtil amountUtil;
     OrderMapper orderMapper;
     AtlasClient atlasClient;
     CustomerMapper customerMapper;
@@ -84,34 +84,7 @@ public class OrderService {
         log.info("Create order process is started... Request - {}", request);
         validateOrderAmount(request);
         var customerId = request.getCustomerInfo().getCustomerId();
-        CustomerEntity customerEntity;
-        if (customerId == null) {
-            log.info("First order create process is started...");
-            var firstPhoneNumber = request.getCustomerInfo().getAdditionalPhoneNumber1();
-            var secondPhoneNumber = request.getCustomerInfo().getAdditionalPhoneNumber2();
-            if (firstPhoneNumber.equals(secondPhoneNumber))
-                throw new UniqueAdditionalNumberException(firstPhoneNumber, secondPhoneNumber);
-
-            validatePurchaseAmountLimit(request);
-            var customerByUmicoUserId =
-                    customerRepository.findByUmicoUserId(request.getCustomerInfo().getUmicoUserId());
-            if (customerByUmicoUserId.isPresent()) {
-                customerEntity = customerByUmicoUserId.get();
-            } else {
-                customerEntity = customerMapper.toCustomerEntity(request.getCustomerInfo());
-                customerEntity = customerRepository.save(customerEntity);
-                log.info("New customer was created. customerId" + customerEntity.getId());
-            }
-        } else {
-            customerEntity = customerRepository.findById(customerId).orElseThrow(
-                    () -> new CustomerNotFoundException("customerId - " + customerId));
-            var isExistsCustomerByDecisionStatus = operationRepository
-                    .existsByCustomerAndUmicoDecisionStatusIn(customerEntity,
-                            Set.of(UmicoDecisionStatus.PENDING, UmicoDecisionStatus.PREAPPROVED));
-            if (isExistsCustomerByDecisionStatus)
-                throw new CustomerNotCompletedProcessException("customerId - " + customerId);
-            validateCustomerBalance(request, customerEntity.getCardId());
-        }
+        CustomerEntity customerEntity = getCustomerEntity(request, customerId);
         var operationEntity = operationMapper.toOperationEntity(request);
         operationEntity.setCustomer(customerEntity);
 
@@ -119,7 +92,7 @@ public class OrderService {
         var orderEntities = new ArrayList<OrderEntity>();
         var productEntities = new ArrayList<ProductEntity>();
         for (OrderProductDeliveryInfo deliveryInfo : request.getDeliveryInfo()) {
-            var commission = getCommission(deliveryInfo.getTotalAmount(), request.getLoanTerm());
+            var commission = amountUtil.getCommission(deliveryInfo.getTotalAmount(), request.getLoanTerm());
             operationCommission = operationCommission.add(commission);
             var orderEntity = orderMapper.toOrderEntity(deliveryInfo, commission);
             orderEntity.setOperation(operationEntity);
@@ -171,6 +144,38 @@ public class OrderService {
         return CreateOrderResponse.of(trackId);
     }
 
+    private CustomerEntity getCustomerEntity(CreateOrderRequestDto request, UUID customerId) {
+        CustomerEntity customerEntity;
+        if (customerId == null) {
+            log.info("First order create process is started...");
+            var firstPhoneNumber = request.getCustomerInfo().getAdditionalPhoneNumber1();
+            var secondPhoneNumber = request.getCustomerInfo().getAdditionalPhoneNumber2();
+            if (firstPhoneNumber.equals(secondPhoneNumber))
+                throw new UniqueAdditionalNumberException(firstPhoneNumber, secondPhoneNumber);
+
+            validatePurchaseAmountLimit(request);
+            var customerByUmicoUserId =
+                    customerRepository.findByUmicoUserId(request.getCustomerInfo().getUmicoUserId());
+            if (customerByUmicoUserId.isPresent()) {
+                customerEntity = customerByUmicoUserId.get();
+            } else {
+                customerEntity = customerMapper.toCustomerEntity(request.getCustomerInfo());
+                customerEntity = customerRepository.save(customerEntity);
+                log.info("New customer was created. customerId" + customerEntity.getId());
+            }
+        } else {
+            customerEntity = customerRepository.findById(customerId).orElseThrow(
+                    () -> new CustomerNotFoundException("customerId - " + customerId));
+            var isExistsCustomerByDecisionStatus = operationRepository
+                    .existsByCustomerAndUmicoDecisionStatusIn(customerEntity,
+                            Set.of(UmicoDecisionStatus.PENDING, UmicoDecisionStatus.PREAPPROVED));
+            if (isExistsCustomerByDecisionStatus)
+                throw new CustomerNotCompletedProcessException("customerId - " + customerId);
+            validateCustomerBalance(request, customerEntity.getCardId());
+        }
+        return customerEntity;
+    }
+
     /* Optimus call this */
     public CheckOrderResponseDto checkOrder(String telesalesOrderId) {
         log.info("Check order is started... telesalesOrderId  - {}", telesalesOrderId);
@@ -194,7 +199,7 @@ public class OrderService {
         log.info("Purchase process is started. request - {}", request);
         var customerId = request.getCustomerId();
         var customerEntity = customerRepository.findById(customerId)
-                .orElseThrow(() -> new CustomerNotFoundException("customerId - " + customerId));
+                .orElseThrow(() -> new CustomerNotFoundException(customerId.toString()));
 
         var purchaseResponseDtoList = new ArrayList<PurchaseResponseDto>();
         var cardId = customerEntity.getCardId();
@@ -331,7 +336,7 @@ public class OrderService {
         var totalCommission = BigDecimal.ZERO;
 
         for (var order : request.getDeliveryInfo()) {
-            var commission = getCommission(order.getTotalAmount(), request.getLoanTerm());
+            var commission = amountUtil.getCommission(order.getTotalAmount(), request.getLoanTerm());
             totalCommission = totalCommission.add(commission);
         }
         return totalAmount.add(totalCommission);

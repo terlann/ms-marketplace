@@ -8,9 +8,9 @@ spring:
   datasource:
     hikari:
       pool-name: marketplace-pool
-    url: jdbc:oracle:thin:@//10.0.32.28:1521/umico
+    url: jdbc:oracle:thin:@//10.0.32.32:1521/umico
     username: umico
-    password: Z3]:Fnd!j9=2.u9/?P)8
+    password: 7?-+sfVndfe2L=4\Nk3B
   cloud:
     function:
       definition: checkFraud;checkFraudResult;startScoringResult;orderDvsStatus
@@ -63,7 +63,7 @@ client:
   checker:
     url: https://dev.ms-checker.kapitalbank.az
   adp-atlas:
-    url: https://dev.adp-atlas.kapitalbank.az
+    url: https://pre.adp-atlas.kapitalbank.az
   adp-optimus:
     url: https://dev.adp-optimus.kapitalbank.az/
   adp-dvs:
