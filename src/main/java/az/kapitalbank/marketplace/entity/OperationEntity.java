@@ -63,7 +63,7 @@ public class OperationEntity extends BaseEntity {
     DvsStatus dvsOrderStatus;
     @Enumerated(EnumType.STRING)
     UmicoDecisionStatus umicoDecisionStatus;
-    boolean isDeletedLoanContract;
+    LocalDateTime loanContractDeletedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false, updatable = false)
