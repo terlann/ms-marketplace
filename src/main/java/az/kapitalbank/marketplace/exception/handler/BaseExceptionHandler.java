@@ -11,6 +11,7 @@ import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException
 import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
 import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
 import az.kapitalbank.marketplace.exception.NoMatchLoanAmountException;
+import az.kapitalbank.marketplace.exception.NoPermissionForTransaction;
 import az.kapitalbank.marketplace.exception.OperationAlreadyScoredException;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
@@ -20,7 +21,6 @@ import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
 import az.kapitalbank.marketplace.exception.UmicoUserNotFoundException;
 import az.kapitalbank.marketplace.exception.UniqueAdditionalNumberException;
 import az.kapitalbank.marketplace.exception.UnknownLoanTerm;
-import az.kapitalbank.marketplace.service.OrderMustNotComplete;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -150,10 +150,10 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
-    @ExceptionHandler(OrderMustNotComplete.class)
-    public ResponseEntity<ErrorResponseDto> orderMustNotCompleteException(OrderMustNotComplete ex) {
+    @ExceptionHandler(NoPermissionForTransaction.class)
+    public ResponseEntity<ErrorResponseDto> orderMustNotCompleteException(NoPermissionForTransaction ex) {
         log.error(ex.getMessage());
-        var errorResponseDto = new ErrorResponseDto(Error.ORDER_MUST_NOT_COMPLETE);
+        var errorResponseDto = new ErrorResponseDto(Error.NO_PERMISSION);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 }

@@ -203,54 +203,7 @@ public class ScoringService {
         var trackId = operationEntity.getId();
         switch (scoringResultEvent.getProcessStatus()) {
             case IN_USER_ACTIVITY:
-                var processResponse = getProcess(trackId, businessKey);
-                if (processResponse.isPresent()) {
-                    var inUserActivityData = (InUserActivityData) scoringResultEvent.getData();
-
-                    var taskDefinitionKey = inUserActivityData.getTaskDefinitionKey().toUpperCase(Locale.ROOT);
-                    if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SCORING.name())) {
-                        var taskId = processResponse.get().getTaskId();
-                        var scoredAmount = processResponse.get()
-                                .getVariables()
-                                .getSelectedOffer()
-                                .getCardOffer()
-                                .getAvailableLoanAmount();
-                        var selectedAmount = operationEntity.getTotalAmount().add(operationEntity.getCommission());
-                        if (scoredAmount.compareTo(selectedAmount) < 0) {
-                            var telesalesOrderId = telesalesService.sendLead(trackId);
-                            updateOperationTelesalesOrderId(trackId, telesalesOrderId);
-                            sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
-                            return;
-                        }
-                        createScoring(trackId, taskId, scoredAmount);
-                        operationEntity.setTaskId(taskId);
-                        operationRepository.save(operationEntity);
-                    } else if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SIGN_DOCUMENTS.name())) {
-                        var dvsId = processResponse.get().getVariables().getDvsOrderId();
-                        var taskId = processResponse.get().getTaskId();
-
-                        var start = processResponse.get().getVariables().getCreateCardCreditRequest().getStartDate();
-                        var end = processResponse.get().getVariables().getCreateCardCreditRequest().getEndDate();
-                        operationEntity.setLoanContractStartDate(start);
-                        operationEntity.setLoanContractEndDate(end);
-                        operationEntity.setTaskId(taskId);
-                        operationEntity.setDvsOrderId(dvsId);
-                        operationRepository.save(operationEntity);
-                        try {
-                            var webUrl = dvsClient.getDetails(trackId, dvsId).getWebUrl();
-                            log.info("Dvs client web url - {}", webUrl);
-                            sendDecision(UmicoDecisionStatus.PREAPPROVED, trackId, webUrl);
-                        } catch (DvsClientException e) {
-                            log.info("Dvs client get details exception. trackId - {}, exception - {}",
-                                    trackId, e.getMessage());
-                            optimusClient.deleteLoan(businessKey);
-                            log.info("Optimus delete loan. trackId - {}", trackId);
-                            var telesalesOrderId = telesalesService.sendLead(trackId);
-                            updateOperationTelesalesOrderId(trackId, telesalesOrderId);
-                            sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
-                        }
-                    }
-                }
+                inUserActivityProcess(scoringResultEvent, businessKey, operationEntity, trackId);
                 break;
             case COMPLETED:
                 var cardPan = optimusClient.getProcessVariable(operationEntity.getBusinessKey(),
@@ -320,6 +273,59 @@ public class ScoringService {
             default:
         }
 
+    }
+
+    private void inUserActivityProcess(ScoringResultEvent scoringResultEvent, String businessKey,
+                                       OperationEntity operationEntity, UUID trackId) {
+        var processResponse = getProcess(trackId, businessKey);
+        if (processResponse.isPresent()) {
+            var inUserActivityData = (InUserActivityData) scoringResultEvent.getData();
+
+            var taskDefinitionKey = inUserActivityData.getTaskDefinitionKey().toUpperCase(Locale.ROOT);
+
+            if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SCORING.name())) {
+                var taskId = processResponse.get().getTaskId();
+                var scoredAmount = processResponse.get()
+                        .getVariables()
+                        .getSelectedOffer()
+                        .getCardOffer()
+                        .getAvailableLoanAmount();
+                var selectedAmount = operationEntity.getTotalAmount().add(operationEntity.getCommission());
+                if (scoredAmount.compareTo(selectedAmount) < 0) {
+                    var telesalesOrderId = telesalesService.sendLead(trackId);
+                    updateOperationTelesalesOrderId(trackId, telesalesOrderId);
+                    sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
+                    return;
+                }
+                operationEntity.setTaskId(taskId);
+                operationRepository.save(operationEntity);
+                createScoring(trackId, taskId, scoredAmount);
+            } else if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SIGN_DOCUMENTS.name())) {
+                var dvsId = processResponse.get().getVariables().getDvsOrderId();
+                var taskId = processResponse.get().getTaskId();
+
+                var start = processResponse.get().getVariables().getCreateCardCreditRequest().getStartDate();
+                var end = processResponse.get().getVariables().getCreateCardCreditRequest().getEndDate();
+                operationEntity.setLoanContractStartDate(start);
+                operationEntity.setLoanContractEndDate(end);
+                operationEntity.setTaskId(taskId);
+                operationEntity.setDvsOrderId(dvsId);
+                operationRepository.save(operationEntity);
+                try {
+                    var webUrl = dvsClient.getDetails(trackId, dvsId).getWebUrl();
+                    log.info("Dvs client web url - {}", webUrl);
+                    sendDecision(UmicoDecisionStatus.PREAPPROVED, trackId, webUrl);
+                } catch (DvsClientException e) {
+                    log.info("Dvs client get details exception. trackId - {}, exception - {}",
+                            trackId, e.getMessage());
+                    optimusClient.deleteLoan(businessKey);
+                    log.info("Optimus delete loan. trackId - {}", trackId);
+                    var telesalesOrderId = telesalesService.sendLead(trackId);
+                    updateOperationTelesalesOrderId(trackId, telesalesOrderId);
+                    sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
+                }
+            }
+        }
     }
 
     private Optional<String> startScoring(UUID trackId, String pinCode, String phoneNumber) {

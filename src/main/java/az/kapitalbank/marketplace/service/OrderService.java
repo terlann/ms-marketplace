@@ -35,6 +35,7 @@ import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException
 import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
 import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
 import az.kapitalbank.marketplace.exception.NoMatchLoanAmountException;
+import az.kapitalbank.marketplace.exception.NoPermissionForTransaction;
 import az.kapitalbank.marketplace.exception.OperationAlreadyScoredException;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
@@ -299,7 +300,7 @@ public class OrderService {
                     request.getOrderNo(), request.getCustomerId());
             return purchaseResponse;
         }
-        throw new OrderMustNotComplete("orderId- " + orderEntity.getId() + " TransactionalStatus- " +
+        throw new NoPermissionForTransaction("orderNo- " + orderEntity.getId() + " TransactionalStatus- " +
                 orderEntity.getTransactionStatus());
     }
 
