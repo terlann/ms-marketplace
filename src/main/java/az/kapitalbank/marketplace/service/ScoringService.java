@@ -222,9 +222,9 @@ public class ScoringService {
                             sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
                             return;
                         }
+                        createScoring(trackId, taskId, scoredAmount);
                         operationEntity.setTaskId(taskId);
                         operationRepository.save(operationEntity);
-                        createScoring(trackId, taskId, scoredAmount);
                     } else if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SIGN_DOCUMENTS.name())) {
                         var dvsId = processResponse.get().getVariables().getDvsOrderId();
                         var taskId = processResponse.get().getTaskId();
@@ -313,7 +313,8 @@ public class ScoringService {
                         scoringResultEvent);
                 var telesalesOrderId = telesalesService.sendLead(trackId);
                 updateOperationTelesalesOrderId(trackId, telesalesOrderId);
-                optimusClient.deleteLoan(businessKey);
+                if (operationEntity.getTaskId() != null && !operationEntity.isDeletedLoanContract())
+                    optimusClient.deleteLoan(businessKey);
                 sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
                 break;
             default:

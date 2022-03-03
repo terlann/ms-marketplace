@@ -28,7 +28,7 @@ import lombok.experimental.SuperBuilder;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CustomerEntity extends BaseEntity {
     String umicoUserId;
-    Boolean isAgreement;
+    boolean isAgreement;
     String cardId;
     CustomerStatus status;
     LocalDateTime completeProcessDate;
