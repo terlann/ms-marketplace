@@ -88,7 +88,7 @@ public class VerificationResultListener {
                                         .build();
                                 log.info("Order Dvs status in rejected. Send decision request - {}",
                                         umicoRejectedDecisionRequest);
-//                                umicoClient.sendDecisionToUmico(umicoRejectedDecisionRequest, apiKey);
+                                //umicoClient.sendDecisionToUmico(umicoRejectedDecisionRequest, apiKey);
                                 log.info("Order Dvs status sent to umico like REJECTED. trackId - {}",
                                         operationEntity.getId());
                                 operationEntity.setDvsOrderStatus(DvsStatus.REJECTED);

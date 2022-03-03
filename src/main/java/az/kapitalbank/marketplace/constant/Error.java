@@ -24,7 +24,7 @@ public enum Error {
     OPERATION_ALREADY_SCORED("E111", "Operation had already scored"),
     UNIQUE_PHONE_NUMBER("E112", "Additional numbers must be different"),
     ORDER_NOT_LINKED_TO_CUSTOMER("E113", "Order is not linked to customer"),
-    ORDER_MUST_NOT_COMPLETE("E114", "Order must not complete"),
+    NO_PERMISSION("E114", "No permission reverse/purchase"),
     ATLAS_EXCEPTION("E115", "Exception in Complete");
 
     String code;

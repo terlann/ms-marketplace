@@ -60,7 +60,8 @@ dependencies {
     testImplementation "org.mockito:mockito-core:$mockitoVersion"
     testImplementation "org.springframework.boot:spring-boot-starter-test:$springBootVersion"
     testImplementation "org.assertj:assertj-core:$assertJVersion"
-
+    testImplementation "org.projectlombok:lombok:$lombokVersion";
+    testAnnotationProcessor "org.projectlombok:lombok:$lombokVersion"
 }
 
 dependencyManagement {
