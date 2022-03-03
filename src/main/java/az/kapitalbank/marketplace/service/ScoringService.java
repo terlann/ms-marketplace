@@ -313,8 +313,16 @@ public class ScoringService {
                         scoringResultEvent);
                 var telesalesOrderId = telesalesService.sendLead(trackId);
                 updateOperationTelesalesOrderId(trackId, telesalesOrderId);
-                if (operationEntity.getTaskId() != null && !operationEntity.isDeletedLoanContract())
-                    optimusClient.deleteLoan(businessKey);
+                if (operationEntity.getTaskId() != null && operationEntity.getLoanContractDeletedAt() == null) {
+                    operationEntity.setLoanContractDeletedAt(LocalDateTime.now());
+                    operationRepository.save(operationEntity);
+                    try {
+                        optimusClient.deleteLoan(businessKey);
+                    } catch (Exception e) {
+                        log.error("Optimus delete loan process error in incident happened/business error , " +
+                                "exception - {}", e.getMessage());
+                    }
+                }
                 sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
                 break;
             default:

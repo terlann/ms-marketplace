@@ -26,6 +26,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
+import org.apache.tomcat.jni.Local;
 
 @Getter
 @Setter
@@ -63,7 +64,7 @@ public class OperationEntity extends BaseEntity {
     DvsStatus dvsOrderStatus;
     @Enumerated(EnumType.STRING)
     UmicoDecisionStatus umicoDecisionStatus;
-    boolean isDeletedLoanContract;
+    LocalDateTime loanContractDeletedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false, updatable = false)
