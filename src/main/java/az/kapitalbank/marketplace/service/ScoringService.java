@@ -79,8 +79,8 @@ public class ScoringService {
     OptimusClient optimusClient;
     ScoringMapper scoringMapper;
     TelesalesService telesalesService;
-    OperationRepository operationRepository;
     CustomerRepository customerRepository;
+    OperationRepository operationRepository;
 
     @Transactional /* Optimus call this */
     public void telesalesResult(TelesalesResultRequestDto request) {
@@ -313,6 +313,7 @@ public class ScoringService {
                         scoringResultEvent);
                 var telesalesOrderId = telesalesService.sendLead(trackId);
                 updateOperationTelesalesOrderId(trackId, telesalesOrderId);
+                optimusClient.deleteLoan(businessKey);
                 sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
                 break;
             default:
@@ -348,6 +349,7 @@ public class ScoringService {
         log.info("Optimus create scoring process is started... trackId - {}", trackId);
         var createScoringRequest = CreateScoringRequest.builder()
                 .cardDemandedAmount(loanAmount.toString())
+                .nameOnCard("")
                 .customerDecision(CustomerDecision.CREATE_CREDIT)
                 .salesSource(ApplicationConstant.UMICO_MARKETPLACE)
                 .preApproval(false)
