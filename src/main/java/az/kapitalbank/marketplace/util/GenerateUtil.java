@@ -1,4 +1,4 @@
-package az.kapitalbank.marketplace.utils;
+package az.kapitalbank.marketplace.util;
 
 import java.util.UUID;
 

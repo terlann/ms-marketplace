@@ -1,7 +1,7 @@
-package az.kapitalbank.marketplace.mappers;
+package az.kapitalbank.marketplace.mapper;
 
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
-import az.kapitalbank.marketplace.mappers.qualifier.CreateOrderQualifier;
+import az.kapitalbank.marketplace.mapper.qualifier.CreateOrderQualifier;
 import az.kapitalbank.marketplace.messaging.event.FraudCheckEvent;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

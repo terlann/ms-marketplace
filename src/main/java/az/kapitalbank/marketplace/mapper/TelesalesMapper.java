@@ -1,4 +1,4 @@
-package az.kapitalbank.marketplace.mappers;
+package az.kapitalbank.marketplace.mapper;
 
 import java.util.List;
 
@@ -6,7 +6,7 @@ import az.kapitalbank.marketplace.client.telesales.model.CreateTelesalesOrderReq
 import az.kapitalbank.marketplace.constant.ApplicationConstant;
 import az.kapitalbank.marketplace.constant.FraudReason;
 import az.kapitalbank.marketplace.entity.OperationEntity;
-import az.kapitalbank.marketplace.mappers.qualifier.TelesalesQualifier;
+import az.kapitalbank.marketplace.mapper.qualifier.TelesalesQualifier;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;

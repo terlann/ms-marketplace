@@ -1,4 +1,4 @@
-package az.kapitalbank.marketplace.mappers;
+package az.kapitalbank.marketplace.mapper;
 
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
 import az.kapitalbank.marketplace.entity.OperationEntity;

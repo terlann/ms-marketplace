@@ -1,4 +1,4 @@
-package az.kapitalbank.marketplace.mappers.qualifier;
+package az.kapitalbank.marketplace.mapper.qualifier;
 
 import java.util.List;
 import java.util.stream.Collectors;

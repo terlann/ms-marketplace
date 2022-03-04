@@ -13,7 +13,7 @@ import az.kapitalbank.marketplace.constant.FraudMark;
 import az.kapitalbank.marketplace.constant.FraudReason;
 import az.kapitalbank.marketplace.entity.FraudEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
-import az.kapitalbank.marketplace.mappers.TelesalesMapper;
+import az.kapitalbank.marketplace.mapper.TelesalesMapper;
 import az.kapitalbank.marketplace.repository.FraudRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import org.junit.jupiter.api.Test;

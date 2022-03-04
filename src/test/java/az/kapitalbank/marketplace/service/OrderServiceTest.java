@@ -1,15 +1,15 @@
 package az.kapitalbank.marketplace.service;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
-import az.kapitalbank.marketplace.mappers.CreateOrderMapper;
-import az.kapitalbank.marketplace.mappers.CustomerMapper;
-import az.kapitalbank.marketplace.mappers.OperationMapper;
-import az.kapitalbank.marketplace.mappers.OrderMapper;
+import az.kapitalbank.marketplace.mapper.CreateOrderMapper;
+import az.kapitalbank.marketplace.mapper.CustomerMapper;
+import az.kapitalbank.marketplace.mapper.OperationMapper;
+import az.kapitalbank.marketplace.mapper.OrderMapper;
 import az.kapitalbank.marketplace.messaging.sender.FraudCheckSender;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
-import az.kapitalbank.marketplace.utils.AmountUtil;
+import az.kapitalbank.marketplace.util.AmountUtil;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

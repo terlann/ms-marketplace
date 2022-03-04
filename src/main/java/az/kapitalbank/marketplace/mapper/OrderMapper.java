@@ -1,4 +1,4 @@
-package az.kapitalbank.marketplace.mappers;
+package az.kapitalbank.marketplace.mapper;
 
 import java.math.BigDecimal;
 

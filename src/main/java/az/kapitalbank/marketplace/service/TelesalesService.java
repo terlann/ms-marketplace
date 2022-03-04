@@ -8,7 +8,7 @@ import az.kapitalbank.marketplace.client.telesales.TelesalesClient;
 import az.kapitalbank.marketplace.constant.FraudMark;
 import az.kapitalbank.marketplace.entity.FraudEntity;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
-import az.kapitalbank.marketplace.mappers.TelesalesMapper;
+import az.kapitalbank.marketplace.mapper.TelesalesMapper;
 import az.kapitalbank.marketplace.repository.FraudRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import lombok.AccessLevel;
