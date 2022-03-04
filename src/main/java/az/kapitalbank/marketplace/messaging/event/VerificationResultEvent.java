@@ -12,7 +12,7 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class DvsResultEvent {
+public class VerificationResultEvent {
     UUID trackId;
     String status;
 }

@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.optimus.OptimusClient;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.CustomerDecision;
 import az.kapitalbank.marketplace.client.umico.UmicoClient;
@@ -13,7 +12,7 @@ import az.kapitalbank.marketplace.constant.DvsStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.CompleteScoring;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
-import az.kapitalbank.marketplace.messaging.event.DvsResultEvent;
+import az.kapitalbank.marketplace.messaging.event.VerificationResultEvent;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.service.ScoringService;
@@ -32,9 +31,8 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class VerificationResultListener {
+public class VerificationListener {
 
-    AtlasClient atlasClient;
     ObjectMapper objectMapper;
     ScoringService scoringService;
     OperationRepository operationRepository;
@@ -47,49 +45,46 @@ public class VerificationResultListener {
     String apiKey;
 
     @Bean
-    public Consumer<String> orderDvsStatus() {
+    public Consumer<String> verificationResult() {
         return message -> {
             if (Objects.nonNull(message)) {
                 try {
-                    var orderDvsStatusEvent = objectMapper.readValue(message, DvsResultEvent.class);
-                    log.info("order dvs status consumer. Message - {}", orderDvsStatusEvent);
-                    if (orderDvsStatusEvent != null) {
-                        var trackId = orderDvsStatusEvent.getTrackId();
+                    var verificationResultEvent = objectMapper.readValue(message, VerificationResultEvent.class);
+                    log.info("Verification status consumer. Message - {}", verificationResultEvent);
+                    if (verificationResultEvent != null) {
+                        var trackId = verificationResultEvent.getTrackId();
                         var operationEntity = operationRepository.findById(trackId)
                                 .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
 
                         var businessKey = operationEntity.getBusinessKey();
-                        var dvsOrderStatus = orderDvsStatusEvent.getStatus();
-                        switch (dvsOrderStatus) {
+                        var verificationStatus = verificationResultEvent.getStatus();
+                        switch (verificationStatus) {
                             case "pending":
-                                log.info("Order Dvs status in pending. Order dvs status response - {}",
-                                        orderDvsStatusEvent);
+                                log.info("Verification status result. Response - {}", verificationResultEvent);
                                 var umicoPendingDecisionRequest = UmicoDecisionRequest.builder()
                                         .trackId(operationEntity.getId())
                                         .decisionStatus(UmicoDecisionStatus.PENDING)
                                         .loanTerm(operationEntity.getLoanTerm())
                                         .build();
-                                log.info("Order Dvs status in pending. Send decision request - {}",
+                                log.info("Verification status result. Send decision request - {}",
                                         umicoPendingDecisionRequest);
 //                                umicoClient.sendDecisionToUmico(umicoPendingDecisionRequest, apiKey);
-                                log.info("Order Dvs status sent to umico like PENDING.");
+                                log.info("Verification status sent to umico like PENDING.");
                                 operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.PENDING);
                                 operationEntity.setDvsOrderStatus(DvsStatus.PENDING);
                                 operationRepository.save(operationEntity);
                                 break;
                             case "rejected":
-                                log.info("Order Dvs status in rejected. Order dvs status response - {}",
-                                        orderDvsStatusEvent);
-                                log.info("Loan deleted in optimus. businessKey - {}", businessKey);
+                                log.info("Verification status result. Response - {}", verificationResultEvent);
                                 var umicoRejectedDecisionRequest = UmicoDecisionRequest.builder()
                                         .trackId(operationEntity.getId())
                                         .decisionStatus(UmicoDecisionStatus.REJECTED)
                                         .loanTerm(operationEntity.getLoanTerm())
                                         .build();
-                                log.info("Order Dvs status in rejected. Send decision request - {}",
+                                log.info("Verification status result. Send decision request - {}",
                                         umicoRejectedDecisionRequest);
                                 //umicoClient.sendDecisionToUmico(umicoRejectedDecisionRequest, apiKey);
-                                log.info("Order Dvs status sent to umico like REJECTED. trackId - {}",
+                                log.info("Verification status sent to umico like REJECTED. trackId - {}",
                                         operationEntity.getId());
                                 operationEntity.setDvsOrderStatus(DvsStatus.REJECTED);
                                 operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
@@ -101,14 +96,13 @@ public class VerificationResultListener {
                                     try {
                                         optimusClient.deleteLoan(businessKey);
                                     } catch (Exception e) {
-                                        log.error("Optimus delete loan process error in dvs rejected status , " +
+                                        log.error("Delete loan process error in verification rejected status , " +
                                                 "businessKey - {}, exception - {}", businessKey, e.getMessage());
                                     }
                                 }
                                 break;
                             case "confirmed":
-                                log.info("Order Dvs status in confirmed. Order dvs status response - {}",
-                                        orderDvsStatusEvent);
+                                log.info("Verification status result. Response - {}", verificationResultEvent);
                                 var completeScoringWithConfirm = CompleteScoring.builder()
                                         .trackId(operationEntity.getId())
                                         .taskId(operationEntity.getTaskId())
@@ -118,14 +112,12 @@ public class VerificationResultListener {
                                         .customerDecision(CustomerDecision.CONFIRM_CREDIT)
                                         .build();
                                 scoringService.completeScoring(completeScoringWithConfirm);
-                                log.info("Optimus complete process was confirmed. businessKey - {}",
-                                        businessKey);
                                 break;
                             default:
                         }
                     }
                 } catch (JsonProcessingException j) {
-                    log.error("order dvs status consume.Message - {}, JsonProcessingException - {}",
+                    log.error("Verification status consume.Message - {}, JsonProcessingException - {}",
                             message,
                             j.getMessage());
                 }

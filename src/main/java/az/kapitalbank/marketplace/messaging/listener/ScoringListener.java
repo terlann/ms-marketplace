@@ -3,7 +3,7 @@ package az.kapitalbank.marketplace.messaging.listener;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
+import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
 import az.kapitalbank.marketplace.service.ScoringService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,26 +18,25 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class FraudCheckResultListener {
+public class ScoringListener {
 
     ObjectMapper objectMapper;
     ScoringService scoringService;
 
     @Bean
-    public Consumer<String> checkFraudResult() {
+    public Consumer<String> scoringResult() {
         return message -> {
             if (Objects.nonNull(message)) {
                 try {
-                    var fraudCheckResultEvent = objectMapper.readValue(message, FraudCheckResultEvent.class);
-                    log.info("check fraud result consumer. Message - {}", fraudCheckResultEvent);
-                    scoringService.fraudResultProcess(fraudCheckResultEvent);
+                    var startScoringResult = objectMapper.readValue(message, ScoringResultEvent.class);
+                    log.info("scoring result consumer. Message - {}", startScoringResult);
+                    scoringService.scoringResultProcess(startScoringResult);
                 } catch (JsonProcessingException j) {
-                    log.error("check fraud result consume.Message - {}, JsonProcessingException - {}",
+                    log.error("scoring result consume.Message - {}, JsonProcessingException - {}",
                             message,
                             j.getMessage());
                 }
             }
-
         };
     }
 }
