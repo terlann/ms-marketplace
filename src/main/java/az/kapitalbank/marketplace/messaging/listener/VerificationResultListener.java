@@ -1,5 +1,6 @@
 package az.kapitalbank.marketplace.messaging.listener;
 
+import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -57,6 +58,7 @@ public class VerificationResultListener {
                         var operationEntity = operationRepository.findById(trackId)
                                 .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
 
+                        var businessKey = operationEntity.getBusinessKey();
                         var dvsOrderStatus = orderDvsStatusEvent.getStatus();
                         switch (dvsOrderStatus) {
                             case "pending":
@@ -78,9 +80,7 @@ public class VerificationResultListener {
                             case "rejected":
                                 log.info("Order Dvs status in rejected. Order dvs status response - {}",
                                         orderDvsStatusEvent);
-                                optimusClient.deleteLoan(operationEntity.getBusinessKey());
-                                log.info("Loan deleted in optimus. businessKey - {}",
-                                        operationEntity.getBusinessKey());
+                                log.info("Loan deleted in optimus. businessKey - {}", businessKey);
                                 var umicoRejectedDecisionRequest = UmicoDecisionRequest.builder()
                                         .trackId(operationEntity.getId())
                                         .decisionStatus(UmicoDecisionStatus.REJECTED)
@@ -94,6 +94,17 @@ public class VerificationResultListener {
                                 operationEntity.setDvsOrderStatus(DvsStatus.REJECTED);
                                 operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
                                 operationRepository.save(operationEntity);
+                                if (operationEntity.getTaskId() != null &&
+                                        operationEntity.getLoanContractDeletedAt() == null) {
+                                    operationEntity.setLoanContractDeletedAt(LocalDateTime.now());
+                                    operationRepository.save(operationEntity);
+                                    try {
+                                        optimusClient.deleteLoan(businessKey);
+                                    } catch (Exception e) {
+                                        log.error("Optimus delete loan process error in dvs rejected status , " +
+                                                "businessKey - {}, exception - {}", businessKey, e.getMessage());
+                                    }
+                                }
                                 break;
                             case "confirmed":
                                 log.info("Order Dvs status in confirmed. Order dvs status response - {}",
@@ -108,7 +119,7 @@ public class VerificationResultListener {
                                         .build();
                                 scoringService.completeScoring(completeScoringWithConfirm);
                                 log.info("Optimus complete process was confirmed. businessKey - {}",
-                                        operationEntity.getBusinessKey());
+                                        businessKey);
                                 break;
                             default:
                         }

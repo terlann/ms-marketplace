@@ -273,7 +273,7 @@ public class ScoringService {
                         optimusClient.deleteLoan(businessKey);
                     } catch (Exception e) {
                         log.error("Optimus delete loan process error in incident happened/business error , " +
-                                "exception - {}", e.getMessage());
+                                "businessKey - {}, exception - {}", businessKey, e.getMessage());
                     }
                 }
                 sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
@@ -326,10 +326,19 @@ public class ScoringService {
                 } catch (DvsClientException e) {
                     log.info("Dvs client get details exception. trackId - {}, exception - {}",
                             trackId, e.getMessage());
-                    optimusClient.deleteLoan(businessKey);
                     log.info("Optimus delete loan. trackId - {}", trackId);
                     var telesalesOrderId = telesalesService.sendLead(trackId);
                     updateOperationTelesalesOrderId(trackId, telesalesOrderId);
+                    if (operationEntity.getTaskId() != null && operationEntity.getLoanContractDeletedAt() == null) {
+                        operationEntity.setLoanContractDeletedAt(LocalDateTime.now());
+                        operationRepository.save(operationEntity);
+                        try {
+                            optimusClient.deleteLoan(businessKey);
+                        } catch (Exception ex) {
+                            log.error("Optimus delete loan process error in incident happened/business error , " +
+                                    "businessKey - {}, exception - {}", businessKey, ex.getMessage());
+                        }
+                    }
                     sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
                 }
             }
