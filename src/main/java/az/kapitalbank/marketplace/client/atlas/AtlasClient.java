@@ -8,6 +8,7 @@ import az.kapitalbank.marketplace.client.atlas.model.response.CardResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseCompleteResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.ReverseResponse;
+import az.kapitalbank.marketplace.client.atlas.model.response.SubscriptionResponse;
 import az.kapitalbank.marketplace.constant.ResultType;
 import feign.Logger;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -39,6 +40,11 @@ public interface AtlasClient {
 
     @GetMapping("/cards/pan/{pan}")
     CardResponse findByPan(@PathVariable String pan);
+
+    @GetMapping("/api/card-messaging/cards/{uid}/subscriptions")
+    SubscriptionResponse findAllByUID(@PathVariable String uid,
+                                      @RequestParam String channel,
+                                      @RequestParam String schema);
 
     class FeignConfiguration {
         @Bean
