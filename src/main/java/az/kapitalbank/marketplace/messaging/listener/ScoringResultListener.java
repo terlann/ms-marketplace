@@ -24,16 +24,16 @@ public class ScoringResultListener {
     ScoringService scoringService;
 
     @Bean
-    public Consumer<String> startScoringResult() {
+    public Consumer<String> scoringResult() {
         return message -> {
             if (Objects.nonNull(message)) {
                 try {
                     var startScoringResult = objectMapper.readValue(message, ScoringResultEvent.class);
-                    log.info("start scoring result consumer. Message - {}", startScoringResult);
+                    log.info("scoring result consumer. Message - {}", startScoringResult);
 
                     scoringService.scoringResultProcess(startScoringResult);
                 } catch (JsonProcessingException j) {
-                    log.error("start scoring result consume.Message - {}, JsonProcessingException - {}",
+                    log.error("scoring result consume.Message - {}, JsonProcessingException - {}",
                             message,
                             j.getMessage());
                 }
