@@ -38,13 +38,13 @@ import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.exception.OperationAlreadyScoredException;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
-import az.kapitalbank.marketplace.mappers.ScoringMapper;
+import az.kapitalbank.marketplace.mapper.ScoringMapper;
 import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
 import az.kapitalbank.marketplace.messaging.event.InUserActivityData;
 import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
-import az.kapitalbank.marketplace.utils.GenerateUtil;
+import az.kapitalbank.marketplace.util.GenerateUtil;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -364,7 +364,7 @@ public class ScoringService {
         log.info("Optimus create scoring process is started... trackId - {}", trackId);
         var createScoringRequest = CreateScoringRequest.builder()
                 .cardDemandedAmount(loanAmount.toString())
-                .nameOnCard("")
+                .nameOnCard(" ")
                 .customerDecision(CustomerDecision.CREATE_CREDIT)
                 .salesSource(ApplicationConstant.UMICO_MARKETPLACE)
                 .preApproval(false)

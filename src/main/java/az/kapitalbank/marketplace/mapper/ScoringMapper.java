@@ -1,4 +1,4 @@
-package az.kapitalbank.marketplace.mappers;
+package az.kapitalbank.marketplace.mapper;
 
 import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringVariable;
 import org.mapstruct.Mapper;
