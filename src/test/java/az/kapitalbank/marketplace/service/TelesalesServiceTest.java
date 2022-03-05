@@ -9,9 +9,9 @@ import az.kapitalbank.marketplace.client.telesales.TelesalesClient;
 import az.kapitalbank.marketplace.client.telesales.exception.TelesalesClientException;
 import az.kapitalbank.marketplace.client.telesales.model.CreateTelesalesOrderRequest;
 import az.kapitalbank.marketplace.client.telesales.model.CreateTelesalesOrderResponse;
-import az.kapitalbank.marketplace.constant.FraudMark;
-import az.kapitalbank.marketplace.constant.FraudReason;
-import az.kapitalbank.marketplace.entity.FraudEntity;
+import az.kapitalbank.marketplace.constant.FraudResultStatus;
+import az.kapitalbank.marketplace.constant.FraudType;
+import az.kapitalbank.marketplace.dto.LeadDto;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.mapper.TelesalesMapper;
 import az.kapitalbank.marketplace.repository.FraudRepository;
@@ -46,21 +46,22 @@ class TelesalesServiceTest {
                 .totalAmount(BigDecimal.valueOf(1))
                 .commission(BigDecimal.valueOf(0.14))
                 .build();
-        var fraudEntity = FraudEntity.builder()
-                .fraudReason(FraudReason.IDENTITY_NUMBER)
-                .build();
         var createTelesalesOrderRequest = CreateTelesalesOrderRequest.builder().build();
-        var fraudReasons = List.of(FraudReason.IDENTITY_NUMBER);
+        var fraudTypes = List.of(FraudType.PIN);
         BigDecimal amountWithCommission = BigDecimal.valueOf(1.14);
         var createTelesalesOrderResponse = CreateTelesalesOrderResponse.builder()
                 .operationId("7572ef38-9ab2-11ec-b909-0242ac120002")
                 .build();
+        var leadDto = LeadDto.builder()
+                .trackId(trackId)
+                .fraudResultStatus(FraudResultStatus.SUSPICIOUS)
+                .types(List.of(FraudType.PIN))
+                .build();
         when(operationRepository.findById(trackId)).thenReturn(Optional.of(operationEntity));
-        when(fraudRepository.findByIdAndFraudMark(trackId, FraudMark.SUSPICIOUS)).thenReturn(List.of(fraudEntity));
-        when(telesalesMapper.toTelesalesOrder(operationEntity, fraudReasons)).thenReturn(createTelesalesOrderRequest);
+        when(telesalesMapper.toTelesalesOrder(operationEntity, fraudTypes)).thenReturn(createTelesalesOrderRequest);
         when(telesalesClient.sendLead(createTelesalesOrderRequest)).thenReturn(createTelesalesOrderResponse);
 
-        var actual = telesalesService.sendLead(trackId);
+        var actual = telesalesService.sendLead(leadDto);
         var expected = Optional.of("7572ef38-9ab2-11ec-b909-0242ac120002");
 
         assertEquals(expected, actual);
@@ -74,19 +75,19 @@ class TelesalesServiceTest {
                 .totalAmount(BigDecimal.valueOf(1))
                 .commission(BigDecimal.valueOf(0.14))
                 .build();
-        var fraudEntity = FraudEntity.builder()
-                .fraudReason(FraudReason.IDENTITY_NUMBER)
-                .build();
         var createTelesalesOrderRequest = CreateTelesalesOrderRequest.builder().build();
-        var fraudReasons = List.of(FraudReason.IDENTITY_NUMBER);
-
+        var fraudTypes = List.of(FraudType.PIN);
+        var leadDto = LeadDto.builder()
+                .trackId(trackId)
+                .fraudResultStatus(FraudResultStatus.SUSPICIOUS)
+                .types(List.of(FraudType.PIN))
+                .build();
         when(operationRepository.findById(trackId)).thenReturn(Optional.of(operationEntity));
-        when(fraudRepository.findByIdAndFraudMark(trackId, FraudMark.SUSPICIOUS)).thenReturn(List.of(fraudEntity));
-        when(telesalesMapper.toTelesalesOrder(operationEntity, fraudReasons)).thenReturn(createTelesalesOrderRequest);
+        when(telesalesMapper.toTelesalesOrder(operationEntity, fraudTypes)).thenReturn(createTelesalesOrderRequest);
         when(telesalesClient.sendLead(createTelesalesOrderRequest))
                 .thenThrow(new TelesalesClientException("0", "Telesales Error"));
 
-        var actual = telesalesService.sendLead(trackId);
+        var actual = telesalesService.sendLead(leadDto);
         var expected = Optional.empty();
 
         assertEquals(expected, actual);
