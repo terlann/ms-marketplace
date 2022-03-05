@@ -6,7 +6,6 @@ import java.util.function.Supplier;
 import az.kapitalbank.marketplace.messaging.event.FraudCheckEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.PropertyNamingStrategy;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -25,7 +24,6 @@ public class FraudCheckSender {
     LinkedList<FraudCheckEvent> fraudCheckEventLinkedList = new LinkedList<>();
 
     public void sendMessage(FraudCheckEvent fraudCheckEvent) {
-        log.info("customer check fraud producer send message...");
         if (fraudCheckEventLinkedList == null) {
             fraudCheckEventLinkedList = new LinkedList<>();
         }
@@ -34,17 +32,16 @@ public class FraudCheckSender {
 
     @Bean
     public Supplier<String> checkFraud() {
-        log.info("customer check fraud producer sending new message...");
+        log.info("Fraud check is produced to topic...");
         return () -> {
             if (fraudCheckEventLinkedList.peek() != null) {
                 try {
-                    objectMapper.setPropertyNamingStrategy(PropertyNamingStrategy.LOWER_CAMEL_CASE);
-                    String jsonMessage = objectMapper.writeValueAsString(fraudCheckEventLinkedList.peek());
-                    log.info("customer check fraud producer. Message - {}", jsonMessage);
+                    var jsonMessage = objectMapper.writeValueAsString(fraudCheckEventLinkedList.peek());
+                    log.info("Fraud check was produced. Message - {}", jsonMessage);
                     fraudCheckEventLinkedList.poll();
                     return jsonMessage;
                 } catch (JsonProcessingException j) {
-                    log.info("customer check fraud producer. JsonProcessingException - {}", j.getMessage());
+                    log.info("Fraud check producer. JsonProcessingException - {}", j.getMessage());
                 }
             }
             return null;

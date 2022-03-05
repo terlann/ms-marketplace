@@ -1,7 +1,7 @@
 package az.kapitalbank.marketplace.dto.response;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -16,7 +16,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class BalanceResponseDto {
-    LocalDate loanEndDate;
+    LocalDateTime cardExpiryDate;
     BigDecimal loanLimit;
     BigDecimal loanUtilized;
     BigDecimal availableBalance;
