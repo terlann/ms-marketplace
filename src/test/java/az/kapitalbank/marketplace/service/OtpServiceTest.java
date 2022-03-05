@@ -45,8 +45,7 @@ class OtpServiceTest {
     void send_Success() {
         //GIVEN
         var request = SendOtpRequestDto.builder()
-                .trackId(UUID.fromString("3a30a65a-9bec-11ec-b909-0242ac120002"))
-                .build();
+                .trackId(UUID.fromString("3a30a65a-9bec-11ec-b909-0242ac120002")).build();
         var trackId = UUID.fromString("3a30a65a-9bec-11ec-b909-0242ac120002");
 
         String cardConnectedNumber = "+994513601019";
@@ -60,7 +59,7 @@ class OtpServiceTest {
         SendOtpResponse sendOtpResponse = SendOtpResponse.builder()
                 .message("success")
                 .build();
-        var customerEntity= CustomerEntity.builder()
+        var customerEntity = CustomerEntity.builder()
                 .cardId(CARD_UID.getValue())
                 .build();
         var operationEntity = OperationEntity.builder()
@@ -73,22 +72,17 @@ class OtpServiceTest {
                 .channel("SMPP_ALL")
                 .address("+994513601019")
                 .build());
-        var subscriptionResponse = SubscriptionResponse.builder()
-                .subscriptions(substrictions)
-                .build();
+        var subscriptionResponse = SubscriptionResponse.builder().subscriptions(substrictions).build();
 
         //WHEN
-      when(operationRepository.findById(trackId)).thenReturn(Optional.of(operationEntity));
-      when(atlasClient.findAllByUID(CARD_UID.getValue(), "", "")).thenReturn(subscriptionResponse);
-      lenient().when(otpClient.send(sendOtpRequest)).thenReturn(sendOtpResponse);
+        when(operationRepository.findById(trackId)).thenReturn(Optional.of(operationEntity));
+        when(atlasClient.findAllByUID(CARD_UID.getValue(), "", "")).thenReturn(subscriptionResponse);
+        lenient().when(otpClient.send(sendOtpRequest)).thenReturn(sendOtpResponse);
 
         //THEN
 
         var actual = otpService.send(request);
-        var expected = SendOtpResponseDto.builder()
-                .maskedMobileNum("*********1019").
-                message("success")
-                .build();
+        var expected = SendOtpResponseDto.builder().maskedMobileNum("*********1019").message("success").build();
 
         assertEquals(expected, actual);
     }
