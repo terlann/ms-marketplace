@@ -3,8 +3,8 @@ ARG DEPLOY_ENV
 WORKDIR /app
 ENV TZ Asia/Baku
 COPY *.*ar .
-COPY ./certs/kapitalho.cer .
+COPY kapitalho.der /app/
 RUN ls -la && ln -sfn *.*ar app
-RUN $JAVA_HOME/bin/keytool -importcert -alias kbsrvpki -keystore  $JAVA_HOME/lib/security/cacerts -storepass changeit -file kapitalho.cer -noprompt
+RUN keytool -importcert -alias kbsrvpki -keystore  $JAVA_HOME/lib/security/cacerts -storepass changeit -file kapitalho.der -noprompt
 ENTRYPOINT ["java", "-jar", "./app", "--spring.profiles.active=${DEPLOY_ENV}"]
 CMD [""]
