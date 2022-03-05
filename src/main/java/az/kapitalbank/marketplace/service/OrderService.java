@@ -1,6 +1,5 @@
 package az.kapitalbank.marketplace.service;
 
-import javax.transaction.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -80,7 +79,6 @@ public class OrderService {
     FraudCheckSender customerOrderProducer;
     OperationRepository operationRepository;
 
-    @Transactional
     public CreateOrderResponse createOrder(CreateOrderRequestDto request) {
         log.info("Create order process is started... Request - {}", request);
         validateOrderAmount(request);
@@ -195,7 +193,6 @@ public class OrderService {
 
     }
 
-    @Transactional
     public List<PurchaseResponseDto> purchase(PurchaseRequestDto request) {
         log.info("Purchase process is started. request - {}", request);
         var customerId = request.getCustomerId();
@@ -211,10 +208,10 @@ public class OrderService {
         var orders = orderRepository.findByOrderNoIn(orderNoList);
 
         for (var order : orders) {
-            var transactionalStatus = order.getTransactionStatus();
-            if (transactionalStatus == TransactionStatus.PURCHASE ||
-                    transactionalStatus == TransactionStatus.FAIL_IN_REVERSE ||
-                    transactionalStatus == TransactionStatus.FAIL_IN_COMPLETE) {
+            var transactionStatus = order.getTransactionStatus();
+            if (transactionStatus == TransactionStatus.PURCHASE ||
+                    transactionStatus == TransactionStatus.FAIL_IN_REVERSE ||
+                    transactionStatus == TransactionStatus.FAIL_IN_COMPLETE) {
                 var purchaseResponseDto = new PurchaseResponseDto();
                 var amount = order.getTotalAmount();
                 var commission = order.getCommission();
@@ -259,17 +256,16 @@ public class OrderService {
         return purchaseResponseDtoList;
     }
 
-    @Transactional
     public PurchaseResponseDto reverse(ReverseRequestDto request) {
         log.info("Reverse process is started. request - {}", request);
         var customerId = request.getCustomerId();
         var orderNo = request.getOrderNo();
         var orderEntity = orderRepository.findByOrderNo(orderNo)
                 .orElseThrow(() -> new OrderNotFoundException("orderNo - " + orderNo));
-        var transactionalStatus = orderEntity.getTransactionStatus();
-        if (transactionalStatus == TransactionStatus.PURCHASE ||
-                transactionalStatus == TransactionStatus.FAIL_IN_REVERSE ||
-                transactionalStatus == TransactionStatus.FAIL_IN_COMPLETE) {
+        var transactionStatus = orderEntity.getTransactionStatus();
+        if (transactionStatus == TransactionStatus.PURCHASE ||
+                transactionStatus == TransactionStatus.FAIL_IN_REVERSE ||
+                transactionStatus == TransactionStatus.FAIL_IN_COMPLETE) {
             var customerEntity = orderEntity.getOperation().getCustomer();
             if (!customerEntity.getId().equals(request.getCustomerId())) {
                 throw new OrderNotLinkedToCustomer("orderNo - " + orderNo + ", customerId - " + customerId);
@@ -300,7 +296,7 @@ public class OrderService {
                     request.getOrderNo(), request.getCustomerId());
             return purchaseResponse;
         }
-        throw new NoPermissionForTransaction("orderNo- " + orderEntity.getId() + " TransactionalStatus- " +
+        throw new NoPermissionForTransaction("orderNo- " + orderEntity.getId() + " transactionStatus- " +
                 orderEntity.getTransactionStatus());
     }
 

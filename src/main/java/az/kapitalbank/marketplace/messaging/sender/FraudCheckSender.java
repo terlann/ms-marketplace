@@ -41,7 +41,7 @@ public class FraudCheckSender {
                     fraudCheckEventLinkedList.poll();
                     return jsonMessage;
                 } catch (JsonProcessingException j) {
-                    log.info("customer check fraud producer. JsonProcessingException - {}", j.getMessage());
+                    log.info("Fraud check producer. JsonProcessingException - {}", j.getMessage());
                 }
             }
             return null;
