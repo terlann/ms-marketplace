@@ -1,6 +1,4 @@
-package az.kapitalbank.marketplace.client.atlas.model.response;
-
-import java.util.List;
+package az.kapitalbank.marketplace.client.otp.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
@@ -11,10 +9,10 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class SubscriptionResponse {
-    List<Subscription> subscriptions;
+public class SendOtpResponse {
+    String message;
 }
