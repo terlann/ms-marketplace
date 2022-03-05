@@ -72,7 +72,8 @@ client:
     url: https://pre.adp-dvs.kapitalbank.az/v1
   externalinteg:
     url: http://pre.externalinteg.kapitalbank.az/api
-
+  ms-otp:
+    url:https://pre.ms-otp.kapitalbank.az/v1
 feign:
   httpclient:
     disable-ssl-validation: true

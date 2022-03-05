@@ -1,20 +1,23 @@
-package az.kapitalbank.marketplace.client.atlas.model.response;
+package az.kapitalbank.marketplace.dto.request;
 
-import java.util.List;
+import java.util.UUID;
 
+import az.kapitalbank.marketplace.client.otp.model.ChannelRequest;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@ToString
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class SubscriptionResponse {
-    List<Subscription> subscriptions;
+public class SendOtpRequestDto {
+    UUID trackId;
 }
