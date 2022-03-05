@@ -1,6 +1,4 @@
-package az.kapitalbank.marketplace.client.atlas.model.response;
-
-import java.util.List;
+package az.kapitalbank.marketplace.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
@@ -8,13 +6,15 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@ToString
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class SubscriptionResponse {
-    List<Subscription> subscriptions;
+public class ChannelRequestDto {
+    String channel;
 }
