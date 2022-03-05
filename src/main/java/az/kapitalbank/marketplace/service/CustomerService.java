@@ -1,14 +1,18 @@
 package az.kapitalbank.marketplace.service;
 
-import java.time.LocalDate;
+import java.math.BigDecimal;
 import java.util.UUID;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
-import az.kapitalbank.marketplace.client.checker.CheckerClient;
+import az.kapitalbank.marketplace.client.integration.IamasClient;
+import az.kapitalbank.marketplace.client.integration.model.IamasResponse;
+import az.kapitalbank.marketplace.constant.AccountStatus;
+import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.dto.response.BalanceResponseDto;
-import az.kapitalbank.marketplace.exception.PinNotFoundException;
+import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
+import az.kapitalbank.marketplace.exception.PersonNotFoundException;
+import az.kapitalbank.marketplace.exception.UmicoUserNotFoundException;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
-import feign.FeignException;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -21,38 +25,52 @@ import org.springframework.stereotype.Service;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class CustomerService {
 
-    CheckerClient checkerClient;
     AtlasClient atlasClient;
     CustomerRepository customerRepository;
+    IamasClient iamasClient;
 
-    public void checkPin(String pin) {
-        log.info("check customer pin-code service start... pin_code - [{}]", pin);
-        try {
-            boolean result = checkerClient.checkPinCode(pin);
-            log.info("check customer pin-code service.pin_code - [{}], Response - {}", pin, result);
-            if (!result)
-                throw new PinNotFoundException(pin);
-        } catch (FeignException f) {
-            log.error("check customer pin-code service.pin_code - [{}], FeignException - {}", pin, f.getMessage());
-        }
-        log.info("check customer pin-code service finish.. pin_code - [{}]", pin);
+    public void checkPerson(String pin) {
+        log.info("Checking starts by pin in IAMAS. Pin - {} ", pin);
+        var iamasResponse = iamasClient.findPersonByPin(pin)
+                .stream()
+                .filter(IamasResponse::isActive)
+                .findFirst();
+
+        if (iamasResponse.isEmpty())
+            throw new PersonNotFoundException("pin - " + pin);
+        log.info("Pin found in IAMAS. Pin - {} ", pin);
     }
 
-
     public BalanceResponseDto getBalance(String umicoUserId, UUID customerId) {
-//        var customerEntity = customerRepository.findById(customerId)
-//                .orElseThrow(() -> new RuntimeException("Customer not found"));
-//        if (!customerEntity.getUmicoUserId().equals(umicoUserId)) {
-//            throw new RuntimeException("Umico user not found");
-//        }
-//        var cardUUID = customerEntity.getCardUUID();
-//        var balanceResponse = atlasClient.balance(cardUUID);
-//        TODO loan utilized and loan limit must be fixed
+        var customerEntity = customerRepository.findById(customerId)
+                .orElseThrow(() -> new CustomerNotFoundException("customerId - " + customerId));
+
+        if (!customerEntity.getUmicoUserId().equals(umicoUserId)) {
+            throw new UmicoUserNotFoundException("umicoUserId - " + umicoUserId);
+        }
+        var cardUUID = customerEntity.getCardId();
+        var cardDetailResponse = atlasClient.findCardByUID(cardUUID, ResultType.ACCOUNT);
+
+        var primaryAccount = cardDetailResponse.getAccounts()
+                .stream()
+                .filter(x -> x.getStatus() == AccountStatus.OPEN_PRIMARY)
+                .findFirst();
+        if (primaryAccount.isEmpty()) {
+            log.error("Account not found in open primary status.cardId - {}", cardUUID);
+            return BalanceResponseDto.builder()
+                    .loanUtilized(BigDecimal.ZERO)
+                    .availableBalance(BigDecimal.ZERO)
+                    .loanLimit(BigDecimal.ZERO)
+                    .cardExpiryDate(cardDetailResponse.getExpiryDate())
+                    .build();
+        }
+        var loanLimit = primaryAccount.get().getOverdraftLimit();
+        var availableBalance = primaryAccount.get().getAvailableBalance();
         return BalanceResponseDto.builder()
-                .availableBalance(OrderService.available)
-                .loanEndDate(LocalDate.of(2025, 02, 15))
-                .loanUtilized(OrderService.overdraft.subtract(OrderService.available))
-                .loanLimit(OrderService.overdraft)
+                .loanUtilized(loanLimit.subtract(availableBalance))
+                .availableBalance(availableBalance)
+                .loanLimit(loanLimit)
+                .cardExpiryDate(cardDetailResponse.getExpiryDate())
                 .build();
     }
 }

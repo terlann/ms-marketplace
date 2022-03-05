@@ -6,8 +6,8 @@ import javax.persistence.Enumerated;
 import javax.persistence.Table;
 import java.util.UUID;
 
-import az.kapitalbank.marketplace.constants.FraudMark;
-import az.kapitalbank.marketplace.constants.FraudReason;
+import az.kapitalbank.marketplace.constant.FraudMark;
+import az.kapitalbank.marketplace.constant.FraudReason;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

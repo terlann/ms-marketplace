@@ -3,7 +3,6 @@ package az.kapitalbank.marketplace.client.telesales;
 import az.kapitalbank.marketplace.client.telesales.model.CreateTelesalesOrderRequest;
 import az.kapitalbank.marketplace.client.telesales.model.CreateTelesalesOrderResponse;
 import feign.Logger;
-import feign.codec.ErrorDecoder;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -19,14 +18,13 @@ public interface TelesalesClient {
 
     class FeignConfiguration {
         @Bean
-        Logger.Level feignLoggerLevel() {
-            return Logger.Level.BASIC;
+        Logger.Level loggerLevel() {
+            return Logger.Level.FULL;
         }
 
         @Bean
-        public ErrorDecoder feignErrorDecoder() {
+        TelesalesClientErrorDecoder errorDecoder() {
             return new TelesalesClientErrorDecoder();
         }
     }
-
 }

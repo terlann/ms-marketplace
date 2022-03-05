@@ -4,10 +4,11 @@ import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import az.kapitalbank.marketplace.constants.CustomerStatus;
+import az.kapitalbank.marketplace.constant.CustomerStatus;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,9 +28,10 @@ import lombok.experimental.SuperBuilder;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CustomerEntity extends BaseEntity {
     String umicoUserId;
-    Boolean isAgreement;
-    String cardUUID;
+    boolean isAgreement;
+    String cardId;
     CustomerStatus status;
+    LocalDateTime completeProcessDate;
 
     @Builder.Default
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)

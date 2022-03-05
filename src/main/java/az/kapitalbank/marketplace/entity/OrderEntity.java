@@ -11,10 +11,11 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import az.kapitalbank.marketplace.constants.TransactionStatus;
+import az.kapitalbank.marketplace.constant.TransactionStatus;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -33,19 +34,21 @@ import lombok.experimental.SuperBuilder;
 @Table(name = "KB_MARKETPLACE_ORDER")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OrderEntity extends BaseEntity {
-    BigDecimal orderLastAmount;
     BigDecimal totalAmount;
+    @Column(unique = true)
     String orderNo;
     @Column(length = 500)
     String deliveryAddress;
     BigDecimal commission;
     String transactionId;
+    String transactionError;
+    LocalDateTime transactionDate;
     String rrn;
     String approvalCode;
     @Enumerated(EnumType.STRING)
     TransactionStatus transactionStatus;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "operation_id", nullable = false, updatable = false)
     OperationEntity operation;
 

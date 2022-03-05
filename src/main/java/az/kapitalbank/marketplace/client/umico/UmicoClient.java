@@ -1,10 +1,8 @@
 package az.kapitalbank.marketplace.client.umico;
 
-import az.kapitalbank.marketplace.client.umico.model.UmicoScoringDecisionRequest;
-import az.kapitalbank.marketplace.client.umico.model.UmicoScoringDecisionResponse;
-import az.kapitalbank.marketplace.client.umico.model.UmicoScoringTrancheRequest;
+import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
+import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionResponse;
 import feign.Logger;
-import feign.codec.ErrorDecoder;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,24 +16,18 @@ import org.springframework.web.bind.annotation.RequestHeader;
 public interface UmicoClient {
 
     @PostMapping("/application_offers")
-    UmicoScoringDecisionResponse sendDecisionScoring(@RequestBody UmicoScoringDecisionRequest request,
-                                                     @RequestHeader("ApiKey") String apiKey);
-
-    @PostMapping("/tranche/completed")
-    void sendDecisionTranche(@RequestBody UmicoScoringTrancheRequest request,
-                             @RequestHeader("ApiKey") String apiKey);
-
+    UmicoDecisionResponse sendDecisionToUmico(@RequestBody UmicoDecisionRequest request,
+                                              @RequestHeader("ApiKey") String apiKey);
 
     class FeignConfiguration {
         @Bean
-        Logger.Level feignLoggerLevel() {
-            return Logger.Level.BASIC;
+        Logger.Level loggerLevel() {
+            return Logger.Level.FULL;
         }
 
         @Bean
-        public ErrorDecoder feignErrorDecoder() {
+        UmicoClientErrorDecoder errorDecoder() {
             return new UmicoClientErrorDecoder();
         }
     }
-
 }
