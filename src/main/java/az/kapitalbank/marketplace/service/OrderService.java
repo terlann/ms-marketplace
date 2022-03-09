@@ -123,6 +123,7 @@ public class OrderService {
         }
         return CreateOrderResponse.builder()
                 .trackId(trackId)
+                .openOtpPage(false)
                 .build();
     }
 
