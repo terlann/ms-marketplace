@@ -1,5 +1,9 @@
 package az.kapitalbank.marketplace.util;
 
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class MaskedMobileNum {
     public static String maskedMobNumber(String mobNumb) {
 
