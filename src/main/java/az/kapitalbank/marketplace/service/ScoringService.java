@@ -395,7 +395,7 @@ public class ScoringService {
         log.info("Create scoring process is started... trackId - {}", trackId);
         var createScoringRequest = CreateScoringRequest.builder()
                 .cardDemandedAmount(loanAmount.toString())
-                .nameOnCard(" ")
+                .nameOnCard("empty")
                 .customerDecision(CustomerDecision.CREATE_CREDIT)
                 .salesSource(ApplicationConstant.UMICO_MARKETPLACE)
                 .preApproval(false)
