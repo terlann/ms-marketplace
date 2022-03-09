@@ -163,8 +163,10 @@ class OtpServiceTest {
                 .build();
 
 
-        lenient().when(operationRepository.findById(UUID.fromString(TRACK_ID.getValue()))).thenReturn(Optional.of(operationEntity));
-        lenient().when(atlasClient.findAllByUID(CARD_UID.getValue(), "", "")).thenReturn(subscriptionResponse);
+        lenient().when(operationRepository.findById(UUID.fromString(TRACK_ID.getValue())))
+                .thenReturn(Optional.of(operationEntity));
+        lenient().when(atlasClient.findAllByUID(CARD_UID.getValue(), "", ""))
+                .thenReturn(subscriptionResponse);
         lenient().when(otpClient.verify(otpVerifyRequest)).thenReturn(verify);
         lenient().when(atlasClient.purchase(purchaseRequest)).thenReturn(purchaseResponse);
 
