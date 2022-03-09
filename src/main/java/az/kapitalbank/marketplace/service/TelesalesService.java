@@ -1,15 +1,11 @@
 package az.kapitalbank.marketplace.service;
 
 import java.util.Optional;
-import java.util.UUID;
-import java.util.stream.Collectors;
 
 import az.kapitalbank.marketplace.client.telesales.TelesalesClient;
-import az.kapitalbank.marketplace.constant.FraudMark;
-import az.kapitalbank.marketplace.entity.FraudEntity;
+import az.kapitalbank.marketplace.dto.LeadDto;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.mapper.TelesalesMapper;
-import az.kapitalbank.marketplace.repository.FraudRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -25,20 +21,17 @@ public class TelesalesService {
 
     TelesalesClient telesalesClient;
     TelesalesMapper telesalesMapper;
-    FraudRepository fraudRepository;
     OperationRepository operationRepository;
 
-    public Optional<String> sendLead(UUID trackId) {
+    public Optional<String> sendLead(LeadDto leadDto) {
+        var trackId = leadDto.getTrackId();
         log.info("Send lead to telesales is started... trackId - {}", trackId);
         try {
             var operationEntity = operationRepository.findById(trackId)
                     .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
-            var fraudReasons = fraudRepository.findByIdAndFraudMark(trackId, FraudMark.SUSPICIOUS)
-                    .stream()
-                    .map(FraudEntity::getFraudReason)
-                    .collect(Collectors.toList());
+            var fraudTypes = leadDto.getTypes();
             var createTelesalesOrderRequest = telesalesMapper
-                    .toTelesalesOrder(operationEntity, fraudReasons);
+                    .toTelesalesOrder(operationEntity, fraudTypes);
             var amountWithCommission = operationEntity.getTotalAmount().add(operationEntity.getCommission());
             createTelesalesOrderRequest.setLoanAmount(amountWithCommission);
             log.info("Send lead to telesales : request - {}", createTelesalesOrderRequest);

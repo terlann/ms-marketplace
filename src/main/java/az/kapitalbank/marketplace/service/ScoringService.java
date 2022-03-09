@@ -33,12 +33,14 @@ import az.kapitalbank.marketplace.constant.TaskDefinitionKey;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.CompleteScoring;
+import az.kapitalbank.marketplace.dto.LeadDto;
 import az.kapitalbank.marketplace.dto.request.TelesalesResultRequestDto;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.exception.OperationAlreadyScoredException;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.mapper.ScoringMapper;
+import az.kapitalbank.marketplace.mapper.TelesalesMapper;
 import az.kapitalbank.marketplace.messaging.event.BusinessErrorData;
 import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
 import az.kapitalbank.marketplace.messaging.event.InUserActivityData;
@@ -78,6 +80,7 @@ public class ScoringService {
     AtlasClient atlasClient;
     OptimusClient optimusClient;
     ScoringMapper scoringMapper;
+    TelesalesMapper telesalesMapper;
     TelesalesService telesalesService;
     CustomerRepository customerRepository;
     OperationRepository operationRepository;
@@ -167,9 +170,10 @@ public class ScoringService {
             return;
         }
 
-        if (fraudResultStatus == FraudResultStatus.SUSPICIOUS || fraudResultStatus == FraudResultStatus.WARNING) {
+        if (fraudResultStatus == FraudResultStatus.SUSPICIOUS) {
             log.warn("Fraud case was found in this operation. trackId - {}", trackId);
-            var telesalesOrderId = telesalesService.sendLead(trackId);
+            var leadDto = telesalesMapper.toLeadDto(fraudCheckResultEvent);
+            var telesalesOrderId = telesalesService.sendLead(leadDto);
             updateOperationTelesalesOrderId(trackId, telesalesOrderId);
             sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
             return;
@@ -180,7 +184,8 @@ public class ScoringService {
 
         var businessKey = startScoring(trackId, operationEntity.getPin(), operationEntity.getMobileNumber());
         if (businessKey.isEmpty()) {
-            var telesalesOrderId = telesalesService.sendLead(trackId);
+            var leadDto = telesalesMapper.toLeadDto(fraudCheckResultEvent);
+            var telesalesOrderId = telesalesService.sendLead(leadDto);
             updateOperationTelesalesOrderId(trackId, telesalesOrderId);
             sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
             return;
@@ -234,7 +239,8 @@ public class ScoringService {
                 if (scoredAmount.compareTo(selectedAmount) < 0) {
                     log.info("Start scoring result - No enough amount : selectedAmount - {}, scoredAmount - {}",
                             selectedAmount, scoredAmount);
-                    var telesalesOrderId = telesalesService.sendLead(trackId);
+                    var leadDto = LeadDto.builder().trackId(trackId).build();
+                    var telesalesOrderId = telesalesService.sendLead(leadDto);
                     updateOperationTelesalesOrderId(trackId, telesalesOrderId);
                     sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
                     return;
@@ -259,7 +265,8 @@ public class ScoringService {
                 } catch (DvsClientException e) {
                     log.info("Dvs client get details exception. trackId - {}, exception - {}",
                             trackId, e.getMessage());
-                    var telesalesOrderId = telesalesService.sendLead(trackId);
+                    var leadDto = LeadDto.builder().trackId(trackId).build();
+                    var telesalesOrderId = telesalesService.sendLead(leadDto);
                     updateOperationTelesalesOrderId(trackId, telesalesOrderId);
                     if (operationEntity.getTaskId() != null && operationEntity.getLoanContractDeletedAt() == null) {
                         operationEntity.setLoanContractDeletedAt(LocalDateTime.now());
@@ -344,7 +351,8 @@ public class ScoringService {
         }
         var trackId = operationEntity.getId();
         var businessKey = operationEntity.getBusinessKey();
-        var telesalesOrderId = telesalesService.sendLead(trackId);
+        var leadDto = LeadDto.builder().trackId(trackId).build();
+        var telesalesOrderId = telesalesService.sendLead(leadDto);
         updateOperationTelesalesOrderId(trackId, telesalesOrderId);
         if (operationEntity.getTaskId() != null && operationEntity.getLoanContractDeletedAt() == null) {
             operationEntity.setLoanContractDeletedAt(LocalDateTime.now());
@@ -400,7 +408,8 @@ public class ScoringService {
             log.error("Create scoring process was finished unsuccessfully... trackId - {},FeignException - {}",
                     trackId,
                     e.getMessage());
-            var telesalesOrderId = telesalesService.sendLead(trackId);
+            var leadDto = LeadDto.builder().trackId(trackId).build();
+            var telesalesOrderId = telesalesService.sendLead(leadDto);
             updateOperationTelesalesOrderId(trackId, telesalesOrderId);
             sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
         }
@@ -424,7 +433,8 @@ public class ScoringService {
             optimusClient.scoringComplete(completeScoring.getTaskId(), completeScoringRequest);
             log.info("Complete scoring process was finished successfully... trackId - {}", trackId);
         } catch (OptimusClientException e) {
-            var telesalesOrderId = telesalesService.sendLead(trackId);
+            var leadDto = LeadDto.builder().trackId(trackId).build();
+            var telesalesOrderId = telesalesService.sendLead(leadDto);
             updateOperationTelesalesOrderId(trackId, telesalesOrderId);
             sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
             log.error("Complete scoring process was finished unsuccessfully...trackId - {},FeignException - {}",
@@ -441,7 +451,8 @@ public class ScoringService {
                     trackId, processResponse);
             return Optional.of(processResponse);
         } catch (OptimusClientException f) {
-            var telesalesOrderId = telesalesService.sendLead(trackId);
+            var leadDto = LeadDto.builder().trackId(trackId).build();
+            var telesalesOrderId = telesalesService.sendLead(leadDto);
             updateOperationTelesalesOrderId(trackId, telesalesOrderId);
             sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
             log.error("Get process scoring process was finished unsuccessfully." +

@@ -25,7 +25,8 @@ public enum Error {
     UNIQUE_PHONE_NUMBER("E112", "Additional numbers must be different"),
     ORDER_NOT_LINKED_TO_CUSTOMER("E113", "Order is not linked to customer"),
     NO_PERMISSION("E114", "No permission reverse/purchase"),
-    ATLAS_EXCEPTION("E115", "Exception in Complete");
+    ATLAS_EXCEPTION("E115", "Exception in Complete"),
+    OTP_EXCEPTION("E116","OTP Error Ocurred");
 
     String code;
     String message;
