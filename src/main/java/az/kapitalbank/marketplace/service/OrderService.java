@@ -112,28 +112,7 @@ public class OrderService {
 
         var trackId = operationEntity.getId();
         if (customerId != null && customerEntity.getCompleteProcessDate() != null) {
-            var purchasedOrders = new ArrayList<OrderEntity>();
-            var cardUid = customerEntity.getCardId();
-            for (var orderEntity : orderEntities) {
-                var rrn = GenerateUtil.rrn();
-                var purchaseRequest = PurchaseRequest.builder()
-                        .rrn(rrn)
-                        .amount(orderEntity.getTotalAmount().add(orderEntity.getCommission()))
-                        .description("fee=" + orderEntity.getCommission())
-                        .currency(Currency.AZN.getCode())
-                        .terminalName(terminalName)
-                        .uid(cardUid)
-                        .build();
-                var purchaseResponse = atlasClient.purchase(purchaseRequest);
-                orderEntity.setRrn(rrn);
-                orderEntity.setTransactionId(purchaseResponse.getId());
-                orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
-                orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
-                purchasedOrders.add(orderEntity);
-            }
-            orderRepository.saveAll(purchasedOrders);
-            log.info("Regular order was created with purchase. customerId - {}, trackId - {}",
-                    customerEntity.getId(), trackId);
+            // TODO: what we send umico
         } else {
             var fraudCheckEvent = createOrderMapper.toOrderEvent(request);
             fraudCheckEvent.setTrackId(trackId);
