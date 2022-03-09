@@ -4,13 +4,13 @@ import java.util.ArrayList;
 import java.util.UUID;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
+import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.otp.OtpClient;
 import az.kapitalbank.marketplace.client.otp.exception.OtpClientException;
 import az.kapitalbank.marketplace.client.otp.model.ChannelRequest;
 import az.kapitalbank.marketplace.client.otp.model.OtpVerifyRequest;
 import az.kapitalbank.marketplace.client.otp.model.OtpVerifyResponse;
-import org.springframework.beans.factory.annotation.Value;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpRequest;
 import az.kapitalbank.marketplace.constant.Currency;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
@@ -30,6 +30,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -62,7 +63,6 @@ public class OtpService {
     }
 
     public OtpVerifyResponseDto verify(OtpVerifyRequestDto request) {
-
         var operationEntity = operationRepository.findById(request.getTrackId())
                 .orElseThrow(() -> new OperationNotFoundException("trackId: " + request.getTrackId()));
         var customerEntity = operationEntity.getCustomer();
@@ -90,21 +90,40 @@ public class OtpService {
             var purchasedOrders = new ArrayList<OrderEntity>();
             var cardUid = customerEntity.getCardId();
             for (var orderEntity : orderEntities) {
-                var rrn = GenerateUtil.rrn();
-                var purchaseRequest = PurchaseRequest.builder()
-                        .rrn(rrn)
-                        .amount(orderEntity.getTotalAmount().add(orderEntity.getCommission()))
-                        .description("fee=" + orderEntity.getCommission())
-                        .currency(Currency.AZN.getCode())
-                        .terminalName(terminalName)
-                        .uid(cardUid)
-                        .build();
-                var purchaseResponse = atlasClient.purchase(purchaseRequest);
-                orderEntity.setRrn(rrn);
-                orderEntity.setTransactionId(purchaseResponse.getId());
-                orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
-                orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
-                purchasedOrders.add(orderEntity);
+                if (orderEntity.getTransactionStatus() == TransactionStatus.FAIL_IN_PURCHASE ||
+                        orderEntity.getTransactionStatus() == null) {
+                    var rrn = GenerateUtil.rrn();
+                    var purchaseRequest = PurchaseRequest.builder()
+                            .rrn(rrn)
+                            .amount(orderEntity.getTotalAmount().add(orderEntity.getCommission()))
+                            .description("fee=" + orderEntity.getCommission())
+                            .currency(Currency.AZN.getCode())
+                            .terminalName(terminalName)
+                            .uid(cardUid)
+                            .build();
+                    try {
+                        var purchaseResponse = atlasClient.purchase(purchaseRequest);
+                        orderEntity.setRrn(rrn);
+                        orderEntity.setTransactionId(purchaseResponse.getId());
+                        orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
+                        orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
+                        purchasedOrders.add(orderEntity);
+                    } catch (AtlasClientException ex) {
+                        orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_PURCHASE);
+                        orderEntity.setTransactionError(ex.getMessage());
+                        log.error("Atlas purchase process was failed. orderNo - {}", orderEntity.getOrderNo());
+                        String errorMessager = "Atlas Exception: UUID - %s  ,  code - %s, message - %s";
+                        log.error(String.format(errorMessager,
+                                ex.getUuid(),
+                                ex.getCode(),
+                                ex.getMessage()));
+                        return OtpVerifyResponseDto.builder()
+                                .trackId(request.getTrackId())
+                                .status(TransactionStatus.FAIL_IN_PURCHASE.toString())
+                                .build();
+                    }
+
+                }
             }
             orderRepository.saveAll(purchasedOrders);
             log.info("Regular order was created with purchase. customerId - {}, trackId - {}",

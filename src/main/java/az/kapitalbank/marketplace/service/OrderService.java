@@ -109,17 +109,21 @@ public class OrderService {
         operationEntity.setCommission(operationCommission);
         operationEntity.setOrders(orderEntities);
         operationEntity = operationRepository.save(operationEntity);
-
         var trackId = operationEntity.getId();
         if (customerId != null && customerEntity.getCompleteProcessDate() != null) {
-            // TODO: what we send umico
+            return CreateOrderResponse.builder()
+                    .trackId(trackId)
+                    .openOtpPage(true)
+                    .build();
         } else {
             var fraudCheckEvent = createOrderMapper.toOrderEvent(request);
             fraudCheckEvent.setTrackId(trackId);
             customerOrderProducer.sendMessage(fraudCheckEvent);
             log.info("New customer started process. customerId - {}, trackId - {}", customerEntity.getId(), trackId);
         }
-        return CreateOrderResponse.of(trackId);
+        return CreateOrderResponse.builder()
+                .trackId(trackId)
+                .build();
     }
 
     private CustomerEntity getCustomerEntity(CreateOrderRequestDto request, UUID customerId) {
