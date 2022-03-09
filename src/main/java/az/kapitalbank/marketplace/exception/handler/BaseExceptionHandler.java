@@ -5,6 +5,7 @@ import java.util.Map;
 
 import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
 import az.kapitalbank.marketplace.client.integration.exception.IamasClientException;
+import az.kapitalbank.marketplace.client.otp.exception.OtpClientException;
 import az.kapitalbank.marketplace.constant.Error;
 import az.kapitalbank.marketplace.dto.ErrorResponseDto;
 import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
@@ -154,6 +155,13 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
     public ResponseEntity<ErrorResponseDto> orderMustNotCompleteException(NoPermissionForTransaction ex) {
         log.error(ex.getMessage());
         var errorResponseDto = new ErrorResponseDto(Error.NO_PERMISSION);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(OtpClientException.class)
+    public ResponseEntity<ErrorResponseDto> otpException(OtpClientException ex) {
+        log.error(ex.getMessage());
+        var errorResponseDto = new ErrorResponseDto(Error.OTP_EXCEPTION);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 }
