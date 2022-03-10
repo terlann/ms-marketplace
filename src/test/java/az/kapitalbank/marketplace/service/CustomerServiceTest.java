@@ -40,7 +40,7 @@ class CustomerServiceTest {
     private IamasClient iamasClient;
 
     @InjectMocks
-    CustomerService onlineQueueService;
+    CustomerService customerService;
 
     @Test
     void checkPerson() {
@@ -56,7 +56,7 @@ class CustomerServiceTest {
                 .build();
         var iamasResponses = List.of(iamasResponse);
         when(iamasClient.findPersonByPin(pin)).thenReturn(iamasResponses);
-        onlineQueueService.checkPerson(pin);
+        customerService.checkPerson(pin);
         verify(iamasClient).findPersonByPin(pin);
     }
 
@@ -87,7 +87,7 @@ class CustomerServiceTest {
                 .loanUtilized(BigDecimal.valueOf(500))
                 .availableBalance(BigDecimal.valueOf(500))
                 .build();
-        var actual = onlineQueueService.getBalance(umicoUserId, customerId);
+        var actual = customerService.getBalance(umicoUserId, customerId);
         assertEquals(expected, actual);
 
     }
@@ -115,7 +115,7 @@ class CustomerServiceTest {
                 .loanUtilized(BigDecimal.ZERO)
                 .availableBalance(BigDecimal.ZERO)
                 .build();
-        var actual = onlineQueueService.getBalance(umicoUserId, customerId);
+        var actual = customerService.getBalance(umicoUserId, customerId);
         assertEquals(expected, actual);
 
     }
