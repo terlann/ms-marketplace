@@ -88,7 +88,7 @@ public class OtpService {
             log.info("Purchase process began. TrackId: " + request.getTrackId());
             var orderEntities = operationEntity.getOrders();
             var purchasedOrders = new ArrayList<OrderEntity>();
-            var cardUid = customerEntity.getCardId();
+            var cardUid = customerEntity.getUid();
             for (var orderEntity : orderEntities) {
                 var rrn = GenerateUtil.rrn();
                 var purchaseRequest = PurchaseRequest.builder()
@@ -118,7 +118,7 @@ public class OtpService {
         log.info("get mobile number: " + trackId);
         var operationEntity = operationRepository.findById(trackId)
                 .orElseThrow(() -> new OperationNotFoundException("trackId: " + trackId));
-        var cardUid = operationEntity.getCustomer().getCardId();
+        var cardUid = operationEntity.getCustomer().getUid();
         log.info("Card UUID: " + cardUid);
         var subscriptionResponse = atlasClient.findAllByUID(cardUid, "", "");
         return subscriptionResponse.getSubscriptions().stream()

@@ -101,7 +101,7 @@ public class ScoringService {
             operationEntity.setLoanContractStartDate(request.getLoanContractStartDate());
             operationEntity.setLoanContractEndDate(request.getLoanContractEndDate());
             var customerEntity = operationEntity.getCustomer();
-            customerEntity.setCardId(request.getUid());
+            customerEntity.setUid(request.getUid());
             customerEntity.setCompleteProcessDate(LocalDateTime.now());
             operationEntity.setCustomer(customerEntity);
         } else {
@@ -118,7 +118,7 @@ public class ScoringService {
                     .description("fee=" + orderEntity.getCommission())
                     .currency(Currency.AZN.getCode())
                     .terminalName(terminalName)
-                    .uid(operationEntity.getCustomer().getCardId())
+                    .uid(operationEntity.getCustomer().getUid())
                     .build();
             var purchaseResponse = atlasClient.purchase(purchaseRequest);
             orderEntity.setRrn(rrn);
@@ -288,7 +288,7 @@ public class ScoringService {
         var processVariableResponse = optimusClient.getProcessVariable(operationEntity.getBusinessKey(),
                 "pan");
         var customerEntity = operationEntity.getCustomer();
-        customerEntity.setCardId(processVariableResponse.getUid());
+        customerEntity.setUid(processVariableResponse.getUid());
         customerRepository.save(customerEntity);
         var orders = operationEntity.getOrders();
         var customer = operationEntity.getCustomer();
@@ -300,7 +300,7 @@ public class ScoringService {
                     .description("fee=" + order.getCommission())
                     .currency(Currency.AZN.getCode())
                     .terminalName(terminalName)
-                    .uid(customer.getCardId())
+                    .uid(customer.getUid())
                     .build();
             var purchaseResponse = atlasClient.purchase(purchaseRequest);
 
