@@ -98,8 +98,8 @@ public class ScoringService {
         if (request.getScoringStatus() == ScoringStatus.APPROVED) {
             operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
             operationEntity.setScoringStatus(ScoringStatus.APPROVED);
-            operationEntity.setLoanContractStartDate(request.getLoanStartDate());
-            operationEntity.setLoanContractEndDate(request.getLoanEndDate());
+            operationEntity.setLoanContractStartDate(request.getLoanContractStartDate());
+            operationEntity.setLoanContractEndDate(request.getLoanContractEndDate());
             var customerEntity = operationEntity.getCustomer();
             customerEntity.setCardId(request.getUid());
             customerEntity.setCompleteProcessDate(LocalDateTime.now());
