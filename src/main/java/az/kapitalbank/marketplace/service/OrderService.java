@@ -193,9 +193,9 @@ public class OrderService {
 
         for (var order : orders) {
             var transactionStatus = order.getTransactionStatus();
-            if (transactionStatus == TransactionStatus.PURCHASE ||
-                    transactionStatus == TransactionStatus.FAIL_IN_REVERSE ||
-                    transactionStatus == TransactionStatus.FAIL_IN_COMPLETE) {
+            if (transactionStatus == TransactionStatus.PURCHASE
+                    || transactionStatus == TransactionStatus.FAIL_IN_REVERSE
+                    || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE) {
                 var purchaseResponseDto = new PurchaseResponseDto();
                 var amount = order.getTotalAmount();
                 var commission = order.getCommission();
@@ -212,7 +212,8 @@ public class OrderService {
                         .installments(order.getOperation().getLoanTerm())
                         .build();
                 try {
-                    var purchaseCompleteResponse = atlasClient.complete(purchaseCompleteRequest);
+                    var purchaseCompleteResponse = atlasClient
+                            .complete(purchaseCompleteRequest);
                     var transactionId = purchaseCompleteResponse.getId();
                     order.setTransactionId(transactionId);
                     order.setRrn(rrn);
@@ -248,9 +249,9 @@ public class OrderService {
         var orderEntity = orderRepository.findByOrderNo(orderNo)
                 .orElseThrow(() -> new OrderNotFoundException("orderNo - " + orderNo));
         var transactionStatus = orderEntity.getTransactionStatus();
-        if (transactionStatus == TransactionStatus.PURCHASE ||
-                transactionStatus == TransactionStatus.FAIL_IN_REVERSE ||
-                transactionStatus == TransactionStatus.FAIL_IN_COMPLETE) {
+        if (transactionStatus == TransactionStatus.PURCHASE
+                || transactionStatus == TransactionStatus.FAIL_IN_REVERSE
+                || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE) {
             var customerEntity = orderEntity.getOperation().getCustomer();
             if (!customerEntity.getId().equals(request.getCustomerId())) {
                 throw new OrderNotLinkedToCustomer(
@@ -285,8 +286,8 @@ public class OrderService {
             return purchaseResponse;
         }
         throw new NoPermissionForTransaction(
-                "orderNo- " + orderEntity.getId() + " transactionStatus- " +
-                        orderEntity.getTransactionStatus());
+                "orderNo- " + orderEntity.getId() + " transactionStatus- "
+                        + orderEntity.getTransactionStatus());
     }
 
 

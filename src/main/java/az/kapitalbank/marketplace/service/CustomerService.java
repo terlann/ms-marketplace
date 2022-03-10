@@ -48,15 +48,15 @@ public class CustomerService {
         if (!customerEntity.getUmicoUserId().equals(umicoUserId)) {
             throw new UmicoUserNotFoundException("umicoUserId - " + umicoUserId);
         }
-        var cardUUID = customerEntity.getCardId();
-        var cardDetailResponse = atlasClient.findCardByUid(cardUUID, ResultType.ACCOUNT);
+        var cardUUid = customerEntity.getCardId();
+        var cardDetailResponse = atlasClient.findCardByUid(cardUUid, ResultType.ACCOUNT);
 
         var primaryAccount = cardDetailResponse.getAccounts()
                 .stream()
                 .filter(x -> x.getStatus() == AccountStatus.OPEN_PRIMARY)
                 .findFirst();
         if (primaryAccount.isEmpty()) {
-            log.error("Account not found in open primary status.cardId - {}", cardUUID);
+            log.error("Account not found in open primary status.cardId - {}", cardUUid);
             return BalanceResponseDto.builder()
                     .loanUtilized(BigDecimal.ZERO)
                     .availableBalance(BigDecimal.ZERO)

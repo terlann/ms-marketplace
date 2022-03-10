@@ -38,13 +38,15 @@ public class TelesalesService {
             var createTelesalesOrderResponse =
                     telesalesClient.sendLead(createTelesalesOrderRequest);
             log.info(
-                    "Send lead to telesales was finished successfully... trackId -{}, Response - {}",
+                    "Send lead to telesales was finished successfully..."
+                            + " trackId -{}, Response - {}",
                     trackId,
                     createTelesalesOrderResponse);
             return Optional.of(createTelesalesOrderResponse.getOperationId());
         } catch (Exception e) {
             log.error(
-                    "Send lead to telesales was finished unsuccessfully. trackId -{}, Exception - {}",
+                    "Send lead to telesales was finished unsuccessfully."
+                            + " trackId -{}, Exception - {}",
                     trackId, e.getMessage());
             return Optional.empty();
         }

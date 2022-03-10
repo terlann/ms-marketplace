@@ -7,10 +7,9 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
-@Mapper(componentModel = "spring",
-        unmappedSourcePolicy = ReportingPolicy.IGNORE,
+@Mapper(componentModel = "spring",unmappedSourcePolicy = ReportingPolicy.IGNORE,
         unmappedTargetPolicy = ReportingPolicy.IGNORE,
-        uses = {CreateOrderQualifier.class})
+        uses = CreateOrderQualifier.class)
 public interface CreateOrderMapper {
 
     @Mapping(source = "customerInfo.umicoUserId", target = "umicoUserId")

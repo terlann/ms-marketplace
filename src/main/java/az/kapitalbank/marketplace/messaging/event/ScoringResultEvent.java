@@ -15,7 +15,8 @@ public class ScoringResultEvent {
     String username;
     String messageType;
 
-    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "processStatus", include = JsonTypeInfo.As.EXTERNAL_PROPERTY)
+    @JsonTypeInfo(use = JsonTypeInfo.Id.NAME,
+            property = "processStatus", include = JsonTypeInfo.As.EXTERNAL_PROPERTY)
     @JsonSubTypes(value = {
             @JsonSubTypes.Type(value = String.class, name = "COMPLETED"),
             @JsonSubTypes.Type(value = String.class, name = "INCIDENT_HAPPENED"),

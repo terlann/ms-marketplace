@@ -123,10 +123,11 @@ public class OtpService {
                 .orElseThrow(() -> new OperationNotFoundException("trackId: " + trackId));
         var cardUid = operationEntity.getCustomer().getCardId();
         log.info("Card UUID: " + cardUid);
-        var subscriptionResponse = atlasClient.findAllByUid(cardUid, "", "");
+        var subscriptionResponse = atlasClient
+                .findAllByUid(cardUid, "", "");
         return subscriptionResponse.getSubscriptions().stream()
-                .filter(subscription -> subscription.getChannel().equals("SMPP_ALL") &&
-                        subscription.getSchema().contains("3DS")).findFirst()
+                .filter(subscription -> subscription.getChannel().equals("SMPP_ALL")
+                        && subscription.getSchema().contains("3DS")).findFirst()
                 .orElseThrow(() -> new SubscriptionNotFoundException("CardUID: " + cardUid))
                 .getAddress();
     }

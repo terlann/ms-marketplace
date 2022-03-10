@@ -15,7 +15,7 @@ import org.mapstruct.ReportingPolicy;
 @Mapper(componentModel = "spring",
         unmappedSourcePolicy = ReportingPolicy.IGNORE,
         unmappedTargetPolicy = ReportingPolicy.IGNORE,
-        uses = {TelesalesQualifier.class})
+        uses = TelesalesQualifier.class)
 public interface TelesalesMapper {
 
     @Mapping(source = "operationEntity.fullName", target = "fullNameIamas")

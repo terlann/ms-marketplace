@@ -40,8 +40,8 @@ public class FraudCheckSender {
                     log.info("Fraud check was produced. Message - {}", jsonMessage);
                     fraudCheckEventLinkedList.poll();
                     return jsonMessage;
-                } catch (JsonProcessingException j) {
-                    log.info("Fraud check producer. JsonProcessingException - {}", j.getMessage());
+                } catch (JsonProcessingException ex) {
+                    log.info("Fraud check producer. JsonProcessingException - {}", ex.getMessage());
                 }
             }
             return null;
