@@ -22,6 +22,5 @@ public class TelesalesResultRequestDto {
     @NotNull
     LocalDate loanEndDate;
     @NotBlank
-    @Size(min = 16, max = 16)
     String uid;
 }
