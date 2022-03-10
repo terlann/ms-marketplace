@@ -1,6 +1,5 @@
 package az.kapitalbank.marketplace.client.otp;
 
-import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
 import az.kapitalbank.marketplace.client.otp.exception.OtpClientException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.Response;

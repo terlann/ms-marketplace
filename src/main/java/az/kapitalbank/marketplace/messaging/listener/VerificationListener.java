@@ -68,7 +68,7 @@ public class VerificationListener {
                                         .build();
                                 log.info("Verification status result. Send decision request - {}",
                                         umicoPendingDecisionRequest);
-//                                umicoClient.sendDecisionToUmico(umicoPendingDecisionRequest, apiKey);
+                                umicoClient.sendDecisionToUmico(umicoPendingDecisionRequest, apiKey);
                                 log.info("Verification status sent to umico like PENDING.");
                                 operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.PENDING);
                                 operationEntity.setDvsOrderStatus(DvsStatus.PENDING);
@@ -83,7 +83,7 @@ public class VerificationListener {
                                         .build();
                                 log.info("Verification status result. Send decision request - {}",
                                         umicoRejectedDecisionRequest);
-                                //umicoClient.sendDecisionToUmico(umicoRejectedDecisionRequest, apiKey);
+                                umicoClient.sendDecisionToUmico(umicoRejectedDecisionRequest, apiKey);
                                 log.info("Verification status sent to umico like REJECTED. trackId - {}",
                                         operationEntity.getId());
                                 operationEntity.setDvsOrderStatus(DvsStatus.REJECTED);

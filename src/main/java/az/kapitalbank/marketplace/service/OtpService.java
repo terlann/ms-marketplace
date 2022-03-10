@@ -10,7 +10,6 @@ import az.kapitalbank.marketplace.client.otp.exception.OtpClientException;
 import az.kapitalbank.marketplace.client.otp.model.ChannelRequest;
 import az.kapitalbank.marketplace.client.otp.model.OtpVerifyRequest;
 import az.kapitalbank.marketplace.client.otp.model.OtpVerifyResponse;
-import org.springframework.beans.factory.annotation.Value;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpRequest;
 import az.kapitalbank.marketplace.constant.Currency;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
@@ -30,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Slf4j

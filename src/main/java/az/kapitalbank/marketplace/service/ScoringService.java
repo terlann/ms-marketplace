@@ -101,8 +101,7 @@ public class ScoringService {
             operationEntity.setLoanContractStartDate(request.getLoanStartDate());
             operationEntity.setLoanContractEndDate(request.getLoanEndDate());
             var customerEntity = operationEntity.getCustomer();
-            var cardUid = atlasClient.findByPan(request.getPan()).getUid();
-            customerEntity.setCardId(cardUid);
+            customerEntity.setCardId(request.getUid());
             customerEntity.setCompleteProcessDate(LocalDateTime.now());
             operationEntity.setCustomer(customerEntity);
         } else {
@@ -286,13 +285,10 @@ public class ScoringService {
 
     private void scoringCompletedProcess(OperationEntity operationEntity) {
         log.info("Complete scoring result...");
-        var cardPan = optimusClient.getProcessVariable(operationEntity.getBusinessKey(),
+        var processVariableResponse = optimusClient.getProcessVariable(operationEntity.getBusinessKey(),
                 "pan");
-        var cardId = atlasClient.findByPan(cardPan).getUid();
-        log.info("Pan was taken and changed to card uid.Purchase process starts. cardId - {}",
-                cardId);
         var customerEntity = operationEntity.getCustomer();
-        customerEntity.setCardId(cardId);
+        customerEntity.setCardId(processVariableResponse.getUid());
         customerRepository.save(customerEntity);
         var orders = operationEntity.getOrders();
         var customer = operationEntity.getCustomer();
@@ -336,7 +332,7 @@ public class ScoringService {
                 .build();
         log.info("Scoring complete result. Send decision request - {}",
                 umicoApprovedDecisionRequest);
-//                umicoClient.sendDecisionToUmico(umicoApprovedDecisionRequest, apiKey);
+        umicoClient.sendDecisionToUmico(umicoApprovedDecisionRequest, apiKey);
         log.info("Order Dvs status sent to umico like APPROVED. trackId - {}",
                 operationEntity.getId());
     }

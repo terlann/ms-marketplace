@@ -4,7 +4,6 @@ import az.kapitalbank.marketplace.client.otp.model.OtpVerifyRequest;
 import az.kapitalbank.marketplace.client.otp.model.OtpVerifyResponse;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpRequest;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpResponse;
-import az.kapitalbank.marketplace.client.telesales.TelesalesClientErrorDecoder;
 import feign.Logger;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.context.annotation.Bean;

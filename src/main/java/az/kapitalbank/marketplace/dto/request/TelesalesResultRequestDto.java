@@ -23,5 +23,5 @@ public class TelesalesResultRequestDto {
     LocalDate loanEndDate;
     @NotBlank
     @Size(min = 16, max = 16)
-    String pan;
+    String uid;
 }
