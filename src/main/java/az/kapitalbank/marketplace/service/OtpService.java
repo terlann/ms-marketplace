@@ -14,6 +14,8 @@ import az.kapitalbank.marketplace.dto.request.OtpVerifyRequestDto;
 import az.kapitalbank.marketplace.dto.request.SendOtpRequestDto;
 import az.kapitalbank.marketplace.dto.response.OtpVerifyResponseDto;
 import az.kapitalbank.marketplace.dto.response.SendOtpResponseDto;
+import az.kapitalbank.marketplace.entity.CustomerEntity;
+import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.SubscriptionNotFoundException;
@@ -62,7 +64,6 @@ public class OtpService {
     }
 
     public OtpVerifyResponseDto verify(OtpVerifyRequestDto request) {
-
         var operationEntity = operationRepository.findById(request.getTrackId())
                 .orElseThrow(
                         () -> new OperationNotFoundException("trackId: " + request.getTrackId()));
@@ -80,7 +81,7 @@ public class OtpService {
             log.info("Verifed OTP Response: - " + verify.getStatus());
         } catch (OtpClientException ex) {
             String message =
-                    String.format("message: {} , detail: {} " + ex.getMessage(), ex.getDetail());
+                    String.format("message: {} , detail: {} ", ex.getMessage(), ex.getDetail());
             log.info("OTP Verify Client Exception: - " + message);
             return OtpVerifyResponseDto.builder()
                     .status(message)
@@ -88,33 +89,39 @@ public class OtpService {
                     .build();
         }
         if (verify.getStatus().equalsIgnoreCase("success")) {
-            log.info("Purchase process began. TrackId: " + request.getTrackId());
-            var orderEntities = operationEntity.getOrders();
-            var purchasedOrders = new ArrayList<OrderEntity>();
-            var cardUid = customerEntity.getCardId();
-            for (var orderEntity : orderEntities) {
-                var rrn = GenerateUtil.rrn();
-                var purchaseRequest = PurchaseRequest.builder()
-                        .rrn(rrn)
-                        .amount(orderEntity.getTotalAmount().add(orderEntity.getCommission()))
-                        .description("fee=" + orderEntity.getCommission())
-                        .currency(Currency.AZN.getCode())
-                        .terminalName(terminalName)
-                        .uid(cardUid)
-                        .build();
-                var purchaseResponse = atlasClient.purchase(purchaseRequest);
-                orderEntity.setRrn(rrn);
-                orderEntity.setTransactionId(purchaseResponse.getId());
-                orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
-                orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
-                purchasedOrders.add(orderEntity);
-            }
-            orderRepository.saveAll(purchasedOrders);
-            log.info("Regular order was created with purchase. customerId - {}, trackId - {}",
-                    customerEntity.getId(), request.getTrackId());
+            prePurchaseOrder(operationEntity, customerEntity);
+
         }
 
         return new OtpVerifyResponseDto(request.getTrackId(), verify.getStatus());
+    }
+
+    private void prePurchaseOrder(OperationEntity operationEntity, CustomerEntity customerEntity) {
+        log.info("Purchase process began. TrackId: " + operationEntity.getId());
+
+        var orderEntities = operationEntity.getOrders();
+        var purchasedOrders = new ArrayList<OrderEntity>();
+        var cardUid = customerEntity.getCardId();
+        for (var orderEntity : orderEntities) {
+            var rrn = GenerateUtil.rrn();
+            var purchaseRequest = PurchaseRequest.builder()
+                    .rrn(rrn)
+                    .amount(orderEntity.getTotalAmount().add(orderEntity.getCommission()))
+                    .description("fee=" + orderEntity.getCommission())
+                    .currency(Currency.AZN.getCode())
+                    .terminalName(terminalName)
+                    .uid(cardUid)
+                    .build();
+            var purchaseResponse = atlasClient.purchase(purchaseRequest);
+            orderEntity.setRrn(rrn);
+            orderEntity.setTransactionId(purchaseResponse.getId());
+            orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
+            orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
+            purchasedOrders.add(orderEntity);
+        }
+        orderRepository.saveAll(purchasedOrders);
+        log.info("Regular order was created with purchase. customerId - {}, trackId - {}",
+                customerEntity.getId(), operationEntity.getId());
     }
 
     private String getMobileNumber(UUID trackId) {

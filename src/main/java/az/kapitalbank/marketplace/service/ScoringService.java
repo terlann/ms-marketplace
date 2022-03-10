@@ -28,6 +28,7 @@ import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.CompleteScoring;
 import az.kapitalbank.marketplace.dto.LeadDto;
 import az.kapitalbank.marketplace.dto.request.TelesalesResultRequestDto;
+import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.exception.OperationAlreadyScoredException;
@@ -84,10 +85,37 @@ public class ScoringService {
     CustomerRepository customerRepository;
     OperationRepository operationRepository;
 
-    /* Optimus call this */
     public void telesalesResult(TelesalesResultRequestDto request) {
         var telesalesOrderId = request.getTelesalesOrderId().trim();
         log.info("telesales loan result is started... request - {}", request);
+        OperationEntity operationEntity =
+                updateOperationEntityforTelesalesResult(request, telesalesOrderId);
+
+        var orderEntities = new ArrayList<OrderEntity>();
+        for (var orderEntity : operationEntity.getOrders()) {
+            var rrn = GenerateUtil.rrn();
+            var purchaseRequest = PurchaseRequest.builder().rrn(rrn)
+                    .amount(orderEntity.getTotalAmount().add(orderEntity.getCommission()))
+                    .description("fee=" + orderEntity.getCommission())
+                    .currency(Currency.AZN.getCode()).terminalName(terminalName)
+                    .uid(operationEntity.getCustomer().getCardId()).build();
+            var purchaseResponse = atlasClient.purchase(purchaseRequest);
+            orderEntity.setRrn(rrn);
+            orderEntity.setTransactionId(purchaseResponse.getId());
+            orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
+            orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
+            orderEntities.add(orderEntity);
+        }
+        operationEntity.setOrders(orderEntities);
+        operationEntity = operationRepository.save(operationEntity);
+
+        sendDecisionStatus(operationEntity);
+        log.info("telesales loan result was finished... telesalesOrderId - {}", telesalesOrderId);
+    }
+
+    private OperationEntity updateOperationEntityforTelesalesResult(
+            TelesalesResultRequestDto request,
+            String telesalesOrderId) {
         var operationEntity = operationRepository.findByTelesalesOrderId(telesalesOrderId)
                 .orElseThrow(() -> new OperationNotFoundException(
                         "telesalesOrderId - " + telesalesOrderId));
@@ -110,27 +138,7 @@ public class ScoringService {
             operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
             operationEntity.setScoringStatus(ScoringStatus.REJECTED);
         }
-
-        var orderEntities = new ArrayList<OrderEntity>();
-        for (var orderEntity : operationEntity.getOrders()) {
-            var rrn = GenerateUtil.rrn();
-            var purchaseRequest = PurchaseRequest.builder().rrn(rrn)
-                    .amount(orderEntity.getTotalAmount().add(orderEntity.getCommission()))
-                    .description("fee=" + orderEntity.getCommission())
-                    .currency(Currency.AZN.getCode()).terminalName(terminalName)
-                    .uid(operationEntity.getCustomer().getCardId()).build();
-            var purchaseResponse = atlasClient.purchase(purchaseRequest);
-            orderEntity.setRrn(rrn);
-            orderEntity.setTransactionId(purchaseResponse.getId());
-            orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
-            orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
-            orderEntities.add(orderEntity);
-        }
-        operationEntity.setOrders(orderEntities);
-        operationEntity = operationRepository.save(operationEntity);
-
-        sendDecisionStatus(operationEntity);
-        log.info("telesales loan result was finished... telesalesOrderId - {}", telesalesOrderId);
+        return operationEntity;
     }
 
     private void sendDecisionStatus(OperationEntity operationEntity) {
@@ -177,6 +185,11 @@ public class ScoringService {
             return;
         }
 
+        noFraudDetectedBehavior(fraudCheckResultEvent, trackId);
+    }
+
+    private void noFraudDetectedBehavior(FraudCheckResultEvent fraudCheckResultEvent,
+                                         UUID trackId) {
         var operationEntity = operationRepository.findById(trackId)
                 .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
 
@@ -228,64 +241,83 @@ public class ScoringService {
             var taskDefinitionKey = inUserActivityData.getTaskDefinitionKey();
 
             if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SCORING.name())) {
-                log.info("Start scoring result...");
-                var scoredAmount =
-                        processResponse.get().getVariables().getSelectedOffer().getCardOffer()
-                                .getAvailableLoanAmount();
-                var selectedAmount =
-                        operationEntity.getTotalAmount().add(operationEntity.getCommission());
-                if (scoredAmount.compareTo(selectedAmount) < 0) {
-                    log.info("Start scoring result - No enough amount : selectedAmount - {},"
-                            + " scoredAmount - {}", selectedAmount, scoredAmount);
-                    var leadDto = LeadDto.builder().trackId(trackId).build();
-                    var telesalesOrderId = telesalesService.sendLead(leadDto);
-                    updateOperationTelesalesOrderId(trackId, telesalesOrderId);
-                    sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
-                    return;
-                }
-                operationEntity.setTaskId(taskId);
-                operationRepository.save(operationEntity);
-                createScoring(trackId, taskId, scoredAmount);
+                userTaskScoringProcess(operationEntity, trackId, processResponse, taskId);
             } else if (taskDefinitionKey.equalsIgnoreCase(
                     TaskDefinitionKey.USER_TASK_SIGN_DOCUMENTS.name())) {
-                log.info("Create scoring result...");
-                var dvsId = processResponse.get().getVariables().getDvsOrderId();
-                var start = processResponse.get().getVariables().getCreateCardCreditRequest()
-                        .getStartDate();
-                var end = processResponse.get().getVariables().getCreateCardCreditRequest()
-                        .getEndDate();
-                operationEntity.setLoanContractStartDate(start);
-                operationEntity.setLoanContractEndDate(end);
-                operationEntity.setTaskId(taskId);
-                operationEntity.setDvsOrderId(dvsId);
-                operationRepository.save(operationEntity);
-                try {
-                    var webUrl = dvsClient.getDetails(trackId, dvsId).getWebUrl();
-                    log.info("Dvs client web url - {}", webUrl);
-                    sendDecision(UmicoDecisionStatus.PREAPPROVED, trackId, webUrl);
-                } catch (DvsClientException e) {
-                    log.info("Dvs client get details exception. trackId - {}, exception - {}",
-                            trackId, e.getMessage());
-                    var leadDto = LeadDto.builder().trackId(trackId).build();
-                    var telesalesOrderId = telesalesService.sendLead(leadDto);
-                    updateOperationTelesalesOrderId(trackId, telesalesOrderId);
-                    if (operationEntity.getTaskId() != null
-                            && operationEntity.getLoanContractDeletedAt() == null) {
-                        operationEntity.setLoanContractDeletedAt(LocalDateTime.now());
-                        operationRepository.save(operationEntity);
-                        try {
-                            optimusClient.deleteLoan(businessKey);
-                        } catch (Exception ex) {
-                            log.error("Delete loan process error in incident "
-                                            + "happened/business error" + " , "
-                                            + "businessKey - {}, exception - {}", businessKey,
-                                    ex.getMessage());
-                        }
-                    }
-                    sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
-                }
+                userTaskSignDocumentsProcess(operationEntity, trackId, businessKey, processResponse,
+                        taskId);
             }
         }
+    }
+
+    private void userTaskScoringProcess(OperationEntity operationEntity, UUID trackId,
+                                        Optional<ProcessResponse> processResponse, String taskId) {
+        log.info("Start scoring result...");
+        var scoredAmount =
+                processResponse.get().getVariables().getSelectedOffer().getCardOffer()
+                        .getAvailableLoanAmount();
+        var selectedAmount =
+                operationEntity.getTotalAmount().add(operationEntity.getCommission());
+        if (scoredAmount.compareTo(selectedAmount) < 0) {
+            log.info("Start scoring result - No enough amount : selectedAmount - {},"
+                    + " scoredAmount - {}", selectedAmount, scoredAmount);
+            var leadDto = LeadDto.builder().trackId(trackId).build();
+            var telesalesOrderId = telesalesService.sendLead(leadDto);
+            updateOperationTelesalesOrderId(trackId, telesalesOrderId);
+            sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
+            return;
+        }
+        operationEntity.setTaskId(taskId);
+        operationRepository.save(operationEntity);
+        createScoring(trackId, taskId, scoredAmount);
+    }
+
+    private void userTaskSignDocumentsProcess(OperationEntity operationEntity,
+                                              UUID trackId, String businessKey,
+                                              Optional<ProcessResponse> processResponse,
+                                              String taskId) {
+        log.info("Create scoring result...");
+        var dvsId = processResponse.get().getVariables().getDvsOrderId();
+        var start = processResponse.get().getVariables().getCreateCardCreditRequest()
+                .getStartDate();
+        var end = processResponse.get().getVariables().getCreateCardCreditRequest()
+                .getEndDate();
+        operationEntity.setLoanContractStartDate(start);
+        operationEntity.setLoanContractEndDate(end);
+        operationEntity.setTaskId(taskId);
+        operationEntity.setDvsOrderId(dvsId);
+        operationRepository.save(operationEntity);
+        try {
+            var webUrl = dvsClient.getDetails(trackId, dvsId).getWebUrl();
+            log.info("Dvs client web url - {}", webUrl);
+            sendDecision(UmicoDecisionStatus.PREAPPROVED, trackId, webUrl);
+        } catch (DvsClientException e) {
+            sendTelesalesOnDvsClientExceoption(operationEntity, trackId, businessKey, e);
+        }
+    }
+
+    private void sendTelesalesOnDvsClientExceoption(OperationEntity operationEntity,
+                                                    UUID trackId, String businessKey,
+                                                    DvsClientException e) {
+        log.info("Dvs client get details exception. trackId - {}, exception - {}",
+                trackId, e.getMessage());
+        var leadDto = LeadDto.builder().trackId(trackId).build();
+        var telesalesOrderId = telesalesService.sendLead(leadDto);
+        updateOperationTelesalesOrderId(trackId, telesalesOrderId);
+        if (operationEntity.getTaskId() != null
+                && operationEntity.getLoanContractDeletedAt() == null) {
+            operationEntity.setLoanContractDeletedAt(LocalDateTime.now());
+            operationRepository.save(operationEntity);
+            try {
+                optimusClient.deleteLoan(businessKey);
+            } catch (Exception ex) {
+                log.error("Delete loan process error in incident "
+                                + "happened/business error" + " , "
+                                + "businessKey - {}, exception - {}", businessKey,
+                        ex.getMessage());
+            }
+        }
+        sendDecision(UmicoDecisionStatus.PENDING, trackId, null);
     }
 
     private void scoringCompletedProcess(OperationEntity operationEntity) {
@@ -297,6 +329,28 @@ public class ScoringService {
         var customerEntity = operationEntity.getCustomer();
         customerEntity.setCardId(cardId);
         customerRepository.save(customerEntity);
+        CustomerEntity customer = prePurchaseOrders(operationEntity, customerEntity);
+        log.info("Purchased all orders.");
+
+        var umicoApprovedDecisionRequest =
+                UmicoDecisionRequest.builder().trackId(operationEntity.getId())
+                        .commission(operationEntity.getCommission()).customerId(customer.getId())
+                        .decisionStatus(UmicoDecisionStatus.APPROVED)
+                        .loanTerm(operationEntity.getLoanTerm())
+                        .loanLimit(operationEntity.getTotalAmount())
+                        .loanContractStartDate(operationEntity.getLoanContractStartDate())
+                        .loanContractEndDate(operationEntity.getLoanContractEndDate()).build();
+        log.info("Scoring complete result. Send decision request - {}",
+                umicoApprovedDecisionRequest);
+        /*
+         * umicoClient.sendDecisionToUmico(umicoApprovedDecisionRequest, apiKey);
+         */
+        log.info("Order Dvs status sent to umico like APPROVED. trackId - {}",
+                operationEntity.getId());
+    }
+
+    private CustomerEntity prePurchaseOrders(OperationEntity operationEntity,
+                                             CustomerEntity customerEntity) {
         var orders = operationEntity.getOrders();
         var customer = operationEntity.getCustomer();
         for (var order : orders) {
@@ -321,21 +375,7 @@ public class ScoringService {
         customerEntity.setCompleteProcessDate(LocalDateTime.now());
         operationEntity.setCustomer(customerEntity);
         operationRepository.save(operationEntity);
-        log.info("Purchased all orders.");
-
-        var umicoApprovedDecisionRequest =
-                UmicoDecisionRequest.builder().trackId(operationEntity.getId())
-                        .commission(operationEntity.getCommission()).customerId(customer.getId())
-                        .decisionStatus(UmicoDecisionStatus.APPROVED)
-                        .loanTerm(operationEntity.getLoanTerm())
-                        .loanLimit(operationEntity.getTotalAmount())
-                        .loanContractStartDate(operationEntity.getLoanContractStartDate())
-                        .loanContractEndDate(operationEntity.getLoanContractEndDate()).build();
-        log.info("Scoring complete result. Send decision request - {}",
-                umicoApprovedDecisionRequest);
-//                umicoClient.sendDecisionToUmico(umicoApprovedDecisionRequest, apiKey);
-        log.info("Order Dvs status sent to umico like APPROVED. trackId - {}",
-                operationEntity.getId());
+        return customer;
     }
 
     private void scoringErrorProcess(ScoringResultEvent scoringResultEvent,
@@ -473,10 +513,14 @@ public class ScoringService {
         log.info("Umico send decision.trackId - {}, Request - {}", trackId,
                 umicoScoringDecisionRequest);
         try {
-//            UmicoDecisionResponse umicoScoringDecisionResponse = umicoClient
-//                    .sendDecisionToUmico(umicoScoringDecisionRequest, apiKey);
+            /*
+            UmicoDecisionResponse umicoScoringDecisionResponse = umicoClient
+                    .sendDecisionToUmico(umicoScoringDecisionRequest, apiKey);
+             */
             log.info("Umico send decision was finished successfully.trackId - {}", trackId
-                    //umicoScoringDecisionResponse
+            /*
+                    umicoScoringDecisionResponse
+            */
             );
         } catch (UmicoClientException e) {
             log.error("Umico send decision was finished unsuccessfully."

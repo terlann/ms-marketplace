@@ -7,6 +7,7 @@ import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
 import az.kapitalbank.marketplace.constant.DvsStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.CompleteScoring;
+import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.messaging.event.VerificationResultEvent;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
@@ -56,77 +57,101 @@ public class VerificationListener {
                         var operationEntity = operationRepository.findById(trackId).orElseThrow(
                                 () -> new OperationNotFoundException("trackId - " + trackId));
 
-                        var businessKey = operationEntity.getBusinessKey();
-                        var verificationStatus = verificationResultEvent.getStatus();
-                        switch (verificationStatus) {
-                            case "pending":
-                                log.info("Verification status result. Response - {}",
-                                        verificationResultEvent);
-                                var umicoPendingDecisionRequest = UmicoDecisionRequest.builder()
-                                        .trackId(operationEntity.getId())
-                                        .decisionStatus(UmicoDecisionStatus.PENDING)
-                                        .loanTerm(operationEntity.getLoanTerm()).build();
-                                log.info("Verification status result. Send decision request - {}",
-                                        umicoPendingDecisionRequest);
-//                            umicoClient.sendDecisionToUmico(umicoPendingDecisionRequest, apiKey);
-                                log.info("Verification status sent to umico like PENDING.");
-                                operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.PENDING);
-                                operationEntity.setDvsOrderStatus(DvsStatus.PENDING);
-                                operationRepository.save(operationEntity);
-                                break;
-                            case "rejected":
-                                log.info("Verification status result. Response - {}",
-                                        verificationResultEvent);
-                                var umicoRejectedDecisionRequest = UmicoDecisionRequest.builder()
-                                        .trackId(operationEntity.getId())
-                                        .decisionStatus(UmicoDecisionStatus.REJECTED)
-                                        .loanTerm(operationEntity.getLoanTerm()).build();
-                                log.info("Verification status result. Send decision request - {}",
-                                        umicoRejectedDecisionRequest);
-                                //umicoClient.sendDecisionToUmico(umicoRejectedDecisionRequest, apiKey);
-                                log.info("Verification status sent to umico like REJECTED." +
-                                        " trackId - {}", operationEntity.getId());
-                                operationEntity.setDvsOrderStatus(DvsStatus.REJECTED);
-                                operationEntity.setUmicoDecisionStatus(
-                                        UmicoDecisionStatus.REJECTED);
-                                operationRepository.save(operationEntity);
-                                if (operationEntity.getTaskId() != null &&
-                                        operationEntity.getLoanContractDeletedAt() == null) {
-                                    operationEntity.setLoanContractDeletedAt(LocalDateTime.now());
-                                    operationRepository.save(operationEntity);
-                                    try {
-                                        optimusClient.deleteLoan(businessKey);
-                                    } catch (Exception e) {
-                                        log.error("Delete loan process error in" +
-                                                        " verification rejected status , " +
-                                                        "businessKey - {}, exception - {}", businessKey,
-                                                e.getMessage());
-                                    }
-                                }
-                                break;
-                            case "confirmed":
-                                log.info("Verification status result. Response - {}",
-                                        verificationResultEvent);
-                                var completeScoringWithConfirm =
-                                        CompleteScoring.builder().trackId(operationEntity.getId())
-                                                .taskId(operationEntity.getTaskId())
-                                                .businessKey(operationEntity.getBusinessKey())
-                                                .additionalNumber1(
-                                                        operationEntity.getAdditionalPhoneNumber1())
-                                                .additionalNumber2(
-                                                        operationEntity.getAdditionalPhoneNumber2())
-                                                .customerDecision(CustomerDecision.CONFIRM_CREDIT)
-                                                .build();
-                                scoringService.completeScoring(completeScoringWithConfirm);
-                                break;
-                            default:
-                        }
+                        verificationStatusBehavior(verificationResultEvent, operationEntity);
                     }
                 } catch (JsonProcessingException ex) {
-                    log.error("Verification status consume.Message - {}," +
-                            " JsonProcessingException - {}", message, ex.getMessage());
+                    log.error("Verification status consume.Message - {},"
+                            + " JsonProcessingException - {}", message, ex.getMessage());
                 }
             }
         };
+    }
+
+    private void verificationStatusBehavior(VerificationResultEvent verificationResultEvent,
+                                            OperationEntity operationEntity) {
+        var businessKey = operationEntity.getBusinessKey();
+        var verificationStatus = verificationResultEvent.getStatus();
+        switch (verificationStatus) {
+            case "pending":
+                onVerificationSatusPending(verificationResultEvent,
+                        operationEntity);
+                break;
+            case "rejected":
+                onVerificationStatusRejected(verificationResultEvent,
+                        operationEntity, businessKey);
+                break;
+            case "confirmed":
+                onVerificationStatusConfirmed(verificationResultEvent,
+                        operationEntity);
+                break;
+            default:
+        }
+    }
+
+    private void onVerificationStatusConfirmed(VerificationResultEvent verificationResultEvent,
+                                               OperationEntity operationEntity) {
+        log.info("Verification status result. Response - {}",
+                verificationResultEvent);
+        var completeScoringWithConfirm =
+                CompleteScoring.builder()
+                        .trackId(operationEntity.getId())
+                        .taskId(operationEntity.getTaskId())
+                        .businessKey(operationEntity.getBusinessKey())
+                        .additionalNumber1(operationEntity.getAdditionalPhoneNumber1())
+                        .additionalNumber2(operationEntity.getAdditionalPhoneNumber2())
+                        .customerDecision(CustomerDecision.CONFIRM_CREDIT)
+                        .build();
+        scoringService.completeScoring(completeScoringWithConfirm);
+    }
+
+    private void onVerificationStatusRejected(VerificationResultEvent verificationResultEvent,
+                                              OperationEntity operationEntity, String businessKey) {
+        log.info("Verification status result. Response - {}",
+                verificationResultEvent);
+        var umicoRejectedDecisionRequest = UmicoDecisionRequest.builder()
+                .trackId(operationEntity.getId())
+                .decisionStatus(UmicoDecisionStatus.REJECTED)
+                .loanTerm(operationEntity.getLoanTerm()).build();
+        log.info("Verification status result. Send decision request - {}",
+                umicoRejectedDecisionRequest);
+        //umicoClient.sendDecisionToUmico(umicoRejectedDecisionRequest, apiKey);
+        log.info("Verification status sent to umico like REJECTED. trackId - {}",
+                operationEntity.getId());
+        operationEntity.setDvsOrderStatus(DvsStatus.REJECTED);
+        operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
+        operationRepository.save(operationEntity);
+        if (operationEntity.getTaskId() != null
+                && operationEntity.getLoanContractDeletedAt() == null) {
+            operationEntity.setLoanContractDeletedAt(LocalDateTime.now());
+            operationRepository.save(operationEntity);
+            try {
+                optimusClient.deleteLoan(businessKey);
+            } catch (Exception e) {
+                log.error("Delete loan process error in"
+                                + " verification rejected status , "
+                                + "businessKey - {}, exception - {}",
+                        businessKey,
+                        e.getMessage());
+            }
+        }
+    }
+
+    private void onVerificationSatusPending(VerificationResultEvent verificationResultEvent,
+                                            OperationEntity operationEntity) {
+        log.info("Verification status result. Response - {}",
+                verificationResultEvent);
+        var umicoPendingDecisionRequest = UmicoDecisionRequest.builder()
+                .trackId(operationEntity.getId())
+                .decisionStatus(UmicoDecisionStatus.PENDING)
+                .loanTerm(operationEntity.getLoanTerm()).build();
+        log.info("Verification status result. Send decision request - {}",
+                umicoPendingDecisionRequest);
+        /*
+        umicoClient.sendDecisionToUmico(umicoPendingDecisionRequest, apiKey);
+         */
+        log.info("Verification status sent to umico like PENDING.");
+        operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.PENDING);
+        operationEntity.setDvsOrderStatus(DvsStatus.PENDING);
+        operationRepository.save(operationEntity);
     }
 }

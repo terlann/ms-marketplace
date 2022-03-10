@@ -47,11 +47,6 @@ class OrderServiceTest {
     @Test
     void createOrder() {
 
-//        CreateOrderRequestDto request=CreateOrderRequestDto.builder()
-//                .customerInfo(CustomerInfo.builder()
-//                        .customerId()
-//                        .build())
-//                .build();
 
     }
 }

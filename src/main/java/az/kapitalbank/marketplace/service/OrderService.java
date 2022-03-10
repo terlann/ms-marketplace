@@ -19,6 +19,7 @@ import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
 import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
 import az.kapitalbank.marketplace.dto.response.PurchaseResponseDto;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
+import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.entity.ProductEntity;
 import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
@@ -82,6 +83,23 @@ public class OrderService {
         validateOrderAmount(request);
         var customerId = request.getCustomerInfo().getCustomerId();
         CustomerEntity customerEntity = getCustomerEntity(request, customerId);
+        OperationEntity operationEntity = saveOperationEntity(request, customerEntity);
+
+        var trackId = operationEntity.getId();
+        if (customerId != null && customerEntity.getCompleteProcessDate() != null) {
+            // TODO: what we send umico
+        } else {
+            var fraudCheckEvent = createOrderMapper.toOrderEvent(request);
+            fraudCheckEvent.setTrackId(trackId);
+            customerOrderProducer.sendMessage(fraudCheckEvent);
+            log.info("New customer started process. customerId - {}, trackId - {}",
+                    customerEntity.getId(), trackId);
+        }
+        return CreateOrderResponse.of(trackId);
+    }
+
+    private OperationEntity saveOperationEntity(CreateOrderRequestDto request,
+                                                CustomerEntity customerEntity) {
         var operationEntity = operationMapper.toOperationEntity(request);
         operationEntity.setCustomer(customerEntity);
 
@@ -109,34 +127,17 @@ public class OrderService {
         operationEntity.setCommission(operationCommission);
         operationEntity.setOrders(orderEntities);
         operationEntity = operationRepository.save(operationEntity);
-
-        var trackId = operationEntity.getId();
-        if (customerId != null && customerEntity.getCompleteProcessDate() != null) {
-            // TODO: what we send umico
-        } else {
-            var fraudCheckEvent = createOrderMapper.toOrderEvent(request);
-            fraudCheckEvent.setTrackId(trackId);
-            customerOrderProducer.sendMessage(fraudCheckEvent);
-            log.info("New customer started process. customerId - {}, trackId - {}",
-                    customerEntity.getId(), trackId);
-        }
-        return CreateOrderResponse.of(trackId);
+        return operationEntity;
     }
 
     private CustomerEntity getCustomerEntity(CreateOrderRequestDto request, UUID customerId) {
         CustomerEntity customerEntity;
         if (customerId == null) {
             log.info("First order create process is started...");
-            var firstPhoneNumber = request.getCustomerInfo().getAdditionalPhoneNumber1();
-            var secondPhoneNumber = request.getCustomerInfo().getAdditionalPhoneNumber2();
-            if (firstPhoneNumber.equals(secondPhoneNumber)) {
-                throw new UniqueAdditionalNumberException(firstPhoneNumber, secondPhoneNumber);
-            }
-
+            checkAdditionalPhoneNumbersEquals(request);
             validatePurchaseAmountLimit(request);
-            var customerByUmicoUserId =
-                    customerRepository.findByUmicoUserId(
-                            request.getCustomerInfo().getUmicoUserId());
+            var customerByUmicoUserId = customerRepository.findByUmicoUserId(
+                    request.getCustomerInfo().getUmicoUserId());
             if (customerByUmicoUserId.isPresent()) {
                 customerEntity = customerByUmicoUserId.get();
             } else {
@@ -156,6 +157,14 @@ public class OrderService {
             validateCustomerBalance(request, customerEntity.getCardId());
         }
         return customerEntity;
+    }
+
+    private void checkAdditionalPhoneNumbersEquals(CreateOrderRequestDto request) {
+        var firstPhoneNumber = request.getCustomerInfo().getAdditionalPhoneNumber1();
+        var secondPhoneNumber = request.getCustomerInfo().getAdditionalPhoneNumber2();
+        if (firstPhoneNumber.equals(secondPhoneNumber)) {
+            throw new UniqueAdditionalNumberException(firstPhoneNumber, secondPhoneNumber);
+        }
     }
 
     /* Optimus call this */
@@ -196,50 +205,61 @@ public class OrderService {
             if (transactionStatus == TransactionStatus.PURCHASE
                     || transactionStatus == TransactionStatus.FAIL_IN_REVERSE
                     || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE) {
-                var purchaseResponseDto = new PurchaseResponseDto();
-                var amount = order.getTotalAmount();
-                var commission = order.getCommission();
-                var totalPayment = commission.add(amount);
-                var rrn = GenerateUtil.rrn();
-                var purchaseCompleteRequest = PurchaseCompleteRequest.builder()
-                        .id(Long.valueOf(order.getTransactionId()))
-                        .uid(cardId)
-                        .amount(totalPayment)
-                        .approvalCode(order.getApprovalCode())
-                        .currency(Currency.AZN.getCode())
-                        .rrn(rrn)
-                        .terminalName(terminalName)
-                        .installments(order.getOperation().getLoanTerm())
-                        .build();
-                try {
-                    var purchaseCompleteResponse = atlasClient
-                            .complete(purchaseCompleteRequest);
-                    var transactionId = purchaseCompleteResponse.getId();
-                    order.setTransactionId(transactionId);
-                    order.setRrn(rrn);
-                    order.setTransactionStatus(TransactionStatus.COMPLETE);
-                    purchaseResponseDto.setStatus(OrderStatus.SUCCESS);
-                } catch (AtlasClientException ex) {
-                    purchaseResponseDto.setStatus(OrderStatus.FAIL);
-                    order.setTransactionStatus(TransactionStatus.FAIL_IN_COMPLETE);
-                    order.setTransactionError(ex.getMessage());
-                    log.error("Atlas complete process was failed. orderNo - {}",
-                            order.getOrderNo());
-                    String errorMessager = "Atlas Exception: UUID - %s  ,  code - %s, message - %s";
-                    log.error(String.format(errorMessager,
-                            ex.getUuid(),
-                            ex.getCode(),
-                            ex.getMessage()));
-                }
-                purchaseResponseDto.setOrderNo(order.getOrderNo());
-                order.setTransactionDate(LocalDateTime.now());
-                orderRepository.save(order);
+                var purchaseResponseDto = purchaseOrder(cardId, order);
                 purchaseResponseDtoList.add(purchaseResponseDto);
             }
         }
         log.info("Purchase process was finished. trackId - {}, customerId - {}",
                 request.getTrackId(), request.getCustomerId());
         return purchaseResponseDtoList;
+    }
+
+    private PurchaseResponseDto purchaseOrder(String cardId, OrderEntity order) {
+        var purchaseResponseDto = new PurchaseResponseDto();
+        var rrn = GenerateUtil.rrn();
+        var purchaseCompleteRequest =
+                getPurchaseCompleteRequest(cardId, order, rrn);
+        try {
+            var purchaseCompleteResponse = atlasClient
+                    .complete(purchaseCompleteRequest);
+            var transactionId = purchaseCompleteResponse.getId();
+            order.setTransactionId(transactionId);
+            order.setRrn(rrn);
+            order.setTransactionStatus(TransactionStatus.COMPLETE);
+            purchaseResponseDto.setStatus(OrderStatus.SUCCESS);
+        } catch (AtlasClientException ex) {
+            purchaseResponseDto.setStatus(OrderStatus.FAIL);
+            order.setTransactionStatus(TransactionStatus.FAIL_IN_COMPLETE);
+            order.setTransactionError(ex.getMessage());
+            log.error("Atlas complete process was failed. orderNo - {}",
+                    order.getOrderNo());
+            String errorMessager = "Atlas Exception: UUID - %s  ,  code - %s, message - %s";
+            log.error(String.format(errorMessager,
+                    ex.getUuid(),
+                    ex.getCode(),
+                    ex.getMessage()));
+        }
+        purchaseResponseDto.setOrderNo(order.getOrderNo());
+        order.setTransactionDate(LocalDateTime.now());
+        orderRepository.save(order);
+        return purchaseResponseDto;
+    }
+
+    private PurchaseCompleteRequest getPurchaseCompleteRequest(String cardId, OrderEntity order,
+                                                               String rrn) {
+        var amount = order.getTotalAmount();
+        var commission = order.getCommission();
+        var totalPayment = commission.add(amount);
+        return PurchaseCompleteRequest.builder()
+                .id(Long.valueOf(order.getTransactionId()))
+                .uid(cardId)
+                .amount(totalPayment)
+                .approvalCode(order.getApprovalCode())
+                .currency(Currency.AZN.getCode())
+                .rrn(rrn)
+                .terminalName(terminalName)
+                .installments(order.getOperation().getLoanTerm())
+                .build();
     }
 
     public PurchaseResponseDto reverse(ReverseRequestDto request) {
@@ -257,30 +277,8 @@ public class OrderService {
                 throw new OrderNotLinkedToCustomer(
                         "orderNo - " + orderNo + ", customerId - " + customerId);
             }
-            var purchaseResponse = new PurchaseResponseDto();
-            var reversRequest = ReversPurchaseRequest.builder()
-                    .description("umico-marketplace reverse operation").build();
-            try {
-                var reverseResponse =
-                        atlasClient.reverse(orderEntity.getTransactionId(), reversRequest);
-                purchaseResponse.setStatus(OrderStatus.SUCCESS);
-                orderEntity.setTransactionId(String.valueOf(reverseResponse.getId()));
-                orderEntity.setTransactionStatus(TransactionStatus.REVERSE);
-            } catch (AtlasClientException ex) {
-                purchaseResponse.setStatus(OrderStatus.FAIL);
-                orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_REVERSE);
-                log.error("Atlas reverse process was failed. orderNo - {}",
-                        orderEntity.getOrderNo());
-                String errorMessager = "Atlas Exception: UUID - %s  ,  code - %s, message - %s";
-                orderEntity.setTransactionError(String.format(errorMessager,
-                        ex.getUuid(),
-                        ex.getCode(),
-                        ex.getMessage()));
-                log.error(errorMessager);
-            }
-            purchaseResponse.setOrderNo(orderEntity.getOrderNo());
-            orderEntity.setTransactionDate(LocalDateTime.now());
-            orderRepository.save(orderEntity);
+            PurchaseResponseDto purchaseResponse =
+                    reverseOrder(orderEntity);
             log.info("Reverse process was finished. orderNo - {}, customerId - {}",
                     request.getOrderNo(), request.getCustomerId());
             return purchaseResponse;
@@ -288,6 +286,34 @@ public class OrderService {
         throw new NoPermissionForTransaction(
                 "orderNo- " + orderEntity.getId() + " transactionStatus- "
                         + orderEntity.getTransactionStatus());
+    }
+
+    private PurchaseResponseDto reverseOrder(OrderEntity orderEntity) {
+        var purchaseResponse = new PurchaseResponseDto();
+        var reversRequest = ReversPurchaseRequest.builder()
+                .description("umico-marketplace reverse operation").build();
+        try {
+            var reverseResponse =
+                    atlasClient.reverse(orderEntity.getTransactionId(), reversRequest);
+            purchaseResponse.setStatus(OrderStatus.SUCCESS);
+            orderEntity.setTransactionId(String.valueOf(reverseResponse.getId()));
+            orderEntity.setTransactionStatus(TransactionStatus.REVERSE);
+        } catch (AtlasClientException ex) {
+            purchaseResponse.setStatus(OrderStatus.FAIL);
+            orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_REVERSE);
+            log.error("Atlas reverse process was failed. orderNo - {}",
+                    orderEntity.getOrderNo());
+            String errorMessager = "Atlas Exception: UUID - %s  ,  code - %s, message - %s";
+            orderEntity.setTransactionError(String.format(errorMessager,
+                    ex.getUuid(),
+                    ex.getCode(),
+                    ex.getMessage()));
+            log.error(errorMessager);
+        }
+        purchaseResponse.setOrderNo(orderEntity.getOrderNo());
+        orderEntity.setTransactionDate(LocalDateTime.now());
+        orderRepository.save(orderEntity);
+        return purchaseResponse;
     }
 
 
