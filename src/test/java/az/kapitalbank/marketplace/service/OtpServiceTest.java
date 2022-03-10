@@ -6,18 +6,18 @@ import java.util.Optional;
 import java.util.UUID;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
+import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.Subscription;
 import az.kapitalbank.marketplace.client.atlas.model.response.SubscriptionResponse;
 import az.kapitalbank.marketplace.client.otp.OtpClient;
+import az.kapitalbank.marketplace.client.otp.exception.OtpClientException;
 import az.kapitalbank.marketplace.client.otp.model.ChannelRequest;
 import az.kapitalbank.marketplace.client.otp.model.OtpVerifyRequest;
 import az.kapitalbank.marketplace.client.otp.model.OtpVerifyResponse;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpRequest;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpResponse;
-import az.kapitalbank.marketplace.constant.Currency;
-import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.dto.request.OtpVerifyRequestDto;
 import az.kapitalbank.marketplace.dto.request.SendOtpRequestDto;
 import az.kapitalbank.marketplace.dto.response.OtpVerifyResponseDto;
@@ -37,13 +37,9 @@ import org.springframework.beans.factory.annotation.Value;
 
 import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
 import static az.kapitalbank.marketplace.constants.TestConstants.RRN;
-import static az.kapitalbank.marketplace.constants.TestConstants.TRACK_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyObject;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -115,7 +111,7 @@ class OtpServiceTest {
 
     @Test
     void verify_Success() {
-        var trackId = UUID.fromString(TRACK_ID.getValue());
+        var trackId = UUID.randomUUID();
         var customerEntity = CustomerEntity.builder()
                 .cardId(CARD_UID.getValue())
                 .build();
@@ -137,10 +133,6 @@ class OtpServiceTest {
                 .address("+994513601019")
                 .build());
         var subscriptionResponse = SubscriptionResponse.builder().subscriptions(substrictions).build();
-        var otpVerifyRequest = OtpVerifyRequest.builder()
-                .otp("2222")
-                .phoneNumber("+994513601019")
-                .build();
         var verify = OtpVerifyResponse.builder()
                 .status("success")
                 .build();
@@ -148,26 +140,136 @@ class OtpServiceTest {
                 .otp("2222")
                 .trackId(trackId)
                 .build();
-        var purchaseRequest = PurchaseRequest.builder()
-                .rrn(anyString())
-                .amount(orderEntity.getTotalAmount().add(orderEntity.getCommission()))
-                .description("fee=" + orderEntity.getCommission())
-                .currency(Currency.AZN.getCode())
-                .terminalName(terminalName)
-                .uid(CARD_UID.getValue())
+        var otpVerifyRequest = OtpVerifyRequest.builder()
+                .otp(otpVerifyRequestDto.getOtp())
+                .phoneNumber("+994513601019")
                 .build();
         var purchaseResponse = PurchaseResponse.builder()
                 .id("83660ed4-9e42-11ec-b909-0242ac120002")
                 .approvalCode("789456")
                 .build();
 
-
-        lenient().when(operationRepository.findById(UUID.fromString(TRACK_ID.getValue())))
+        when(operationRepository.findById(any()))
                 .thenReturn(Optional.of(operationEntity));
-        lenient().when(atlasClient.findAllByUID(CARD_UID.getValue(), "", ""))
+        when(atlasClient.findAllByUID(CARD_UID.getValue(), "", ""))
                 .thenReturn(subscriptionResponse);
-        lenient().when(otpClient.verify(otpVerifyRequest)).thenReturn(verify);
-        lenient().when(atlasClient.purchase(purchaseRequest)).thenReturn(purchaseResponse);
+        when(otpClient.verify(otpVerifyRequest)).thenReturn(verify);
+        when(atlasClient.purchase(any(PurchaseRequest.class))).thenReturn(purchaseResponse);
+
+        var actual = otpService.verify(otpVerifyRequestDto);
+        var expected = OtpVerifyResponseDto.builder()
+                .trackId(trackId)
+                .status("success")
+                .build();
+
+        assertEquals(expected, actual);
 
     }
+
+    @Test
+    void verify_When_AtlasClientException() {
+        var trackId = UUID.randomUUID();
+        var customerEntity = CustomerEntity.builder()
+                .cardId(CARD_UID.getValue())
+                .build();
+        var orderEntity = OrderEntity.builder()
+                .rrn(RRN.getValue())
+                .totalAmount(BigDecimal.valueOf(1500))
+                .commission(BigDecimal.valueOf(25))
+                .build();
+        var orders = List.of(orderEntity);
+        var operationEntity = OperationEntity.builder()
+                .pin("5JR9R1E")
+                .fullName("Qurbanov Terlan")
+                .customer(customerEntity)
+                .orders(orders)
+                .build();
+        var substrictions = List.of(Subscription.builder()
+                .schema("3DS")
+                .channel("SMPP_ALL")
+                .address("+994513601019")
+                .build());
+        var subscriptionResponse = SubscriptionResponse.builder().subscriptions(substrictions).build();
+        var verify = OtpVerifyResponse.builder()
+                .status("success")
+                .build();
+        var otpVerifyRequestDto = OtpVerifyRequestDto.builder()
+                .otp("2222")
+                .trackId(trackId)
+                .build();
+        var otpVerifyRequest = OtpVerifyRequest.builder()
+                .otp(otpVerifyRequestDto.getOtp())
+                .phoneNumber("+994513601019")
+                .build();
+
+        when(operationRepository.findById(any()))
+                .thenReturn(Optional.of(operationEntity));
+        when(atlasClient.findAllByUID(CARD_UID.getValue(), "", ""))
+                .thenReturn(subscriptionResponse);
+        when(otpClient.verify(otpVerifyRequest)).thenReturn(verify);
+        when(atlasClient.purchase(any(PurchaseRequest.class)))
+                .thenThrow(new AtlasClientException(UUID.randomUUID(), "000", "testUnit"));
+
+        var actual = otpService.verify(otpVerifyRequestDto);
+        var expected = OtpVerifyResponseDto.builder()
+                .trackId(trackId)
+                .status("FAIL_IN_PURCHASE")
+                .build();
+
+        assertEquals(expected, actual);
+
+    }
+
+    @Test
+    void verify_When_OtpClientException() {
+        var trackId = UUID.randomUUID();
+        var customerEntity = CustomerEntity.builder()
+                .cardId(CARD_UID.getValue())
+                .build();
+        var orderEntity = OrderEntity.builder()
+                .rrn(RRN.getValue())
+                .totalAmount(BigDecimal.valueOf(1500))
+                .commission(BigDecimal.valueOf(25))
+                .build();
+        var orders = List.of(orderEntity);
+        var operationEntity = OperationEntity.builder()
+                .pin("5JR9R1E")
+                .fullName("Qurbanov Terlan")
+                .customer(customerEntity)
+                .orders(orders)
+                .build();
+        var substrictions = List.of(Subscription.builder()
+                .schema("3DS")
+                .channel("SMPP_ALL")
+                .address("+994513601019")
+                .build());
+        var subscriptionResponse = SubscriptionResponse.builder()
+                .subscriptions(substrictions)
+                .build();
+        var otpVerifyRequestDto = OtpVerifyRequestDto.builder()
+                .otp("2222")
+                .trackId(trackId)
+                .build();
+        var otpVerifyRequest = OtpVerifyRequest.builder()
+                .otp(otpVerifyRequestDto.getOtp())
+                .phoneNumber("+994513601019")
+                .build();
+
+        when(operationRepository.findById(any()))
+                .thenReturn(Optional.of(operationEntity));
+        when(atlasClient.findAllByUID(CARD_UID.getValue(), "", ""))
+                .thenReturn(subscriptionResponse);
+        when(otpClient.verify(otpVerifyRequest)).thenThrow(new OtpClientException("Fail", "test"));
+
+        var actual = otpService.verify(otpVerifyRequestDto);
+        var expected = OtpVerifyResponseDto.builder()
+                .trackId(trackId)
+                .status("message: {} , detail: {} Fail")
+                .build();
+        ;
+
+        assertEquals(expected, actual);
+
+    }
+
 }

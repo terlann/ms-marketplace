@@ -47,7 +47,9 @@ public class OtpService {
     String terminalName;
 
     public SendOtpResponseDto send(SendOtpRequestDto request) {
-        String cardConnectedNumber = getMobileNumber(request.getTrackId());
+        var operationEntity = operationRepository.findById(request.getTrackId())
+                .orElseThrow(() -> new OperationNotFoundException("trackId: " + request.getTrackId()));
+        String cardConnectedNumber = getMobileNumber(operationEntity.getCustomer().getCardId());
         log.info("Sending OTP: Mobile Number: " + cardConnectedNumber);
         SendOtpRequest sendOtpRequest = SendOtpRequest.builder()
                 .phoneNumber(cardConnectedNumber)
@@ -66,7 +68,7 @@ public class OtpService {
         var operationEntity = operationRepository.findById(request.getTrackId())
                 .orElseThrow(() -> new OperationNotFoundException("trackId: " + request.getTrackId()));
         var customerEntity = operationEntity.getCustomer();
-        String cardConnectedNumber = getMobileNumber(request.getTrackId());
+        String cardConnectedNumber = getMobileNumber(customerEntity.getCardId());
         log.info("Verifing OTP: Mobile Number - {} , TrackId - {}: " + cardConnectedNumber, request.getTrackId());
         var otpVerifyRequest = OtpVerifyRequest.builder()
                 .otp(request.getOtp())
@@ -133,11 +135,7 @@ public class OtpService {
         return new OtpVerifyResponseDto(request.getTrackId(), verify.getStatus());
     }
 
-    private String getMobileNumber(UUID trackId) {
-        log.info("get mobile number: " + trackId);
-        var operationEntity = operationRepository.findById(trackId)
-                .orElseThrow(() -> new OperationNotFoundException("trackId: " + trackId));
-        var cardUid = operationEntity.getCustomer().getCardId();
+    private String getMobileNumber(String cardUid) {
         log.info("Card UUID: " + cardUid);
         var subscriptionResponse = atlasClient.findAllByUID(cardUid, "", "");
         return subscriptionResponse.getSubscriptions().stream()

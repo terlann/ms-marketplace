@@ -98,7 +98,6 @@ sonarqube {
         property "sonar.scm.forceReloadAll", "true"
         property "sonar.java.checkstyle.reportPaths", "build/reports/checkstyle/main.xml"
         property "sonar.cpd.exclusions", "**/az/kapitalbank/ms/**"
-        property "sonar.coverage.exclusions", "**/az/kapitalbank/marketplace/**,"
 
     }
 }
