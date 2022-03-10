@@ -1,10 +1,9 @@
 package az.kapitalbank.marketplace.util;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-
 import az.kapitalbank.marketplace.config.CommissionProperties;
 import az.kapitalbank.marketplace.exception.UnknownLoanTerm;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 

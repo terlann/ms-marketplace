@@ -1,9 +1,5 @@
 package az.kapitalbank.marketplace.messaging.listener;
 
-import java.time.LocalDateTime;
-import java.util.Objects;
-import java.util.function.Consumer;
-
 import az.kapitalbank.marketplace.client.optimus.OptimusClient;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.CustomerDecision;
 import az.kapitalbank.marketplace.client.umico.UmicoClient;
@@ -18,6 +14,9 @@ import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.service.ScoringService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.LocalDateTime;
+import java.util.Objects;
+import java.util.function.Consumer;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -49,19 +48,23 @@ public class VerificationListener {
         return message -> {
             if (Objects.nonNull(message)) {
                 try {
-                    var verificationResultEvent = objectMapper.readValue(message, VerificationResultEvent.class);
+                    var verificationResultEvent =
+                            objectMapper.readValue(message, VerificationResultEvent.class);
                     log.info("Verification status consumer. Message - {}", verificationResultEvent);
                     if (verificationResultEvent != null) {
                         var trackId = verificationResultEvent.getTrackId();
                         var operationEntity = operationRepository.findById(trackId)
-                                .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
+                                .orElseThrow(() -> new OperationNotFoundException(
+                                        "trackId - " + trackId));
 
                         var businessKey = operationEntity.getBusinessKey();
                         var verificationStatus = verificationResultEvent.getStatus();
                         switch (verificationStatus) {
                             case "pending":
-                                log.info("Verification status result. Response - {}", verificationResultEvent);
-                                var umicoPendingDecisionRequest = UmicoDecisionRequest.builder()
+                                log.info("Verification status result. Response - {}",
+                                        verificationResultEvent);
+                                var umicoPendingDecisionRequest =
+                                        UmicoDecisionRequest.builder()
                                         .trackId(operationEntity.getId())
                                         .decisionStatus(UmicoDecisionStatus.PENDING)
                                         .loanTerm(operationEntity.getLoanTerm())
@@ -75,7 +78,8 @@ public class VerificationListener {
                                 operationRepository.save(operationEntity);
                                 break;
                             case "rejected":
-                                log.info("Verification status result. Response - {}", verificationResultEvent);
+                                log.info("Verification status result. Response - {}",
+                                        verificationResultEvent);
                                 var umicoRejectedDecisionRequest = UmicoDecisionRequest.builder()
                                         .trackId(operationEntity.getId())
                                         .decisionStatus(UmicoDecisionStatus.REJECTED)
@@ -84,10 +88,12 @@ public class VerificationListener {
                                 log.info("Verification status result. Send decision request - {}",
                                         umicoRejectedDecisionRequest);
                                 //umicoClient.sendDecisionToUmico(umicoRejectedDecisionRequest, apiKey);
-                                log.info("Verification status sent to umico like REJECTED. trackId - {}",
+                                log.info(
+                                        "Verification status sent to umico like REJECTED. trackId - {}",
                                         operationEntity.getId());
                                 operationEntity.setDvsOrderStatus(DvsStatus.REJECTED);
-                                operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
+                                operationEntity.setUmicoDecisionStatus(
+                                        UmicoDecisionStatus.REJECTED);
                                 operationRepository.save(operationEntity);
                                 if (operationEntity.getTaskId() != null &&
                                         operationEntity.getLoanContractDeletedAt() == null) {
@@ -96,19 +102,24 @@ public class VerificationListener {
                                     try {
                                         optimusClient.deleteLoan(businessKey);
                                     } catch (Exception e) {
-                                        log.error("Delete loan process error in verification rejected status , " +
-                                                "businessKey - {}, exception - {}", businessKey, e.getMessage());
+                                        log.error(
+                                                "Delete loan process error in verification rejected status , " +
+                                                        "businessKey - {}, exception - {}",
+                                                businessKey, e.getMessage());
                                     }
                                 }
                                 break;
                             case "confirmed":
-                                log.info("Verification status result. Response - {}", verificationResultEvent);
+                                log.info("Verification status result. Response - {}",
+                                        verificationResultEvent);
                                 var completeScoringWithConfirm = CompleteScoring.builder()
                                         .trackId(operationEntity.getId())
                                         .taskId(operationEntity.getTaskId())
                                         .businessKey(operationEntity.getBusinessKey())
-                                        .additionalNumber1(operationEntity.getAdditionalPhoneNumber1())
-                                        .additionalNumber2(operationEntity.getAdditionalPhoneNumber2())
+                                        .additionalNumber1(
+                                                operationEntity.getAdditionalPhoneNumber1())
+                                        .additionalNumber2(
+                                                operationEntity.getAdditionalPhoneNumber2())
                                         .customerDecision(CustomerDecision.CONFIRM_CREDIT)
                                         .build();
                                 scoringService.completeScoring(completeScoringWithConfirm);
@@ -117,7 +128,8 @@ public class VerificationListener {
                         }
                     }
                 } catch (JsonProcessingException j) {
-                    log.error("Verification status consume.Message - {}, JsonProcessingException - {}",
+                    log.error(
+                            "Verification status consume.Message - {}, JsonProcessingException - {}",
                             message,
                             j.getMessage());
                 }

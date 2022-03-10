@@ -20,6 +20,7 @@ public interface CreateOrderMapper {
     @Mapping(source = "customerInfo.userAgent", target = "userAgent")
     @Mapping(source = "customerInfo.workPlace", target = "workPlace")
     @Mapping(source = "customerInfo.mobileNumber", target = "mobileNumber")
-    @Mapping(source = "request.deliveryInfo", target = "deliveryAddresses", qualifiedByName = "mapDeliveryAddresses")
+    @Mapping(source = "request.deliveryInfo", target = "deliveryAddresses",
+            qualifiedByName = "mapDeliveryAddresses")
     FraudCheckEvent toOrderEvent(CreateOrderRequestDto request);
 }

@@ -1,7 +1,6 @@
 package az.kapitalbank.marketplace.client.integration.model;
 
 import java.time.LocalDate;
-
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;

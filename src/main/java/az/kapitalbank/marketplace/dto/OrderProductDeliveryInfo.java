@@ -1,7 +1,6 @@
 package az.kapitalbank.marketplace.dto;
 
 import java.math.BigDecimal;
-
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;

@@ -1,8 +1,5 @@
 package az.kapitalbank.marketplace.service;
 
-import java.util.ArrayList;
-import java.util.UUID;
-
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.otp.OtpClient;
@@ -10,7 +7,6 @@ import az.kapitalbank.marketplace.client.otp.exception.OtpClientException;
 import az.kapitalbank.marketplace.client.otp.model.ChannelRequest;
 import az.kapitalbank.marketplace.client.otp.model.OtpVerifyRequest;
 import az.kapitalbank.marketplace.client.otp.model.OtpVerifyResponse;
-import org.springframework.beans.factory.annotation.Value;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpRequest;
 import az.kapitalbank.marketplace.constant.Currency;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
@@ -25,11 +21,14 @@ import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
 import az.kapitalbank.marketplace.util.GenerateUtil;
 import az.kapitalbank.marketplace.util.MaskedMobileNum;
+import java.util.ArrayList;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -58,16 +57,19 @@ public class OtpService {
         var sendOtp = otpClient.send(sendOtpRequest);
         log.info("Sended OTP Response: " + sendOtp.getMessage());
 
-        return new SendOtpResponseDto(sendOtp.getMessage(), MaskedMobileNum.maskedMobNumber(cardConnectedNumber));
+        return new SendOtpResponseDto(sendOtp.getMessage(),
+                MaskedMobileNum.maskedMobNumber(cardConnectedNumber));
     }
 
     public OtpVerifyResponseDto verify(OtpVerifyRequestDto request) {
 
         var operationEntity = operationRepository.findById(request.getTrackId())
-                .orElseThrow(() -> new OperationNotFoundException("trackId: " + request.getTrackId()));
+                .orElseThrow(
+                        () -> new OperationNotFoundException("trackId: " + request.getTrackId()));
         var customerEntity = operationEntity.getCustomer();
         String cardConnectedNumber = getMobileNumber(request.getTrackId());
-        log.info("Verifing OTP: Mobile Number - {} , TrackId - {}: " + cardConnectedNumber, request.getTrackId());
+        log.info("Verifing OTP: Mobile Number - {} , TrackId - {}: " + cardConnectedNumber,
+                request.getTrackId());
         var otpVerifyRequest = OtpVerifyRequest.builder()
                 .otp(request.getOtp())
                 .phoneNumber(cardConnectedNumber)
@@ -77,7 +79,8 @@ public class OtpService {
             verify = otpClient.verify(otpVerifyRequest);
             log.info("Verifed OTP Response: - " + verify.getStatus());
         } catch (OtpClientException ex) {
-            String message = String.format("message: {} , detail: {} " + ex.getMessage(), ex.getDetail());
+            String message =
+                    String.format("message: {} , detail: {} " + ex.getMessage(), ex.getDetail());
             log.info("OTP Verify Client Exception: - " + message);
             return OtpVerifyResponseDto.builder()
                     .status(message)
@@ -120,10 +123,11 @@ public class OtpService {
                 .orElseThrow(() -> new OperationNotFoundException("trackId: " + trackId));
         var cardUid = operationEntity.getCustomer().getCardId();
         log.info("Card UUID: " + cardUid);
-        var subscriptionResponse = atlasClient.findAllByUID(cardUid, "", "");
+        var subscriptionResponse = atlasClient.findAllByUid(cardUid, "", "");
         return subscriptionResponse.getSubscriptions().stream()
                 .filter(subscription -> subscription.getChannel().equals("SMPP_ALL") &&
                         subscription.getSchema().contains("3DS")).findFirst()
-                .orElseThrow(() -> new SubscriptionNotFoundException("CardUID: " + cardUid)).getAddress();
+                .orElseThrow(() -> new SubscriptionNotFoundException("CardUID: " + cardUid))
+                .getAddress();
     }
 }

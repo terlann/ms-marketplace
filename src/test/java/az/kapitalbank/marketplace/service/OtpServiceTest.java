@@ -103,7 +103,7 @@ class OtpServiceTest {
 
         //WHEN
         when(operationRepository.findById(trackId)).thenReturn(Optional.of(operationEntity));
-        when(atlasClient.findAllByUID(CARD_UID.getValue(), "", "")).thenReturn(subscriptionResponse);
+        when(atlasClient.findAllByUid(CARD_UID.getValue(), "", "")).thenReturn(subscriptionResponse);
         lenient().when(otpClient.send(sendOtpRequest)).thenReturn(sendOtpResponse);
 
         //THEN
@@ -165,7 +165,7 @@ class OtpServiceTest {
 
         lenient().when(operationRepository.findById(UUID.fromString(TRACK_ID.getValue())))
                 .thenReturn(Optional.of(operationEntity));
-        lenient().when(atlasClient.findAllByUID(CARD_UID.getValue(), "", ""))
+        lenient().when(atlasClient.findAllByUid(CARD_UID.getValue(), "", ""))
                 .thenReturn(subscriptionResponse);
         lenient().when(otpClient.verify(otpVerifyRequest)).thenReturn(verify);
         lenient().when(atlasClient.purchase(purchaseRequest)).thenReturn(purchaseResponse);

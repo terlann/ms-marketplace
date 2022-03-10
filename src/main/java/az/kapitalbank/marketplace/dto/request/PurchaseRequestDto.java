@@ -1,11 +1,10 @@
 package az.kapitalbank.marketplace.dto.request;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import az.kapitalbank.marketplace.dto.DeliveryProductDto;
 import java.util.List;
 import java.util.UUID;
-
-import az.kapitalbank.marketplace.dto.DeliveryProductDto;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;

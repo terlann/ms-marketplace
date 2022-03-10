@@ -1,17 +1,8 @@
 package az.kapitalbank.marketplace.service;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteRequest;
-import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.ReversPurchaseRequest;
 import az.kapitalbank.marketplace.constant.AccountStatus;
 import az.kapitalbank.marketplace.constant.Currency;
@@ -51,6 +42,13 @@ import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
 import az.kapitalbank.marketplace.util.AmountUtil;
 import az.kapitalbank.marketplace.util.GenerateUtil;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -91,14 +89,16 @@ public class OrderService {
         var orderEntities = new ArrayList<OrderEntity>();
         var productEntities = new ArrayList<ProductEntity>();
         for (OrderProductDeliveryInfo deliveryInfo : request.getDeliveryInfo()) {
-            var commission = amountUtil.getCommission(deliveryInfo.getTotalAmount(), request.getLoanTerm());
+            var commission =
+                    amountUtil.getCommission(deliveryInfo.getTotalAmount(), request.getLoanTerm());
             operationCommission = operationCommission.add(commission);
             var orderEntity = orderMapper.toOrderEntity(deliveryInfo, commission);
             orderEntity.setOperation(operationEntity);
 
             for (var orderProductItem : request.getProducts()) {
                 if (deliveryInfo.getOrderNo().equals(orderProductItem.getOrderNo())) {
-                    var productEntity = orderMapper.toProductEntity(orderProductItem, orderEntity.getOrderNo());
+                    var productEntity =
+                            orderMapper.toProductEntity(orderProductItem, orderEntity.getOrderNo());
                     productEntity.setOrder(orderEntity);
                     productEntities.add(productEntity);
                 }
@@ -117,7 +117,8 @@ public class OrderService {
             var fraudCheckEvent = createOrderMapper.toOrderEvent(request);
             fraudCheckEvent.setTrackId(trackId);
             customerOrderProducer.sendMessage(fraudCheckEvent);
-            log.info("New customer started process. customerId - {}, trackId - {}", customerEntity.getId(), trackId);
+            log.info("New customer started process. customerId - {}, trackId - {}",
+                    customerEntity.getId(), trackId);
         }
         return CreateOrderResponse.of(trackId);
     }
@@ -128,12 +129,14 @@ public class OrderService {
             log.info("First order create process is started...");
             var firstPhoneNumber = request.getCustomerInfo().getAdditionalPhoneNumber1();
             var secondPhoneNumber = request.getCustomerInfo().getAdditionalPhoneNumber2();
-            if (firstPhoneNumber.equals(secondPhoneNumber))
+            if (firstPhoneNumber.equals(secondPhoneNumber)) {
                 throw new UniqueAdditionalNumberException(firstPhoneNumber, secondPhoneNumber);
+            }
 
             validatePurchaseAmountLimit(request);
             var customerByUmicoUserId =
-                    customerRepository.findByUmicoUserId(request.getCustomerInfo().getUmicoUserId());
+                    customerRepository.findByUmicoUserId(
+                            request.getCustomerInfo().getUmicoUserId());
             if (customerByUmicoUserId.isPresent()) {
                 customerEntity = customerByUmicoUserId.get();
             } else {
@@ -147,8 +150,9 @@ public class OrderService {
             var isExistsCustomerByDecisionStatus = operationRepository
                     .existsByCustomerAndUmicoDecisionStatusIn(customerEntity,
                             Set.of(UmicoDecisionStatus.PENDING, UmicoDecisionStatus.PREAPPROVED));
-            if (isExistsCustomerByDecisionStatus)
+            if (isExistsCustomerByDecisionStatus) {
                 throw new CustomerNotCompletedProcessException("customerId - " + customerId);
+            }
             validateCustomerBalance(request, customerEntity.getCardId());
         }
         return customerEntity;
@@ -163,8 +167,9 @@ public class OrderService {
                 () -> new OperationNotFoundException("telesalesOrderId - " + telesalesOrderId));
 
         var scoringStatus = operationEntity.getScoringStatus();
-        if (scoringStatus != null)
+        if (scoringStatus != null) {
             throw new OperationAlreadyScoredException("telesalesOrderId - " + telesalesOrderId);
+        }
 
         var orderResponseDto = orderMapper.entityToDto(operationEntity);
         log.info("Check order was finished... telesalesOrderId - {}", telesalesOrderId);
@@ -217,7 +222,8 @@ public class OrderService {
                     purchaseResponseDto.setStatus(OrderStatus.FAIL);
                     order.setTransactionStatus(TransactionStatus.FAIL_IN_COMPLETE);
                     order.setTransactionError(ex.getMessage());
-                    log.error("Atlas complete process was failed. orderNo - {}", order.getOrderNo());
+                    log.error("Atlas complete process was failed. orderNo - {}",
+                            order.getOrderNo());
                     String errorMessager = "Atlas Exception: UUID - %s  ,  code - %s, message - %s";
                     log.error(String.format(errorMessager,
                             ex.getUuid(),
@@ -247,20 +253,23 @@ public class OrderService {
                 transactionStatus == TransactionStatus.FAIL_IN_COMPLETE) {
             var customerEntity = orderEntity.getOperation().getCustomer();
             if (!customerEntity.getId().equals(request.getCustomerId())) {
-                throw new OrderNotLinkedToCustomer("orderNo - " + orderNo + ", customerId - " + customerId);
+                throw new OrderNotLinkedToCustomer(
+                        "orderNo - " + orderNo + ", customerId - " + customerId);
             }
             var purchaseResponse = new PurchaseResponseDto();
             var reversRequest = ReversPurchaseRequest.builder()
                     .description("umico-marketplace reverse operation").build();
             try {
-                var reverseResponse = atlasClient.reverse(orderEntity.getTransactionId(), reversRequest);
+                var reverseResponse =
+                        atlasClient.reverse(orderEntity.getTransactionId(), reversRequest);
                 purchaseResponse.setStatus(OrderStatus.SUCCESS);
                 orderEntity.setTransactionId(String.valueOf(reverseResponse.getId()));
                 orderEntity.setTransactionStatus(TransactionStatus.REVERSE);
             } catch (AtlasClientException ex) {
                 purchaseResponse.setStatus(OrderStatus.FAIL);
                 orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_REVERSE);
-                log.error("Atlas reverse process was failed. orderNo - {}", orderEntity.getOrderNo());
+                log.error("Atlas reverse process was failed. orderNo - {}",
+                        orderEntity.getOrderNo());
                 String errorMessager = "Atlas Exception: UUID - %s  ,  code - %s, message - %s";
                 orderEntity.setTransactionError(String.format(errorMessager,
                         ex.getUuid(),
@@ -275,8 +284,9 @@ public class OrderService {
                     request.getOrderNo(), request.getCustomerId());
             return purchaseResponse;
         }
-        throw new NoPermissionForTransaction("orderNo- " + orderEntity.getId() + " transactionStatus- " +
-                orderEntity.getTransactionStatus());
+        throw new NoPermissionForTransaction(
+                "orderNo- " + orderEntity.getId() + " transactionStatus- " +
+                        orderEntity.getTransactionStatus());
     }
 
 
@@ -294,8 +304,9 @@ public class OrderService {
                 .map(OrderProductDeliveryInfo::getTotalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        if (totalOrderAmount.compareTo(loanAmount) != 0)
+        if (totalOrderAmount.compareTo(loanAmount) != 0) {
             throw new NoMatchLoanAmountException(loanAmount, totalOrderAmount);
+        }
     }
 
     private void validatePurchaseAmountLimit(CreateOrderRequestDto request) {
@@ -303,8 +314,9 @@ public class OrderService {
         var minLimit = BigDecimal.valueOf(50);
         var maxLimit = BigDecimal.valueOf(20000);
 
-        if (purchaseAmount.compareTo(minLimit) < 0 || purchaseAmount.compareTo(maxLimit) > 0)
+        if (purchaseAmount.compareTo(minLimit) < 0 || purchaseAmount.compareTo(maxLimit) > 0) {
             throw new TotalAmountLimitException(purchaseAmount);
+        }
     }
 
     private BigDecimal getPurchaseAmount(CreateOrderRequestDto request) {
@@ -312,14 +324,15 @@ public class OrderService {
         var totalCommission = BigDecimal.ZERO;
 
         for (var order : request.getDeliveryInfo()) {
-            var commission = amountUtil.getCommission(order.getTotalAmount(), request.getLoanTerm());
+            var commission =
+                    amountUtil.getCommission(order.getTotalAmount(), request.getLoanTerm());
             totalCommission = totalCommission.add(commission);
         }
         return totalAmount.add(totalCommission);
     }
 
     private BigDecimal getAvailableBalance(String cardId) {
-        var cardDetailResponse = atlasClient.findCardByUID(cardId, ResultType.ACCOUNT);
+        var cardDetailResponse = atlasClient.findCardByUid(cardId, ResultType.ACCOUNT);
 
         var primaryAccount = cardDetailResponse.getAccounts()
                 .stream()

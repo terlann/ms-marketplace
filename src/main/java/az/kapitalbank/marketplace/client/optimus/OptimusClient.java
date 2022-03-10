@@ -24,16 +24,19 @@ public interface OptimusClient {
     StartScoringResponse scoringStart(@RequestBody StartScoringRequest request);
 
     @PostMapping("/api/v1/scoring/{task-id}/create")
-    void scoringCreate(@PathVariable("task-id") String taskId, @RequestBody CreateScoringRequest request);
+    void scoringCreate(@PathVariable("task-id") String taskId,
+                       @RequestBody CreateScoringRequest request);
 
     @PostMapping("/api/v1/scoring/{task-id}/complete")
-    void scoringComplete(@PathVariable("task-id") String taskId, @RequestBody CompleteScoringRequest request);
+    void scoringComplete(@PathVariable("task-id") String taskId,
+                         @RequestBody CompleteScoringRequest request);
 
     @GetMapping("/api/v1/process/task/{business-key}")
     ProcessResponse getProcess(@PathVariable("business-key") String businessKey);
 
     @GetMapping("/api/v1/process/loan/{business-key}/variables")
-    String getProcessVariable(@PathVariable("business-key") String businessKey, @RequestParam String variableName);
+    String getProcessVariable(@PathVariable("business-key") String businessKey,
+                              @RequestParam String variableName);
 
     @DeleteMapping("/api/v1/process/loan/{business-key}")
     void deleteLoan(@PathVariable("business-key") String businessKey);

@@ -14,7 +14,8 @@ public enum Error {
     ORDER_NOT_FOUND("E101", "Order not found"),
     NO_MATCH_LOAN_AMOUNT("E102", "Loan amount is not equal total order amount"),
     LOAN_TERM_NOT_FOUND("E103", "No such loan term"),
-    PURCHASE_AMOUNT_LIMIT("E104", "Purchase amount must be between 50 and 20000 in first transaction"),
+    PURCHASE_AMOUNT_LIMIT("E104",
+            "Purchase amount must be between 50 and 20000 in first transaction"),
     NO_ENOUGH_BALANCE("E105", "There is no enough amount in balance"),
     CUSTOMER_NOT_COMPLETED_PROCESS("E106", "Customer has not yet completed the process"),
     CUSTOMER_NOT_FOUND("E107", "Customer not found"),
@@ -26,7 +27,7 @@ public enum Error {
     ORDER_NOT_LINKED_TO_CUSTOMER("E113", "Order is not linked to customer"),
     NO_PERMISSION("E114", "No permission reverse/purchase"),
     ATLAS_EXCEPTION("E115", "Exception in Complete"),
-    OTP_EXCEPTION("E116","OTP Error Ocurred");
+    OTP_EXCEPTION("E116", "OTP Error Ocurred");
 
     String code;
     String message;

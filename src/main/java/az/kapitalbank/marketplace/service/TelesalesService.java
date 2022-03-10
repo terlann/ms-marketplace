@@ -1,12 +1,11 @@
 package az.kapitalbank.marketplace.service;
 
-import java.util.Optional;
-
 import az.kapitalbank.marketplace.client.telesales.TelesalesClient;
 import az.kapitalbank.marketplace.dto.LeadDto;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.mapper.TelesalesMapper;
 import az.kapitalbank.marketplace.repository.OperationRepository;
+import java.util.Optional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -32,16 +31,20 @@ public class TelesalesService {
             var fraudTypes = leadDto.getTypes();
             var createTelesalesOrderRequest = telesalesMapper
                     .toTelesalesOrder(operationEntity, fraudTypes);
-            var amountWithCommission = operationEntity.getTotalAmount().add(operationEntity.getCommission());
+            var amountWithCommission =
+                    operationEntity.getTotalAmount().add(operationEntity.getCommission());
             createTelesalesOrderRequest.setLoanAmount(amountWithCommission);
             log.info("Send lead to telesales : request - {}", createTelesalesOrderRequest);
-            var createTelesalesOrderResponse = telesalesClient.sendLead(createTelesalesOrderRequest);
-            log.info("Send lead to telesales was finished successfully... trackId -{}, Response - {}",
+            var createTelesalesOrderResponse =
+                    telesalesClient.sendLead(createTelesalesOrderRequest);
+            log.info(
+                    "Send lead to telesales was finished successfully... trackId -{}, Response - {}",
                     trackId,
                     createTelesalesOrderResponse);
             return Optional.of(createTelesalesOrderResponse.getOperationId());
         } catch (Exception e) {
-            log.error("Send lead to telesales was finished unsuccessfully. trackId -{}, Exception - {}",
+            log.error(
+                    "Send lead to telesales was finished unsuccessfully. trackId -{}, Exception - {}",
                     trackId, e.getMessage());
             return Optional.empty();
         }
