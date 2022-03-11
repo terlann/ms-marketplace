@@ -154,7 +154,7 @@ public class OrderService {
             if (isExistsCustomerByDecisionStatus) {
                 throw new CustomerNotCompletedProcessException("customerId - " + customerId);
             }
-            validateCustomerBalance(request, customerEntity.getUid());
+            validateCustomerBalance(request, customerEntity.getCardId());
         }
         return customerEntity;
     }
@@ -192,7 +192,7 @@ public class OrderService {
                 .orElseThrow(() -> new CustomerNotFoundException(customerId.toString()));
 
         var purchaseResponseDtoList = new ArrayList<PurchaseResponseDto>();
-        var uid = customerEntity.getUid();
+        var cardId = customerEntity.getCardId();
         var orderNoList = request.getDeliveryOrders().stream()
                 .map(DeliveryProductDto::getOrderNo)
                 .collect(Collectors.toList());
@@ -204,7 +204,7 @@ public class OrderService {
             if (transactionStatus == TransactionStatus.PURCHASE
                     || transactionStatus == TransactionStatus.FAIL_IN_REVERSE
                     || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE) {
-                var purchaseResponseDto = purchaseOrder(uid, order);
+                var purchaseResponseDto = purchaseOrder(cardId, order);
                 purchaseResponseDtoList.add(purchaseResponseDto);
             }
         }
@@ -316,9 +316,9 @@ public class OrderService {
     }
 
 
-    private void validateCustomerBalance(CreateOrderRequestDto request, String uid) {
+    private void validateCustomerBalance(CreateOrderRequestDto request, String cardId) {
         var purchaseAmount = getPurchaseAmount(request);
-        var availableBalance = getAvailableBalance(uid);
+        var availableBalance = getAvailableBalance(cardId);
         if (purchaseAmount.compareTo(availableBalance) > 0) {
             throw new NoEnoughBalanceException(availableBalance);
         }
@@ -357,15 +357,15 @@ public class OrderService {
         return totalAmount.add(totalCommission);
     }
 
-    private BigDecimal getAvailableBalance(String uid) {
-        var cardDetailResponse = atlasClient.findCardByUid(uid, ResultType.ACCOUNT);
+    private BigDecimal getAvailableBalance(String cardId) {
+        var cardDetailResponse = atlasClient.findCardByUid(cardId, ResultType.ACCOUNT);
 
         var primaryAccount = cardDetailResponse.getAccounts()
                 .stream()
                 .filter(x -> x.getStatus() == AccountStatus.OPEN_PRIMARY)
                 .findFirst();
         if (primaryAccount.isEmpty()) {
-            log.error("Account not found in open primary status.uid - {}", uid);
+            log.error("Account not found in open primary status.cardId - {}", cardId);
             return BigDecimal.ZERO;
         }
         return primaryAccount.get().getAvailableBalance();

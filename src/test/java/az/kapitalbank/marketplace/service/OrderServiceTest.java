@@ -89,7 +89,7 @@ class OrderServiceTest {
         CreateOrderRequestDto createOrderRequestDto =
                 getCreateOrderRequestDto(customerId);
         var customerEntity = CustomerEntity.builder()
-                .uid(CARD_UID.getValue()).build();
+                .cardId(CARD_UID.getValue()).build();
         var cardDetailResponse = CardDetailResponse.builder()
                 .accounts(List.of(AccountResponse.builder()
                         .status(AccountStatus.OPEN_PRIMARY)

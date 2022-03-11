@@ -99,7 +99,7 @@ public class ScoringService {
                     .amount(orderEntity.getTotalAmount().add(orderEntity.getCommission()))
                     .description("fee=" + orderEntity.getCommission())
                     .currency(Currency.AZN.getCode()).terminalName(terminalName)
-                    .uid(operationEntity.getCustomer().getUid()).build();
+                    .uid(operationEntity.getCustomer().getCardId()).build();
             var purchaseResponse = atlasClient.purchase(purchaseRequest);
             orderEntity.setRrn(rrn);
             orderEntity.setTransactionId(purchaseResponse.getId());
@@ -131,7 +131,7 @@ public class ScoringService {
             operationEntity.setLoanContractStartDate(request.getLoanContractStartDate());
             operationEntity.setLoanContractEndDate(request.getLoanContractEndDate());
             var customerEntity = operationEntity.getCustomer();
-            customerEntity.setUid(request.getUid());
+            customerEntity.setCardId(request.getUid());
             customerEntity.setCompleteProcessDate(LocalDateTime.now());
             operationEntity.setCustomer(customerEntity);
         } else {
@@ -326,7 +326,7 @@ public class ScoringService {
                 optimusClient.getProcessVariable(operationEntity.getBusinessKey(),
                         "pan");
         var customerEntity = operationEntity.getCustomer();
-        customerEntity.setUid(processVariableResponse.getUid());
+        customerEntity.setCardId(processVariableResponse.getUid());
         customerRepository.save(customerEntity);
         CustomerEntity customer = prePurchaseOrders(operationEntity, customerEntity);
         log.info("Purchased all orders.");
@@ -357,7 +357,7 @@ public class ScoringService {
                     .description("fee=" + order.getCommission())
                     .currency(Currency.AZN.getCode())
                     .terminalName(terminalName)
-                    .uid(customer.getUid())
+                    .uid(customer.getCardId())
                     .build();
             var purchaseResponse = atlasClient.purchase(purchaseRequest);
 

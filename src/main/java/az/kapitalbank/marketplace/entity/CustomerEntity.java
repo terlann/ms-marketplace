@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import lombok.AccessLevel;
@@ -28,7 +30,8 @@ import lombok.experimental.SuperBuilder;
 public class CustomerEntity extends BaseEntity {
     String umicoUserId;
     boolean isAgreement;
-    String uid;
+    String cardId;
+    @Enumerated(EnumType.STRING)
     CustomerStatus status;
     LocalDateTime completeProcessDate;
 

@@ -69,7 +69,7 @@ class OtpServiceTest {
                 .message("success")
                 .build();
         var customerEntity = CustomerEntity.builder()
-                .uid(CARD_UID.getValue())
+                .cardId(CARD_UID.getValue())
                 .build();
         var operationEntity = getOperationEntity(customerEntity);
         var substrictions = List.of(Subscription.builder()
@@ -108,7 +108,7 @@ class OtpServiceTest {
     void verify_Success() {
         var otpVerifyRequestDto = OtpVerifyRequestDto.builder().build();
         var customerEntity = CustomerEntity.builder()
-                .uid(CARD_UID.getValue())
+                .cardId(CARD_UID.getValue())
                 .build();
         var orderEntity = OrderEntity.builder()
                 .rrn(RRN.getValue())

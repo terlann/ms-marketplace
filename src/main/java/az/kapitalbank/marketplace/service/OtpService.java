@@ -101,7 +101,7 @@ public class OtpService {
 
         var orderEntities = operationEntity.getOrders();
         var purchasedOrders = new ArrayList<OrderEntity>();
-        var cardUid = customerEntity.getUid();
+        var cardId = customerEntity.getCardId();
         for (var orderEntity : orderEntities) {
             var rrn = GenerateUtil.rrn();
             var purchaseRequest = PurchaseRequest.builder()
@@ -110,7 +110,7 @@ public class OtpService {
                     .description("fee=" + orderEntity.getCommission())
                     .currency(Currency.AZN.getCode())
                     .terminalName(terminalName)
-                    .uid(cardUid)
+                    .uid(cardId)
                     .build();
             var purchaseResponse = atlasClient.purchase(purchaseRequest);
             orderEntity.setRrn(rrn);
@@ -128,14 +128,14 @@ public class OtpService {
         log.info("get mobile number: " + trackId);
         var operationEntity = operationRepository.findById(trackId)
                 .orElseThrow(() -> new OperationNotFoundException("trackId: " + trackId));
-        var cardUid = operationEntity.getCustomer().getUid();
-        log.info("Card UUID: " + cardUid);
+        var cardId = operationEntity.getCustomer().getCardId();
+        log.info("Card UUID: " + cardId);
         var subscriptionResponse = atlasClient
-                .findAllByUid(cardUid, "", "");
+                .findAllByUid(cardId, "", "");
         return subscriptionResponse.getSubscriptions().stream()
                 .filter(subscription -> subscription.getChannel().equals("SMPP_ALL")
                         && subscription.getSchema().contains("3DS")).findFirst()
-                .orElseThrow(() -> new SubscriptionNotFoundException("CardUID: " + cardUid))
+                .orElseThrow(() -> new SubscriptionNotFoundException("CardUID: " + cardId))
                 .getAddress();
     }
 }
