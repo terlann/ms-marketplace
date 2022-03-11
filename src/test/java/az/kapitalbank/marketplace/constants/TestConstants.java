@@ -8,7 +8,9 @@ import lombok.Getter;
 public enum TestConstants {
     CARD_UID("d2a9d8bc-9beb-11ec-b909-0242ac120002"),
     RRN("29703c3e-9e41-11ec-b909-0242ac120002"),
-    TRACK_ID("3a30a65a-9bec-11ec-b909-0242ac120002");
+    TRACK_ID("3a30a65a-9bec-11ec-b909-0242ac120002"),
+    CUSTOMER_ID("30d8c6d0-a0fd-11ec-b909-0242ac120002");
+
     final String value;
 
 }

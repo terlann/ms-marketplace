@@ -34,11 +34,11 @@ public interface AtlasClient {
     ReverseResponse reverse(@PathVariable String id, @RequestBody ReversPurchaseRequest request);
 
     @GetMapping("/cards/uid/{uid}")
-    CardDetailResponse findCardByUID(@PathVariable String uid,
+    CardDetailResponse findCardByUid(@PathVariable String uid,
                                      @RequestParam ResultType resultType);
 
     @GetMapping("/api/card-messaging/cards/{uid}/subscriptions")
-    SubscriptionResponse findAllByUID(@PathVariable String uid,
+    SubscriptionResponse findAllByUid(@PathVariable String uid,
                                       @RequestParam String channel,
                                       @RequestParam String schema);
 

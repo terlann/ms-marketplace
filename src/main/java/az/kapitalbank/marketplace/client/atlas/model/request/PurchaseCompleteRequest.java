@@ -1,7 +1,6 @@
 package az.kapitalbank.marketplace.client.atlas.model.request;
 
 import java.math.BigDecimal;
-
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Data;

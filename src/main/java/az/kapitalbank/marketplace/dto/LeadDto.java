@@ -1,10 +1,9 @@
 package az.kapitalbank.marketplace.dto;
 
-import java.util.List;
-import java.util.UUID;
-
 import az.kapitalbank.marketplace.constant.FraudResultStatus;
 import az.kapitalbank.marketplace.constant.FraudType;
+import java.util.List;
+import java.util.UUID;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

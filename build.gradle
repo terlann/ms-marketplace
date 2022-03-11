@@ -76,7 +76,7 @@ test {
 
 checkstyle {
     toolVersion = "${checkstyleVersion}"
-    configFile = file("qa/checkstyle/checkstyle.xml")
+    configFile = file("checkstyle/checkstyle.xml")
 }
 
 checkstyleMain {

@@ -1,8 +1,7 @@
 package az.kapitalbank.marketplace.dto;
 
-import java.util.Map;
-
 import az.kapitalbank.marketplace.constant.Error;
+import java.util.Map;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
