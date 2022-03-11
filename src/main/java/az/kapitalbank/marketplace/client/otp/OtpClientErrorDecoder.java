@@ -14,9 +14,7 @@ public class OtpClientErrorDecoder implements ErrorDecoder {
             throw new ObjectMapper().readValue(response.body().asInputStream(),
                     OtpClientException.class);
         } else {
-            throw new OtpClientException(response.toString(), "");
+            throw new OtpClientException(response.toString(), null, null, "");
         }
     }
-
-
 }

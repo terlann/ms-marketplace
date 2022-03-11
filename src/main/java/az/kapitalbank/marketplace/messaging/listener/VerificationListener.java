@@ -90,7 +90,7 @@ public class VerificationListener {
 
     private void onVerificationStatusConfirmed(VerificationResultEvent verificationResultEvent,
                                                OperationEntity operationEntity) {
-        log.info("Verification status result. Response - {}",
+        log.info("Verification status confirmed result. Response - {}",
                 verificationResultEvent);
         var completeScoringWithConfirm =
                 CompleteScoring.builder()
@@ -106,7 +106,7 @@ public class VerificationListener {
 
     private void onVerificationStatusRejected(VerificationResultEvent verificationResultEvent,
                                               OperationEntity operationEntity, String businessKey) {
-        log.info("Verification status result. Response - {}",
+        log.info("Verification status rejected result. Response - {}",
                 verificationResultEvent);
         var umicoRejectedDecisionRequest = UmicoDecisionRequest.builder()
                 .trackId(operationEntity.getId())

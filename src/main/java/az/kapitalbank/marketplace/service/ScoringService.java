@@ -241,20 +241,20 @@ public class ScoringService {
             var taskDefinitionKey = inUserActivityData.getTaskDefinitionKey();
 
             if (taskDefinitionKey.equalsIgnoreCase(TaskDefinitionKey.USER_TASK_SCORING.name())) {
-                userTaskScoringProcess(operationEntity, trackId, processResponse, taskId);
+                userTaskScoringProcess(operationEntity, trackId, processResponse.get(), taskId);
             } else if (taskDefinitionKey.equalsIgnoreCase(
                     TaskDefinitionKey.USER_TASK_SIGN_DOCUMENTS.name())) {
-                userTaskSignDocumentsProcess(operationEntity, trackId, businessKey, processResponse,
-                        taskId);
+                userTaskSignDocumentsProcess(operationEntity, trackId, businessKey,
+                        processResponse.get(), taskId);
             }
         }
     }
 
     private void userTaskScoringProcess(OperationEntity operationEntity, UUID trackId,
-                                        Optional<ProcessResponse> processResponse, String taskId) {
+                                        ProcessResponse processResponse, String taskId) {
         log.info("Start scoring result...");
         var scoredAmount =
-                processResponse.get().getVariables().getSelectedOffer().getCardOffer()
+                processResponse.getVariables().getSelectedOffer().getCardOffer()
                         .getAvailableLoanAmount();
         var selectedAmount =
                 operationEntity.getTotalAmount().add(operationEntity.getCommission());
@@ -274,13 +274,13 @@ public class ScoringService {
 
     private void userTaskSignDocumentsProcess(OperationEntity operationEntity,
                                               UUID trackId, String businessKey,
-                                              Optional<ProcessResponse> processResponse,
+                                              ProcessResponse processResponse,
                                               String taskId) {
         log.info("Create scoring result...");
-        var dvsId = processResponse.get().getVariables().getDvsOrderId();
-        var start = processResponse.get().getVariables().getCreateCardCreditRequest()
+        var dvsId = processResponse.getVariables().getDvsOrderId();
+        var start = processResponse.getVariables().getCreateCardCreditRequest()
                 .getStartDate();
-        var end = processResponse.get().getVariables().getCreateCardCreditRequest()
+        var end = processResponse.getVariables().getCreateCardCreditRequest()
                 .getEndDate();
         operationEntity.setLoanContractStartDate(start);
         operationEntity.setLoanContractEndDate(end);
@@ -421,8 +421,8 @@ public class ScoringService {
                     + " Response - {}", trackId, startScoringResponse);
             return Optional.of(startScoringResponse.getBusinessKey());
         } catch (OptimusClientException e) {
-            log.error("Start scoring process was finished unsuccessfully..."
-                    + " trackId - {}, FeignException - {}", trackId, e.getMessage());
+            log.error("Start scoring process was finished unsuccessfully... trackId - {}," +
+                    " FeignException - {}", trackId, e.getMessage());
             return Optional.empty();
         }
     }

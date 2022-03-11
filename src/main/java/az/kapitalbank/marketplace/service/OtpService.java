@@ -81,7 +81,7 @@ public class OtpService {
             log.info("Verifed OTP Response: - " + verify.getStatus());
         } catch (OtpClientException ex) {
             String message =
-                    String.format("message: {} , detail: {} ", ex.getMessage(), ex.getDetail());
+                    String.format("message: %s , detail: %s ", ex.getMessage(), ex.getDetail());
             log.info("OTP Verify Client Exception: - " + message);
             return OtpVerifyResponseDto.builder()
                     .status(message)
