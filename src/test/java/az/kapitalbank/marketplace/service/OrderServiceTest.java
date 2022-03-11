@@ -75,7 +75,30 @@ class OrderServiceTest {
     void createOrder_firstOperation() {
         var customerId = UUID.fromString(CUSTOMER_ID.getValue());
 
-        var createOrderRequestDto = CreateOrderRequestDto.builder()
+        CreateOrderRequestDto createOrderRequestDto =
+                getCreateOrderRequestDto(customerId);
+        var customerEntity = CustomerEntity.builder()
+                .uid(CARD_UID.getValue()).build();
+        var cardDetailResponse = CardDetailResponse.builder()
+                .accounts(List.of(AccountResponse.builder()
+                        .status(AccountStatus.OPEN_PRIMARY)
+                        .availableBalance(BigDecimal.valueOf(1000))
+                        .build()))
+                .build();
+        var operationEntity = OperationEntity.builder()
+                .id(UUID.fromString(TRACK_ID.getValue()))
+                .build();
+        var orderEntity = OrderEntity.builder().build();
+        var fraudCheckEvent = FraudCheckEvent.builder().build();
+        mockCreateOrderFirstOperation(customerId, createOrderRequestDto, customerEntity,
+                cardDetailResponse, operationEntity, orderEntity, fraudCheckEvent);
+        var actual = orderService.createOrder(createOrderRequestDto);
+        var expected = CreateOrderResponse.of(UUID.fromString(TRACK_ID.getValue()));
+        assertEquals(expected, actual);
+    }
+
+    private CreateOrderRequestDto getCreateOrderRequestDto(UUID customerId) {
+        return CreateOrderRequestDto.builder()
                 .totalAmount(BigDecimal.valueOf(50))
                 .loanTerm(12)
                 .customerInfo(CustomerInfo.builder()
@@ -89,19 +112,15 @@ class OrderServiceTest {
                         .orderNo("123")
                         .build()))
                 .build();
-        var customerEntity = CustomerEntity.builder()
-                .cardId(CARD_UID.getValue()).build();
-        var cardDetailResponse = CardDetailResponse.builder()
-                .accounts(List.of(AccountResponse.builder()
-                        .status(AccountStatus.OPEN_PRIMARY)
-                        .availableBalance(BigDecimal.valueOf(1000))
-                        .build()))
-                .build();
-        var operationEntity = OperationEntity.builder()
-                .id(UUID.fromString(TRACK_ID.getValue()))
-                .build();
-        var orderEntity = OrderEntity.builder().build();
-        var fraudCheckEvent = FraudCheckEvent.builder().build();
+    }
+
+    private void mockCreateOrderFirstOperation(UUID customerId,
+                                               CreateOrderRequestDto createOrderRequestDto,
+                                               CustomerEntity customerEntity,
+                                               CardDetailResponse cardDetailResponse,
+                                               OperationEntity operationEntity,
+                                               OrderEntity orderEntity,
+                                               FraudCheckEvent fraudCheckEvent) {
         when(customerRepository.findById(customerId))
                 .thenReturn(Optional.of(customerEntity));
         when(operationRepository
@@ -119,9 +138,6 @@ class OrderServiceTest {
                 orderEntity.getOrderNo())).thenReturn(ProductEntity.builder().build());
         when(operationRepository.save(operationEntity)).thenReturn(operationEntity);
         when(createOrderMapper.toOrderEvent(createOrderRequestDto)).thenReturn(fraudCheckEvent);
-        var actual = orderService.createOrder(createOrderRequestDto);
-        var expected = CreateOrderResponse.of(UUID.fromString(TRACK_ID.getValue()));
-        assertEquals(expected, actual);
     }
 
     void reverse_Success() {

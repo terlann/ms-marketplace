@@ -73,7 +73,7 @@ class OtpServiceTest {
                 .message("success")
                 .build();
         var customerEntity = CustomerEntity.builder()
-                .cardId(CARD_UID.getValue())
+                .uid(CARD_UID.getValue())
                 .build();
         var operationEntity = getOperationEntity(customerEntity);
         var substrictions = List.of(Subscription.builder()

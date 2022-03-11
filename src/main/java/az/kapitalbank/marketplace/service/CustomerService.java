@@ -49,7 +49,7 @@ public class CustomerService {
             throw new UmicoUserNotFoundException("umicoUserId - " + umicoUserId);
         }
         var uid = customerEntity.getUid();
-        var cardDetailResponse = atlasClient.findCardByUID(uid, ResultType.ACCOUNT);
+        var cardDetailResponse = atlasClient.findCardByUid(uid, ResultType.ACCOUNT);
 
         var primaryAccount = cardDetailResponse.getAccounts()
                 .stream()

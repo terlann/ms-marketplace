@@ -101,7 +101,7 @@ public class OtpService {
 
         var orderEntities = operationEntity.getOrders();
         var purchasedOrders = new ArrayList<OrderEntity>();
-        var cardUid = customerEntity.getCardId();
+        var cardUid = customerEntity.getUid();
         for (var orderEntity : orderEntities) {
             var rrn = GenerateUtil.rrn();
             var purchaseRequest = PurchaseRequest.builder()

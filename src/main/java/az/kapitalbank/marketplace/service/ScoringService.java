@@ -16,6 +16,7 @@ import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringReque
 import az.kapitalbank.marketplace.client.umico.UmicoClient;
 import az.kapitalbank.marketplace.client.umico.exception.UmicoClientException;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
+import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionResponse;
 import az.kapitalbank.marketplace.constant.ApplicationConstant;
 import az.kapitalbank.marketplace.constant.Currency;
 import az.kapitalbank.marketplace.constant.DvsStatus;
@@ -98,7 +99,7 @@ public class ScoringService {
                     .amount(orderEntity.getTotalAmount().add(orderEntity.getCommission()))
                     .description("fee=" + orderEntity.getCommission())
                     .currency(Currency.AZN.getCode()).terminalName(terminalName)
-                    .uid(operationEntity.getCustomer().getCardId()).build();
+                    .uid(operationEntity.getCustomer().getUid()).build();
             var purchaseResponse = atlasClient.purchase(purchaseRequest);
             orderEntity.setRrn(rrn);
             orderEntity.setTransactionId(purchaseResponse.getId());
@@ -321,8 +322,9 @@ public class ScoringService {
 
     private void scoringCompletedProcess(OperationEntity operationEntity) {
         log.info("Complete scoring result...");
-        var processVariableResponse = optimusClient.getProcessVariable(operationEntity.getBusinessKey(),
-                "pan");
+        var processVariableResponse =
+                optimusClient.getProcessVariable(operationEntity.getBusinessKey(),
+                        "pan");
         var customerEntity = operationEntity.getCustomer();
         customerEntity.setUid(processVariableResponse.getUid());
         customerRepository.save(customerEntity);
@@ -339,9 +341,7 @@ public class ScoringService {
                         .loanContractEndDate(operationEntity.getLoanContractEndDate()).build();
         log.info("Scoring complete result. Send decision request - {}",
                 umicoApprovedDecisionRequest);
-        /*
-         * umicoClient.sendDecisionToUmico(umicoApprovedDecisionRequest, apiKey);
-         */
+        umicoClient.sendDecisionToUmico(umicoApprovedDecisionRequest, apiKey);
         log.info("Order Dvs status sent to umico like APPROVED. trackId - {}",
                 operationEntity.getId());
     }
@@ -421,8 +421,8 @@ public class ScoringService {
                     + " Response - {}", trackId, startScoringResponse);
             return Optional.of(startScoringResponse.getBusinessKey());
         } catch (OptimusClientException e) {
-            log.error("Start scoring process was finished unsuccessfully... trackId - {}," +
-                    " FeignException - {}", trackId, e.getMessage());
+            log.error("Start scoring process was finished unsuccessfully... trackId - {},"
+                    + " FeignException - {}", trackId, e.getMessage());
             return Optional.empty();
         }
     }
@@ -519,8 +519,7 @@ public class ScoringService {
             UmicoDecisionResponse umicoScoringDecisionResponse = umicoClient
                     .sendDecisionToUmico(umicoScoringDecisionRequest, apiKey);
             log.info("Umico send decision was finished successfully.trackId - {}",
-                    trackId
-                    ,   umicoScoringDecisionResponse
+                    trackId, umicoScoringDecisionResponse
             );
         } catch (UmicoClientException e) {
             log.error("Umico send decision was finished unsuccessfully."

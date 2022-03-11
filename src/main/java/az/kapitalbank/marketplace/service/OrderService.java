@@ -87,7 +87,7 @@ public class OrderService {
 
         var trackId = operationEntity.getId();
         if (customerId != null && customerEntity.getCompleteProcessDate() != null) {
-            // TODO: what we send umico
+            log.info("what we send umico");
         } else {
             var fraudCheckEvent = createOrderMapper.toOrderEvent(request);
             fraudCheckEvent.setTrackId(trackId);
@@ -154,7 +154,7 @@ public class OrderService {
             if (isExistsCustomerByDecisionStatus) {
                 throw new CustomerNotCompletedProcessException("customerId - " + customerId);
             }
-            validateCustomerBalance(request, customerEntity.getCardId());
+            validateCustomerBalance(request, customerEntity.getUid());
         }
         return customerEntity;
     }
@@ -205,7 +205,7 @@ public class OrderService {
             if (transactionStatus == TransactionStatus.PURCHASE
                     || transactionStatus == TransactionStatus.FAIL_IN_REVERSE
                     || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE) {
-                var purchaseResponseDto = purchaseOrder(cardId, order);
+                var purchaseResponseDto = purchaseOrder(uid, order);
                 purchaseResponseDtoList.add(purchaseResponseDto);
             }
         }
