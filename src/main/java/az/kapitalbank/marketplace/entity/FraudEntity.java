@@ -1,11 +1,10 @@
 package az.kapitalbank.marketplace.entity;
 
+import az.kapitalbank.marketplace.constant.FraudType;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.Table;
-
-import az.kapitalbank.marketplace.constant.FraudType;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

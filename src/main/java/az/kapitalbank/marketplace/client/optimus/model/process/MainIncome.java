@@ -1,9 +1,9 @@
 package az.kapitalbank.marketplace.client.optimus.model.process;
 
+import static lombok.AccessLevel.PRIVATE;
+
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
-
-import static lombok.AccessLevel.PRIVATE;
 
 @Data
 @FieldDefaults(level = PRIVATE)

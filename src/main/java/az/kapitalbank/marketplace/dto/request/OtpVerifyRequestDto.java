@@ -1,7 +1,6 @@
 package az.kapitalbank.marketplace.dto.request;
 
 import java.util.UUID;
-
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -3,7 +3,6 @@ package az.kapitalbank.marketplace.config;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.Map;
-
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.experimental.FieldDefaults;

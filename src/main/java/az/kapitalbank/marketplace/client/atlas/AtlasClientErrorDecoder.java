@@ -1,11 +1,10 @@
 package az.kapitalbank.marketplace.client.atlas;
 
-import java.util.UUID;
-
 import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.Response;
 import feign.codec.ErrorDecoder;
+import java.util.UUID;
 import lombok.SneakyThrows;
 import org.springframework.context.annotation.Configuration;
 
@@ -16,9 +15,11 @@ public class AtlasClientErrorDecoder implements ErrorDecoder {
     @Override
     public Exception decode(String methodKey, Response response) {
         if (response.status() == 400 || response.status() == 404) {
-            throw new ObjectMapper().readValue(response.body().asInputStream(), AtlasClientException.class);
+            throw new ObjectMapper().readValue(response.body().asInputStream(),
+                    AtlasClientException.class);
         } else {
-            throw new AtlasClientException(UUID.randomUUID(), String.valueOf(response.status()), response.toString());
+            throw new AtlasClientException(UUID.randomUUID(), String.valueOf(response.status()),
+                    response.toString());
         }
     }
 }

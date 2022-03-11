@@ -7,10 +7,9 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
-@Mapper(componentModel = "spring",
-        unmappedSourcePolicy = ReportingPolicy.IGNORE,
+@Mapper(componentModel = "spring", unmappedSourcePolicy = ReportingPolicy.IGNORE,
         unmappedTargetPolicy = ReportingPolicy.IGNORE,
-        uses = {CreateOrderQualifier.class})
+        uses = CreateOrderQualifier.class)
 public interface CreateOrderMapper {
 
     @Mapping(source = "customerInfo.umicoUserId", target = "umicoUserId")
@@ -20,6 +19,7 @@ public interface CreateOrderMapper {
     @Mapping(source = "customerInfo.userAgent", target = "userAgent")
     @Mapping(source = "customerInfo.workPlace", target = "workPlace")
     @Mapping(source = "customerInfo.mobileNumber", target = "mobileNumber")
-    @Mapping(source = "request.deliveryInfo", target = "deliveryAddresses", qualifiedByName = "mapDeliveryAddresses")
+    @Mapping(source = "request.deliveryInfo", target = "deliveryAddresses",
+            qualifiedByName = "mapDeliveryAddresses")
     FraudCheckEvent toOrderEvent(CreateOrderRequestDto request);
 }

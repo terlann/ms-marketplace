@@ -1,12 +1,11 @@
 package az.kapitalbank.marketplace.messaging.listener;
 
-import java.util.Objects;
-import java.util.function.Consumer;
-
 import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
 import az.kapitalbank.marketplace.service.ScoringService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.Objects;
+import java.util.function.Consumer;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -28,13 +27,14 @@ public class ScoringListener {
         return message -> {
             if (Objects.nonNull(message)) {
                 try {
-                    var startScoringResult = objectMapper.readValue(message, ScoringResultEvent.class);
+                    var startScoringResult =
+                            objectMapper.readValue(message, ScoringResultEvent.class);
                     log.info("scoring result consumer. Message - {}", startScoringResult);
                     scoringService.scoringResultProcess(startScoringResult);
-                } catch (JsonProcessingException j) {
+                } catch (JsonProcessingException ex) {
                     log.error("scoring result consume.Message - {}, JsonProcessingException - {}",
                             message,
-                            j.getMessage());
+                            ex.getMessage());
                 }
             }
         };

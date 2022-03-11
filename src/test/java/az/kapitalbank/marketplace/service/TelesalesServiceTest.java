@@ -1,9 +1,7 @@
 package az.kapitalbank.marketplace.service;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.when;
 
 import az.kapitalbank.marketplace.client.telesales.TelesalesClient;
 import az.kapitalbank.marketplace.client.telesales.exception.TelesalesClientException;
@@ -15,14 +13,15 @@ import az.kapitalbank.marketplace.dto.LeadDto;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.mapper.TelesalesMapper;
 import az.kapitalbank.marketplace.repository.OperationRepository;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class TelesalesServiceTest {
@@ -55,8 +54,10 @@ class TelesalesServiceTest {
                 .types(List.of(FraudType.PIN))
                 .build();
         when(operationRepository.findById(trackId)).thenReturn(Optional.of(operationEntity));
-        when(telesalesMapper.toTelesalesOrder(operationEntity, fraudTypes)).thenReturn(createTelesalesOrderRequest);
-        when(telesalesClient.sendLead(createTelesalesOrderRequest)).thenReturn(createTelesalesOrderResponse);
+        when(telesalesMapper.toTelesalesOrder(operationEntity, fraudTypes)).thenReturn(
+                createTelesalesOrderRequest);
+        when(telesalesClient.sendLead(createTelesalesOrderRequest)).thenReturn(
+                createTelesalesOrderResponse);
 
         var actual = telesalesService.sendLead(leadDto);
         var expected = Optional.of("7572ef38-9ab2-11ec-b909-0242ac120002");
@@ -80,7 +81,8 @@ class TelesalesServiceTest {
                 .types(List.of(FraudType.PIN))
                 .build();
         when(operationRepository.findById(trackId)).thenReturn(Optional.of(operationEntity));
-        when(telesalesMapper.toTelesalesOrder(operationEntity, fraudTypes)).thenReturn(createTelesalesOrderRequest);
+        when(telesalesMapper.toTelesalesOrder(operationEntity, fraudTypes)).thenReturn(
+                createTelesalesOrderRequest);
         when(telesalesClient.sendLead(createTelesalesOrderRequest))
                 .thenThrow(new TelesalesClientException("0", "Telesales Error"));
 

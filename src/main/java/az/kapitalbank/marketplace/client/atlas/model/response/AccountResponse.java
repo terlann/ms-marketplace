@@ -1,8 +1,7 @@
 package az.kapitalbank.marketplace.client.atlas.model.response;
 
-import java.math.BigDecimal;
-
 import az.kapitalbank.marketplace.constant.AccountStatus;
+import java.math.BigDecimal;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

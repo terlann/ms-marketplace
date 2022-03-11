@@ -1,12 +1,11 @@
 package az.kapitalbank.marketplace.client.optimus.model.process;
 
-import java.math.BigDecimal;
+import static lombok.AccessLevel.PRIVATE;
 
 import com.fasterxml.jackson.annotation.JsonAlias;
+import java.math.BigDecimal;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
-
-import static lombok.AccessLevel.PRIVATE;
 
 @Data
 @FieldDefaults(level = PRIVATE)
