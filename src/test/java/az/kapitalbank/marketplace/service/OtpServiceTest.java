@@ -111,7 +111,7 @@ class OtpServiceTest {
     @Test
     void verify_Success() {
         var customerEntity = CustomerEntity.builder()
-                .cardId(CARD_UID.getValue())
+                .uid(CARD_UID.getValue())
                 .build();
         var orderEntity = OrderEntity.builder()
                 .rrn(RRN.getValue())

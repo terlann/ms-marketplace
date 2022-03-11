@@ -1,6 +1,7 @@
 package az.kapitalbank.marketplace.client.optimus;
 
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
+import az.kapitalbank.marketplace.client.optimus.model.process.ProcessVariableResponse;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.CompleteScoringRequest;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.CreateScoringRequest;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringRequest;
@@ -35,8 +36,8 @@ public interface OptimusClient {
     ProcessResponse getProcess(@PathVariable("business-key") String businessKey);
 
     @GetMapping("/api/v1/process/loan/{business-key}/variables")
-    String getProcessVariable(@PathVariable("business-key") String businessKey,
-                              @RequestParam String variableName);
+    ProcessVariableResponse getProcessVariable(@PathVariable("business-key") String businessKey,
+                                               @RequestParam String variableName);
 
     @DeleteMapping("/api/v1/process/loan/{business-key}")
     void deleteLoan(@PathVariable("business-key") String businessKey);

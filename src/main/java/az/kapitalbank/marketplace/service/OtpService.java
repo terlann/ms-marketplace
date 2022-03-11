@@ -128,7 +128,7 @@ public class OtpService {
         log.info("get mobile number: " + trackId);
         var operationEntity = operationRepository.findById(trackId)
                 .orElseThrow(() -> new OperationNotFoundException("trackId: " + trackId));
-        var cardUid = operationEntity.getCustomer().getCardId();
+        var cardUid = operationEntity.getCustomer().getUid();
         log.info("Card UUID: " + cardUid);
         var subscriptionResponse = atlasClient
                 .findAllByUid(cardUid, "", "");

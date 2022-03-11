@@ -127,11 +127,10 @@ public class ScoringService {
         if (request.getScoringStatus() == ScoringStatus.APPROVED) {
             operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
             operationEntity.setScoringStatus(ScoringStatus.APPROVED);
-            operationEntity.setLoanContractStartDate(request.getLoanStartDate());
-            operationEntity.setLoanContractEndDate(request.getLoanEndDate());
+            operationEntity.setLoanContractStartDate(request.getLoanContractStartDate());
+            operationEntity.setLoanContractEndDate(request.getLoanContractEndDate());
             var customerEntity = operationEntity.getCustomer();
-            var cardUid = atlasClient.findByPan(request.getPan()).getUid();
-            customerEntity.setCardId(cardUid);
+            customerEntity.setUid(request.getUid());
             customerEntity.setCompleteProcessDate(LocalDateTime.now());
             operationEntity.setCustomer(customerEntity);
         } else {
@@ -322,12 +321,10 @@ public class ScoringService {
 
     private void scoringCompletedProcess(OperationEntity operationEntity) {
         log.info("Complete scoring result...");
-        var cardPan = optimusClient.getProcessVariable(operationEntity.getBusinessKey(), "pan");
-        var cardId = atlasClient.findByPan(cardPan).getUid();
-        log.info("Pan was taken and changed to card uid.Purchase process starts. cardId - {}",
-                cardId);
+        var processVariableResponse = optimusClient.getProcessVariable(operationEntity.getBusinessKey(),
+                "pan");
         var customerEntity = operationEntity.getCustomer();
-        customerEntity.setCardId(cardId);
+        customerEntity.setUid(processVariableResponse.getUid());
         customerRepository.save(customerEntity);
         CustomerEntity customer = prePurchaseOrders(operationEntity, customerEntity);
         log.info("Purchased all orders.");
@@ -357,8 +354,11 @@ public class ScoringService {
             var rrn = GenerateUtil.rrn();
             var purchaseRequest = PurchaseRequest.builder().rrn(rrn)
                     .amount(order.getTotalAmount().add(order.getCommission()))
-                    .description("fee=" + order.getCommission()).currency(Currency.AZN.getCode())
-                    .terminalName(terminalName).uid(customer.getCardId()).build();
+                    .description("fee=" + order.getCommission())
+                    .currency(Currency.AZN.getCode())
+                    .terminalName(terminalName)
+                    .uid(customer.getUid())
+                    .build();
             var purchaseResponse = atlasClient.purchase(purchaseRequest);
 
             order.setRrn(rrn);
@@ -506,21 +506,21 @@ public class ScoringService {
         var operationEntity = operationRepository.findById(trackId)
                 .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
         operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
-        UmicoDecisionRequest umicoScoringDecisionRequest =
-                UmicoDecisionRequest.builder().trackId(trackId).dvsUrl(dvsUrl)
-                        .decisionStatus(umicoDecisionStatus).loanTerm(operationEntity.getLoanTerm())
-                        .build();
-        log.info("Umico send decision.trackId - {}, Request - {}", trackId,
+        UmicoDecisionRequest umicoScoringDecisionRequest = UmicoDecisionRequest.builder()
+                .trackId(trackId)
+                .dvsUrl(dvsUrl)
+                .decisionStatus(umicoDecisionStatus)
+                .loanTerm(operationEntity.getLoanTerm())
+                .build();
+        log.info("Umico send decision.trackId - {}, Request - {}",
+                trackId,
                 umicoScoringDecisionRequest);
         try {
-            /*
             UmicoDecisionResponse umicoScoringDecisionResponse = umicoClient
                     .sendDecisionToUmico(umicoScoringDecisionRequest, apiKey);
-             */
-            log.info("Umico send decision was finished successfully.trackId - {}", trackId
-            /*
-                    umicoScoringDecisionResponse
-            */
+            log.info("Umico send decision was finished successfully.trackId - {}",
+                    trackId
+                    ,   umicoScoringDecisionResponse
             );
         } catch (UmicoClientException e) {
             log.error("Umico send decision was finished unsuccessfully."

@@ -4,7 +4,6 @@ import az.kapitalbank.marketplace.constant.ScoringStatus;
 import java.time.LocalDate;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.experimental.FieldDefaults;
@@ -17,10 +16,9 @@ public class TelesalesResultRequestDto {
     @NotNull
     ScoringStatus scoringStatus;
     @NotNull
-    LocalDate loanStartDate;
+    LocalDate loanContractStartDate;
     @NotNull
-    LocalDate loanEndDate;
+    LocalDate loanContractEndDate;
     @NotBlank
-    @Size(min = 16, max = 16)
-    String pan;
+    String uid;
 }

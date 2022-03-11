@@ -193,7 +193,7 @@ public class OrderService {
                 .orElseThrow(() -> new CustomerNotFoundException(customerId.toString()));
 
         var purchaseResponseDtoList = new ArrayList<PurchaseResponseDto>();
-        var cardId = customerEntity.getCardId();
+        var uid = customerEntity.getUid();
         var orderNoList = request.getDeliveryOrders().stream()
                 .map(DeliveryProductDto::getOrderNo)
                 .collect(Collectors.toList());
@@ -317,9 +317,9 @@ public class OrderService {
     }
 
 
-    private void validateCustomerBalance(CreateOrderRequestDto request, String cardId) {
+    private void validateCustomerBalance(CreateOrderRequestDto request, String uid) {
         var purchaseAmount = getPurchaseAmount(request);
-        var availableBalance = getAvailableBalance(cardId);
+        var availableBalance = getAvailableBalance(uid);
         if (purchaseAmount.compareTo(availableBalance) > 0) {
             throw new NoEnoughBalanceException(availableBalance);
         }
@@ -358,15 +358,15 @@ public class OrderService {
         return totalAmount.add(totalCommission);
     }
 
-    private BigDecimal getAvailableBalance(String cardId) {
-        var cardDetailResponse = atlasClient.findCardByUid(cardId, ResultType.ACCOUNT);
+    private BigDecimal getAvailableBalance(String uid) {
+        var cardDetailResponse = atlasClient.findCardByUid(uid, ResultType.ACCOUNT);
 
         var primaryAccount = cardDetailResponse.getAccounts()
                 .stream()
                 .filter(x -> x.getStatus() == AccountStatus.OPEN_PRIMARY)
                 .findFirst();
         if (primaryAccount.isEmpty()) {
-            log.error("Account not found in open primary status.cardId - {}", cardId);
+            log.error("Account not found in open primary status.uid - {}", uid);
             return BigDecimal.ZERO;
         }
         return primaryAccount.get().getAvailableBalance();

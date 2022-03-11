@@ -4,7 +4,6 @@ import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteReq
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.ReversPurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.response.CardDetailResponse;
-import az.kapitalbank.marketplace.client.atlas.model.response.CardResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseCompleteResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.ReverseResponse;
@@ -37,9 +36,6 @@ public interface AtlasClient {
     @GetMapping("/cards/uid/{uid}")
     CardDetailResponse findCardByUid(@PathVariable String uid,
                                      @RequestParam ResultType resultType);
-
-    @GetMapping("/cards/pan/{pan}")
-    CardResponse findByPan(@PathVariable String pan);
 
     @GetMapping("/api/card-messaging/cards/{uid}/subscriptions")
     SubscriptionResponse findAllByUid(@PathVariable String uid,

@@ -39,7 +39,7 @@ class CustomerServiceTest {
     private IamasClient iamasClient;
 
     @InjectMocks
-    CustomerService onlineQueueService;
+    CustomerService customerService;
 
     @Test
     void checkPerson() {
@@ -55,7 +55,7 @@ class CustomerServiceTest {
                 .build();
         var iamasResponses = List.of(iamasResponse);
         when(iamasClient.findPersonByPin(pin)).thenReturn(iamasResponses);
-        onlineQueueService.checkPerson(pin);
+        customerService.checkPerson(pin);
         verify(iamasClient).findPersonByPin(pin);
     }
 
@@ -63,11 +63,11 @@ class CustomerServiceTest {
     void getBalance_Success() {
         var umicoUserId = "9eb6e760-9a25-11ec-b909-0242ac120002";
         var customerId = UUID.fromString("98f12a70-9a25-11ec-b909-0242ac120002");
-        var cardId = "81E8CBF84249D915E0530100007FF443";
+        var uid = "81E8CBF84249D915E0530100007FF443";
         var customerEntity = CustomerEntity.builder()
                 .umicoUserId(umicoUserId)
                 .isAgreement(true)
-                .cardId(cardId)
+                .uid(uid)
                 .build();
         var accountResponse = AccountResponse.builder()
                 .availableBalance(BigDecimal.valueOf(500))
@@ -79,14 +79,14 @@ class CustomerServiceTest {
                 .accounts(List.of(accountResponse))
                 .build();
         when(customerRepository.findById(customerId)).thenReturn(Optional.of(customerEntity));
-        when(atlasClient.findCardByUid(cardId, ResultType.ACCOUNT)).thenReturn(cardDetailResponse);
+        when(atlasClient.findCardByUid(uid, ResultType.ACCOUNT)).thenReturn(cardDetailResponse);
         var expected = BalanceResponseDto.builder()
                 .cardExpiryDate(cardDetailResponse.getExpiryDate())
                 .loanLimit(BigDecimal.valueOf(1000))
                 .loanUtilized(BigDecimal.valueOf(500))
                 .availableBalance(BigDecimal.valueOf(500))
                 .build();
-        var actual = onlineQueueService.getBalance(umicoUserId, customerId);
+        var actual = customerService.getBalance(umicoUserId, customerId);
         assertEquals(expected, actual);
 
     }
@@ -95,11 +95,11 @@ class CustomerServiceTest {
     void getBalance_when_primaryAccountIsEmpty() {
         var umicoUserId = "9eb6e760-9a25-11ec-b909-0242ac120002";
         var customerId = UUID.fromString("98f12a70-9a25-11ec-b909-0242ac120002");
-        var cardId = "81E8CBF84249D915E0530100007FF443";
+        var uid = "81E8CBF84249D915E0530100007FF443";
         var customerEntity = CustomerEntity.builder()
                 .umicoUserId(umicoUserId)
                 .isAgreement(true)
-                .cardId(cardId)
+                .uid(uid)
                 .build();
 
         var cardDetailResponse = CardDetailResponse.builder()
@@ -107,14 +107,14 @@ class CustomerServiceTest {
                 .accounts(new ArrayList<>())
                 .build();
         when(customerRepository.findById(customerId)).thenReturn(Optional.of(customerEntity));
-        when(atlasClient.findCardByUid(cardId, ResultType.ACCOUNT)).thenReturn(cardDetailResponse);
+        when(atlasClient.findCardByUid(uid, ResultType.ACCOUNT)).thenReturn(cardDetailResponse);
         var expected = BalanceResponseDto.builder()
                 .cardExpiryDate(cardDetailResponse.getExpiryDate())
                 .loanLimit(BigDecimal.ZERO)
                 .loanUtilized(BigDecimal.ZERO)
                 .availableBalance(BigDecimal.ZERO)
                 .build();
-        var actual = onlineQueueService.getBalance(umicoUserId, customerId);
+        var actual = customerService.getBalance(umicoUserId, customerId);
         assertEquals(expected, actual);
 
     }
