@@ -167,7 +167,6 @@ public class OrderService {
         }
     }
 
-    /* Optimus call this */
     public CheckOrderResponseDto checkOrder(String telesalesOrderId) {
         log.info("Check order is started... telesalesOrderId  - {}", telesalesOrderId);
         var operationEntityOptional = operationRepository.findByTelesalesOrderId(telesalesOrderId);

@@ -4,20 +4,31 @@ import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
 import static az.kapitalbank.marketplace.constants.TestConstants.CUSTOMER_ID;
 import static az.kapitalbank.marketplace.constants.TestConstants.TRACK_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
+import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
+import az.kapitalbank.marketplace.client.atlas.model.request.ReversPurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.response.AccountResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.CardDetailResponse;
+import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseCompleteResponse;
+import az.kapitalbank.marketplace.client.atlas.model.response.ReverseResponse;
 import az.kapitalbank.marketplace.constant.AccountStatus;
+import az.kapitalbank.marketplace.constant.OrderStatus;
 import az.kapitalbank.marketplace.constant.ResultType;
+import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
+import az.kapitalbank.marketplace.dto.DeliveryProductDto;
 import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
 import az.kapitalbank.marketplace.dto.OrderProductItem;
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
 import az.kapitalbank.marketplace.dto.request.CustomerInfo;
+import az.kapitalbank.marketplace.dto.request.PurchaseRequestDto;
 import az.kapitalbank.marketplace.dto.request.ReverseRequestDto;
+import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
 import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
+import az.kapitalbank.marketplace.dto.response.PurchaseResponseDto;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
@@ -140,9 +151,137 @@ class OrderServiceTest {
         when(createOrderMapper.toOrderEvent(createOrderRequestDto)).thenReturn(fraudCheckEvent);
     }
 
-    void reverse_Success() {
-        var reverseRequestDto = ReverseRequestDto.builder().build();
-        orderService.reverse(reverseRequestDto);
 
+    @Test
+    void reverse_Success() {
+        var reverseRequestDto = ReverseRequestDto.builder()
+                .orderNo("12345")
+                .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
+                .build();
+        var orderEntity = OrderEntity.builder()
+                .transactionStatus(TransactionStatus.PURCHASE)
+                .transactionId("1231564")
+                .operation(OperationEntity.builder()
+                        .customer(CustomerEntity.builder()
+                                .id(UUID.fromString(CUSTOMER_ID.getValue()))
+                                .build())
+                        .build())
+                .build();
+        var reverseResponse = ReverseResponse.builder().build();
+        var reversPurchaseRequest = ReversPurchaseRequest.builder()
+                .description("umico-marketplace reverse operation").build();
+        when(orderRepository.findByOrderNo(reverseRequestDto.getOrderNo()))
+                .thenReturn(Optional.of(orderEntity));
+        when(atlasClient.reverse(orderEntity.getTransactionId(), reversPurchaseRequest))
+                .thenReturn(reverseResponse);
+
+        var actual = orderService.reverse(reverseRequestDto);
+        var expected = PurchaseResponseDto.builder()
+                .status(OrderStatus.SUCCESS)
+                .build();
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    void reverse_AtlasClientException() {
+        var reverseRequestDto = ReverseRequestDto.builder()
+                .orderNo("12345")
+                .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
+                .build();
+        var orderEntity = OrderEntity.builder()
+                .transactionStatus(TransactionStatus.PURCHASE)
+                .transactionId("1231564")
+                .operation(OperationEntity.builder()
+                        .customer(CustomerEntity.builder()
+                                .id(UUID.fromString(CUSTOMER_ID.getValue()))
+                                .build())
+                        .build())
+                .build();
+        var reverseResponse = ReverseResponse.builder().build();
+        var reversPurchaseRequest = ReversPurchaseRequest.builder()
+                .description("umico-marketplace reverse operation").build();
+        when(orderRepository.findByOrderNo(reverseRequestDto.getOrderNo()))
+                .thenReturn(Optional.of(orderEntity));
+        when(atlasClient.reverse(orderEntity.getTransactionId(), reversPurchaseRequest))
+                .thenThrow(new AtlasClientException(null,null,null));
+
+        var actual = orderService.reverse(reverseRequestDto);
+        var expected = PurchaseResponseDto.builder()
+                .status(OrderStatus.FAIL)
+                .build();
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    void purchase_Success() {
+        var purchaseRequestDto = PurchaseRequestDto.builder()
+                .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
+                .deliveryOrders(List.of(DeliveryProductDto.builder().orderNo("123").build()))
+                .build();
+        CustomerEntity customerEntity = CustomerEntity.builder().build();
+        OrderEntity orderEntity = OrderEntity.builder()
+                .transactionId("123245")
+                .transactionStatus(TransactionStatus.PURCHASE)
+                .totalAmount(BigDecimal.valueOf(50))
+                .commission(BigDecimal.valueOf(12))
+                .operation(OperationEntity.builder().loanTerm(12).build())
+                .build();
+        var orderNoList = List.of("123");
+        var purchaseCompleteResponse =
+                PurchaseCompleteResponse.builder().build();
+
+        when(customerRepository.findById(UUID.fromString(CUSTOMER_ID.getValue())))
+                .thenReturn(Optional.of(customerEntity));
+        when(orderRepository.findByOrderNoIn(orderNoList)).thenReturn(
+                List.of(orderEntity));
+        when(atlasClient.complete(any())).thenReturn(purchaseCompleteResponse);
+        var actual = orderService.purchase(purchaseRequestDto);
+        var expected = List.of(PurchaseResponseDto.builder()
+                .status(OrderStatus.SUCCESS).build());
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    void purchase_AtlasClientException() {
+        var purchaseRequestDto = PurchaseRequestDto.builder()
+                .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
+                .deliveryOrders(List.of(DeliveryProductDto.builder().orderNo("123").build()))
+                .build();
+        CustomerEntity customerEntity = CustomerEntity.builder().build();
+        OrderEntity orderEntity = OrderEntity.builder()
+                .transactionId("123245")
+                .transactionStatus(TransactionStatus.PURCHASE)
+                .totalAmount(BigDecimal.valueOf(50))
+                .commission(BigDecimal.valueOf(12))
+                .operation(OperationEntity.builder().loanTerm(12).build())
+                .build();
+        var orderNoList = List.of("123");
+        var purchaseCompleteResponse =
+                PurchaseCompleteResponse.builder().build();
+
+        when(customerRepository.findById(UUID.fromString(CUSTOMER_ID.getValue())))
+                .thenReturn(Optional.of(customerEntity));
+        when(orderRepository.findByOrderNoIn(orderNoList)).thenReturn(
+                List.of(orderEntity));
+        when(atlasClient.complete(any())).thenThrow(new AtlasClientException(null,null,null));
+        var actual = orderService.purchase(purchaseRequestDto);
+        var expected = List.of(PurchaseResponseDto.builder()
+                .status(OrderStatus.FAIL).build());
+
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    void checkOrder_Success() {
+        String telesalesOrderId = "1321651";
+        OperationEntity operationEntity = OperationEntity.builder()
+                .build();
+        var expected = CheckOrderResponseDto.builder().build();
+        when(operationRepository.findByTelesalesOrderId(telesalesOrderId))
+                .thenReturn(Optional.of(operationEntity));
+        when(orderMapper.entityToDto(operationEntity)).thenReturn(expected);
+        var actual = orderService.checkOrder(telesalesOrderId);
+        assertEquals(expected, actual);
     }
 }

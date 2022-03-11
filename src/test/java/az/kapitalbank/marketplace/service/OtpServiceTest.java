@@ -2,10 +2,8 @@ package az.kapitalbank.marketplace.service;
 
 import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
 import static az.kapitalbank.marketplace.constants.TestConstants.RRN;
-import static az.kapitalbank.marketplace.constants.TestConstants.TRACK_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.lenient;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
@@ -19,8 +17,9 @@ import az.kapitalbank.marketplace.client.otp.model.OtpVerifyRequest;
 import az.kapitalbank.marketplace.client.otp.model.OtpVerifyResponse;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpRequest;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpResponse;
-import az.kapitalbank.marketplace.constant.Currency;
+import az.kapitalbank.marketplace.dto.request.OtpVerifyRequestDto;
 import az.kapitalbank.marketplace.dto.request.SendOtpRequestDto;
+import az.kapitalbank.marketplace.dto.response.OtpVerifyResponseDto;
 import az.kapitalbank.marketplace.dto.response.SendOtpResponseDto;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
@@ -31,7 +30,6 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import lombok.experimental.NonFinal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -56,8 +54,6 @@ class OtpServiceTest {
     @InjectMocks
     OtpService otpService;
 
-
-    @NonFinal
     @Value("${purchase.terminal-name}")
     String terminalName;
 
@@ -110,6 +106,7 @@ class OtpServiceTest {
 
     @Test
     void verify_Success() {
+        var otpVerifyRequestDto = OtpVerifyRequestDto.builder().build();
         var customerEntity = CustomerEntity.builder()
                 .uid(CARD_UID.getValue())
                 .build();
@@ -118,24 +115,26 @@ class OtpServiceTest {
                 .totalAmount(BigDecimal.valueOf(1500))
                 .commission(BigDecimal.valueOf(25))
                 .build();
-        var orders = List.of(orderEntity);
-        var operationEntity = getOperationEntity(customerEntity, orders);
+        var operationEntity = getOperationEntity(customerEntity, List.of(orderEntity));
         List<Subscription> substrictions = getSubstrictions();
         var subscriptionResponse =
                 SubscriptionResponse.builder().subscriptions(substrictions).build();
-        var otpVerifyRequest = getOtpVerifyRequest();
         var verify = OtpVerifyResponse.builder()
                 .status("success")
                 .build();
-        var purchaseRequest = getPurchaseRequest(orderEntity);
         var purchaseResponse = getPurchaseResponse();
 
-        lenient().when(operationRepository.findById(UUID.fromString(TRACK_ID.getValue())))
+        when(operationRepository.findById(any()))
                 .thenReturn(Optional.of(operationEntity));
-        lenient().when(atlasClient.findAllByUid(CARD_UID.getValue(), "", ""))
+        when(atlasClient.findAllByUid(CARD_UID.getValue(), "", ""))
                 .thenReturn(subscriptionResponse);
-        lenient().when(otpClient.verify(otpVerifyRequest)).thenReturn(verify);
-        lenient().when(atlasClient.purchase(purchaseRequest)).thenReturn(purchaseResponse);
+        when(otpClient.verify(any(OtpVerifyRequest.class))).thenReturn(verify);
+        when(atlasClient.purchase(any(PurchaseRequest.class)))
+                .thenReturn(purchaseResponse);
+        var actual = otpService.verify(otpVerifyRequestDto);
+        var expected = OtpVerifyResponseDto.builder()
+                .status("success").build();
+        assertEquals(expected, actual);
 
     }
 
@@ -152,18 +151,6 @@ class OtpServiceTest {
                 .otp("2222")
                 .phoneNumber("+994513601019")
                 .build();
-    }
-
-    private PurchaseRequest getPurchaseRequest(OrderEntity orderEntity) {
-        return PurchaseRequest.builder()
-                .rrn(anyString())
-                .amount(orderEntity.getTotalAmount().add(orderEntity.getCommission()))
-                .description("fee=" + orderEntity.getCommission())
-                .currency(Currency.AZN.getCode())
-                .terminalName(terminalName)
-                .uid(CARD_UID.getValue())
-                .build();
-
     }
 
     private List<Subscription> getSubstrictions() {
