@@ -16,6 +16,6 @@ import lombok.experimental.FieldDefaults;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class OtpVerifyRequest {
     String otp;
-    String  phoneNumber;
+    String phoneNumber;
 }
 

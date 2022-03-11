@@ -10,7 +10,6 @@ import az.kapitalbank.marketplace.client.otp.exception.OtpClientException;
 import az.kapitalbank.marketplace.client.otp.model.ChannelRequest;
 import az.kapitalbank.marketplace.client.otp.model.OtpVerifyRequest;
 import az.kapitalbank.marketplace.client.otp.model.OtpVerifyResponse;
-import org.springframework.beans.factory.annotation.Value;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpRequest;
 import az.kapitalbank.marketplace.constant.Currency;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
@@ -30,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -88,7 +88,7 @@ public class OtpService {
             log.info("Purchase process began. TrackId: " + request.getTrackId());
             var orderEntities = operationEntity.getOrders();
             var purchasedOrders = new ArrayList<OrderEntity>();
-            var cardUid = customerEntity.getCardId();
+            var cardUid = customerEntity.getUid();
             for (var orderEntity : orderEntities) {
                 var rrn = GenerateUtil.rrn();
                 var purchaseRequest = PurchaseRequest.builder()
@@ -118,7 +118,7 @@ public class OtpService {
         log.info("get mobile number: " + trackId);
         var operationEntity = operationRepository.findById(trackId)
                 .orElseThrow(() -> new OperationNotFoundException("trackId: " + trackId));
-        var cardUid = operationEntity.getCustomer().getCardId();
+        var cardUid = operationEntity.getCustomer().getUid();
         log.info("Card UUID: " + cardUid);
         var subscriptionResponse = atlasClient.findAllByUID(cardUid, "", "");
         return subscriptionResponse.getSubscriptions().stream()
