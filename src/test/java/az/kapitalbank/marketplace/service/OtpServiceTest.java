@@ -1,7 +1,6 @@
 package az.kapitalbank.marketplace.service;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -18,10 +17,8 @@ import az.kapitalbank.marketplace.client.otp.model.OtpVerifyResponse;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpRequest;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpResponse;
 import az.kapitalbank.marketplace.constant.Currency;
-import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.dto.request.OtpVerifyRequestDto;
 import az.kapitalbank.marketplace.dto.request.SendOtpRequestDto;
-import az.kapitalbank.marketplace.dto.response.OtpVerifyResponseDto;
 import az.kapitalbank.marketplace.dto.response.SendOtpResponseDto;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
@@ -40,11 +37,8 @@ import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
 import static az.kapitalbank.marketplace.constants.TestConstants.RRN;
 import static az.kapitalbank.marketplace.constants.TestConstants.TRACK_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -87,7 +81,7 @@ class OtpServiceTest {
                 .message("success")
                 .build();
         var customerEntity = CustomerEntity.builder()
-                .cardId(CARD_UID.getValue())
+                .uid(CARD_UID.getValue())
                 .build();
         var operationEntity = OperationEntity.builder()
                 .pin("5JR9R1E")
@@ -118,7 +112,7 @@ class OtpServiceTest {
     void verify_Success() {
         var trackId = UUID.fromString(TRACK_ID.getValue());
         var customerEntity = CustomerEntity.builder()
-                .cardId(CARD_UID.getValue())
+                .uid(CARD_UID.getValue())
                 .build();
         var orderEntity = OrderEntity.builder()
                 .rrn(RRN.getValue())

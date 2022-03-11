@@ -29,7 +29,7 @@ import lombok.experimental.SuperBuilder;
 public class CustomerEntity extends BaseEntity {
     String umicoUserId;
     boolean isAgreement;
-    String cardId;
+    String uid;
     CustomerStatus status;
     LocalDateTime completeProcessDate;
 
