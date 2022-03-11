@@ -1,11 +1,10 @@
 package az.kapitalbank.marketplace.entity;
 
+import az.kapitalbank.marketplace.constant.BlacklistType;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.Table;
-
-import az.kapitalbank.marketplace.constant.BlacklistType;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

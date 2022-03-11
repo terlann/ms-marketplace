@@ -1,7 +1,6 @@
 package az.kapitalbank.marketplace.util;
 
 import java.util.UUID;
-
 import lombok.experimental.UtilityClass;
 
 @UtilityClass

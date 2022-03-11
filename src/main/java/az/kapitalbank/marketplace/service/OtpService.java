@@ -1,8 +1,5 @@
 package az.kapitalbank.marketplace.service;
 
-import java.util.ArrayList;
-import java.util.UUID;
-
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.otp.OtpClient;
@@ -10,7 +7,6 @@ import az.kapitalbank.marketplace.client.otp.exception.OtpClientException;
 import az.kapitalbank.marketplace.client.otp.model.ChannelRequest;
 import az.kapitalbank.marketplace.client.otp.model.OtpVerifyRequest;
 import az.kapitalbank.marketplace.client.otp.model.OtpVerifyResponse;
-import org.springframework.beans.factory.annotation.Value;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpRequest;
 import az.kapitalbank.marketplace.constant.Currency;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
@@ -18,6 +14,8 @@ import az.kapitalbank.marketplace.dto.request.OtpVerifyRequestDto;
 import az.kapitalbank.marketplace.dto.request.SendOtpRequestDto;
 import az.kapitalbank.marketplace.dto.response.OtpVerifyResponseDto;
 import az.kapitalbank.marketplace.dto.response.SendOtpResponseDto;
+import az.kapitalbank.marketplace.entity.CustomerEntity;
+import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.SubscriptionNotFoundException;
@@ -25,11 +23,14 @@ import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
 import az.kapitalbank.marketplace.util.GenerateUtil;
 import az.kapitalbank.marketplace.util.MaskedMobileNum;
+import java.util.ArrayList;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -58,16 +59,18 @@ public class OtpService {
         var sendOtp = otpClient.send(sendOtpRequest);
         log.info("Sended OTP Response: " + sendOtp.getMessage());
 
-        return new SendOtpResponseDto(sendOtp.getMessage(), MaskedMobileNum.maskedMobNumber(cardConnectedNumber));
+        return new SendOtpResponseDto(sendOtp.getMessage(),
+                MaskedMobileNum.maskedMobNumber(cardConnectedNumber));
     }
 
     public OtpVerifyResponseDto verify(OtpVerifyRequestDto request) {
-
         var operationEntity = operationRepository.findById(request.getTrackId())
-                .orElseThrow(() -> new OperationNotFoundException("trackId: " + request.getTrackId()));
+                .orElseThrow(
+                        () -> new OperationNotFoundException("trackId: " + request.getTrackId()));
         var customerEntity = operationEntity.getCustomer();
         String cardConnectedNumber = getMobileNumber(request.getTrackId());
-        log.info("Verifing OTP: Mobile Number - {} , TrackId - {}: " + cardConnectedNumber, request.getTrackId());
+        log.info("Verifing OTP: Mobile Number - {} , TrackId - {}: " + cardConnectedNumber,
+                request.getTrackId());
         var otpVerifyRequest = OtpVerifyRequest.builder()
                 .otp(request.getOtp())
                 .phoneNumber(cardConnectedNumber)
@@ -77,7 +80,8 @@ public class OtpService {
             verify = otpClient.verify(otpVerifyRequest);
             log.info("Verifed OTP Response: - " + verify.getStatus());
         } catch (OtpClientException ex) {
-            String message = String.format("message: {} , detail: {} " + ex.getMessage(), ex.getDetail());
+            String message =
+                    String.format("message: %s , detail: %s ", ex.getMessage(), ex.getDetail());
             log.info("OTP Verify Client Exception: - " + message);
             return OtpVerifyResponseDto.builder()
                     .status(message)
@@ -85,45 +89,53 @@ public class OtpService {
                     .build();
         }
         if (verify.getStatus().equalsIgnoreCase("success")) {
-            log.info("Purchase process began. TrackId: " + request.getTrackId());
-            var orderEntities = operationEntity.getOrders();
-            var purchasedOrders = new ArrayList<OrderEntity>();
-            var cardUid = customerEntity.getCardId();
-            for (var orderEntity : orderEntities) {
-                var rrn = GenerateUtil.rrn();
-                var purchaseRequest = PurchaseRequest.builder()
-                        .rrn(rrn)
-                        .amount(orderEntity.getTotalAmount().add(orderEntity.getCommission()))
-                        .description("fee=" + orderEntity.getCommission())
-                        .currency(Currency.AZN.getCode())
-                        .terminalName(terminalName)
-                        .uid(cardUid)
-                        .build();
-                var purchaseResponse = atlasClient.purchase(purchaseRequest);
-                orderEntity.setRrn(rrn);
-                orderEntity.setTransactionId(purchaseResponse.getId());
-                orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
-                orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
-                purchasedOrders.add(orderEntity);
-            }
-            orderRepository.saveAll(purchasedOrders);
-            log.info("Regular order was created with purchase. customerId - {}, trackId - {}",
-                    customerEntity.getId(), request.getTrackId());
+            prePurchaseOrder(operationEntity, customerEntity);
+
         }
 
         return new OtpVerifyResponseDto(request.getTrackId(), verify.getStatus());
+    }
+
+    private void prePurchaseOrder(OperationEntity operationEntity, CustomerEntity customerEntity) {
+        log.info("Purchase process began. TrackId: " + operationEntity.getId());
+
+        var orderEntities = operationEntity.getOrders();
+        var purchasedOrders = new ArrayList<OrderEntity>();
+        var cardUid = customerEntity.getUid();
+        for (var orderEntity : orderEntities) {
+            var rrn = GenerateUtil.rrn();
+            var purchaseRequest = PurchaseRequest.builder()
+                    .rrn(rrn)
+                    .amount(orderEntity.getTotalAmount().add(orderEntity.getCommission()))
+                    .description("fee=" + orderEntity.getCommission())
+                    .currency(Currency.AZN.getCode())
+                    .terminalName(terminalName)
+                    .uid(cardUid)
+                    .build();
+            var purchaseResponse = atlasClient.purchase(purchaseRequest);
+            orderEntity.setRrn(rrn);
+            orderEntity.setTransactionId(purchaseResponse.getId());
+            orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
+            orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
+            purchasedOrders.add(orderEntity);
+        }
+        orderRepository.saveAll(purchasedOrders);
+        log.info("Regular order was created with purchase. customerId - {}, trackId - {}",
+                customerEntity.getId(), operationEntity.getId());
     }
 
     private String getMobileNumber(UUID trackId) {
         log.info("get mobile number: " + trackId);
         var operationEntity = operationRepository.findById(trackId)
                 .orElseThrow(() -> new OperationNotFoundException("trackId: " + trackId));
-        var cardUid = operationEntity.getCustomer().getCardId();
+        var cardUid = operationEntity.getCustomer().getUid();
         log.info("Card UUID: " + cardUid);
-        var subscriptionResponse = atlasClient.findAllByUID(cardUid, "", "");
+        var subscriptionResponse = atlasClient
+                .findAllByUid(cardUid, "", "");
         return subscriptionResponse.getSubscriptions().stream()
-                .filter(subscription -> subscription.getChannel().equals("SMPP_ALL") &&
-                        subscription.getSchema().contains("3DS")).findFirst()
-                .orElseThrow(() -> new SubscriptionNotFoundException("CardUID: " + cardUid)).getAddress();
+                .filter(subscription -> subscription.getChannel().equals("SMPP_ALL")
+                        && subscription.getSchema().contains("3DS")).findFirst()
+                .orElseThrow(() -> new SubscriptionNotFoundException("CardUID: " + cardUid))
+                .getAddress();
     }
 }

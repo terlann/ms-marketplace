@@ -1,12 +1,11 @@
 package az.kapitalbank.marketplace.client.umico.model;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.UUID;
-
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

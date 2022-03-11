@@ -1,9 +1,8 @@
 package az.kapitalbank.marketplace.mapper.qualifier;
 
+import az.kapitalbank.marketplace.constant.FraudType;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import az.kapitalbank.marketplace.constant.FraudType;
 import org.mapstruct.Named;
 import org.springframework.stereotype.Component;
 

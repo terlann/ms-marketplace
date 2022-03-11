@@ -2,7 +2,6 @@ package az.kapitalbank.marketplace.client.telesales.model;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

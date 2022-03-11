@@ -19,7 +19,8 @@ public interface ScoringMapper {
     @Mapping(target = "processProductType", source = "productType")
     @Mapping(target = "scoreCard", constant = "true")
     @Mapping(target = "scoreCash", constant = "false")
-    StartScoringVariable toStartScoringVariable(String pin, String mobileNumber, String productType);
+    StartScoringVariable toStartScoringVariable(String pin, String mobileNumber,
+                                                String productType);
 
 
 }

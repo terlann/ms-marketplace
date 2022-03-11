@@ -1,8 +1,5 @@
 package az.kapitalbank.marketplace.exception.handler;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
 import az.kapitalbank.marketplace.client.integration.exception.IamasClientException;
 import az.kapitalbank.marketplace.client.otp.exception.OtpClientException;
@@ -22,6 +19,8 @@ import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
 import az.kapitalbank.marketplace.exception.UmicoUserNotFoundException;
 import az.kapitalbank.marketplace.exception.UniqueAdditionalNumberException;
 import az.kapitalbank.marketplace.exception.UnknownLoanTerm;
+import java.util.HashMap;
+import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -38,14 +37,16 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
 
     @Override
-    protected ResponseEntity<Object> handleMethodArgumentNotValid(MethodArgumentNotValidException ex,
-                                                                  HttpHeaders headers,
-                                                                  HttpStatus status,
-                                                                  WebRequest request) {
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(
+            MethodArgumentNotValidException ex,
+            HttpHeaders headers,
+            HttpStatus status,
+            WebRequest request) {
         log.error("Request - {}, Exception: ", request.toString(), ex);
         Map<String, String> warnings = new HashMap<>();
-        for (FieldError fieldError : ex.getBindingResult().getFieldErrors())
+        for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
             warnings.put(fieldError.getField(), fieldError.getDefaultMessage());
+        }
 
         var errorResponseDto = new ErrorResponseDto(Error.BAD_REQUEST, warnings);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
@@ -115,14 +116,16 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(CustomerNotFoundException.class)
-    public ResponseEntity<ErrorResponseDto> customerNotFoundException(CustomerNotFoundException ex) {
+    public ResponseEntity<ErrorResponseDto> customerNotFoundException(
+            CustomerNotFoundException ex) {
         log.error(ex.getMessage());
         var errorResponseDto = new ErrorResponseDto(Error.CUSTOMER_NOT_FOUND);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
     @ExceptionHandler(UmicoUserNotFoundException.class)
-    public ResponseEntity<ErrorResponseDto> umicoUserNotFoundException(UmicoUserNotFoundException ex) {
+    public ResponseEntity<ErrorResponseDto> umicoUserNotFoundException(
+            UmicoUserNotFoundException ex) {
         log.error(ex.getMessage());
         var errorResponseDto = new ErrorResponseDto(Error.UMICO_USER_NOT_FOUND);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
@@ -145,14 +148,16 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(OrderNotLinkedToCustomer.class)
-    public ResponseEntity<ErrorResponseDto> orderNotLinkedToCustomerException(OrderNotLinkedToCustomer ex) {
+    public ResponseEntity<ErrorResponseDto> orderNotLinkedToCustomerException(
+            OrderNotLinkedToCustomer ex) {
         log.error(ex.getMessage());
         var errorResponseDto = new ErrorResponseDto(Error.ORDER_NOT_LINKED_TO_CUSTOMER);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
     @ExceptionHandler(NoPermissionForTransaction.class)
-    public ResponseEntity<ErrorResponseDto> orderMustNotCompleteException(NoPermissionForTransaction ex) {
+    public ResponseEntity<ErrorResponseDto> orderMustNotCompleteException(
+            NoPermissionForTransaction ex) {
         log.error(ex.getMessage());
         var errorResponseDto = new ErrorResponseDto(Error.NO_PERMISSION);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);

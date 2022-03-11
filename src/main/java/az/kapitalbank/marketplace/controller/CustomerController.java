@@ -1,11 +1,10 @@
 package az.kapitalbank.marketplace.controller;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Size;
-import java.util.UUID;
-
 import az.kapitalbank.marketplace.dto.response.BalanceResponseDto;
 import az.kapitalbank.marketplace.service.CustomerService;
+import java.util.UUID;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Size;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -26,7 +25,8 @@ public class CustomerController {
     CustomerService customerService;
 
     @GetMapping("/check/{pin}")
-    public ResponseEntity<Void> checkPerson(@NotBlank @Size(max = 7, min = 7) @PathVariable String pin) {
+    public ResponseEntity<Void> checkPerson(
+            @NotBlank @Size(max = 7, min = 7) @PathVariable String pin) {
         customerService.checkPerson(pin);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
