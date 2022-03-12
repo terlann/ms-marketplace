@@ -1,6 +1,8 @@
 package az.kapitalbank.marketplace.service;
 
+import static az.kapitalbank.marketplace.constants.TestConstants.BUSINESS_KEY;
 import static az.kapitalbank.marketplace.constants.TestConstants.RRN;
+import static az.kapitalbank.marketplace.constants.TestConstants.TRACK_ID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -10,19 +12,25 @@ import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseResponse;
 import az.kapitalbank.marketplace.client.dvs.DvsClient;
 import az.kapitalbank.marketplace.client.optimus.OptimusClient;
+import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringRequest;
+import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringResponse;
+import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringVariable;
 import az.kapitalbank.marketplace.client.umico.UmicoClient;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionResponse;
 import az.kapitalbank.marketplace.constant.Currency;
-import az.kapitalbank.marketplace.constant.ScoringStatus;
+import az.kapitalbank.marketplace.constant.FraudResultStatus;
+import az.kapitalbank.marketplace.constant.FraudType;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
+import az.kapitalbank.marketplace.dto.LeadDto;
 import az.kapitalbank.marketplace.dto.request.TelesalesResultRequestDto;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.mapper.ScoringMapper;
 import az.kapitalbank.marketplace.mapper.TelesalesMapper;
+import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import java.math.BigDecimal;
@@ -31,6 +39,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -137,6 +146,110 @@ class ScoringServiceTest {
         scoringService.telesalesResult(telesalesResultRequestDto);
 
         verify(operationRepository).save(any(OperationEntity.class));
+
+    }
+
+    @Test
+    void fraudResultProcess_Blacklist() {
+        var fraudCheckResultEvent = FraudCheckResultEvent.builder()
+                .trackId(UUID.fromString(TRACK_ID.getValue()))
+                .fraudResultStatus(FraudResultStatus.BLACKLIST)
+                .build();
+        var trackId = fraudCheckResultEvent.getTrackId();
+        var fraudResultStatus = fraudCheckResultEvent.getFraudResultStatus();
+
+        var operationEntity = OperationEntity.builder()
+                .umicoDecisionStatus(UmicoDecisionStatus.APPROVED)
+                .loanContractStartDate(LocalDate.now())
+                .loanContractEndDate(LocalDate.now())
+                .commission(BigDecimal.valueOf(20))
+                .totalAmount(BigDecimal.valueOf(900))
+                .build();
+        operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.DECLINED_BY_BLACKLIST);
+
+        UmicoDecisionRequest umicoScoringDecisionRequest = UmicoDecisionRequest.builder()
+                .trackId(trackId)
+                .decisionStatus(UmicoDecisionStatus.DECLINED_BY_BLACKLIST)
+                .loanTerm(operationEntity.getLoanTerm())
+                .build();
+        var umicoScoringDecisionResponse = UmicoDecisionResponse.builder()
+                .httpStatus(5)
+                .status("success")
+                .build();
+
+
+        when(operationRepository.findById(trackId)).thenReturn(Optional.of(operationEntity));
+        when(umicoClient.sendDecisionToUmico(umicoScoringDecisionRequest, apiKey))
+                .thenReturn(umicoScoringDecisionResponse);
+
+        scoringService.fraudResultProcess(fraudCheckResultEvent);
+        verify(umicoClient).sendDecisionToUmico(umicoScoringDecisionRequest, apiKey);
+    }
+
+    @Test
+    void fraudResultProcess_Suspicious() {
+        var fraudCheckResultEvent = FraudCheckResultEvent.builder()
+                .trackId(UUID.fromString(TRACK_ID.getValue()))
+                .fraudResultStatus(FraudResultStatus.SUSPICIOUS)
+                .build();
+        var leadDto = LeadDto.builder()
+                .fraudResultStatus(FraudResultStatus.SUSPICIOUS)
+                .trackId(UUID.fromString(TRACK_ID.getValue()))
+                .types(List.of(FraudType.UMICO_USER_ID))
+                .build();
+        String telesalesOrderId = "eb813fa4-a142-11ec-b909-0242ac120002";
+        var operationEntityOptional = OperationEntity.builder()
+                .umicoDecisionStatus(UmicoDecisionStatus.APPROVED)
+                .loanContractStartDate(LocalDate.now())
+                .loanContractEndDate(LocalDate.now())
+                .commission(BigDecimal.valueOf(20))
+                .totalAmount(BigDecimal.valueOf(900))
+                .build();
+        operationEntityOptional.setTelesalesOrderId(telesalesOrderId);
+
+
+        when(telesalesMapper.toLeadDto(fraudCheckResultEvent)).thenReturn(leadDto);
+        when(telesalesService.sendLead(leadDto)).thenReturn(Optional.of(telesalesOrderId));
+        when(operationRepository.findById(UUID.fromString(TRACK_ID.getValue()))).thenReturn(
+                Optional.ofNullable(operationEntityOptional));
+
+        scoringService.fraudResultProcess(fraudCheckResultEvent);
+        verify(telesalesService).sendLead(leadDto);
+    }
+
+    @Test
+    void fraudResultProcess_NoFraudDetectedBehavior() {
+        var fraudCheckResultEvent = FraudCheckResultEvent.builder()
+                .trackId(UUID.randomUUID())
+                .build();
+        var operationEntity = OperationEntity.builder()
+                .umicoDecisionStatus(UmicoDecisionStatus.APPROVED)
+                .loanContractStartDate(LocalDate.now())
+                .loanContractEndDate(LocalDate.now())
+                .commission(BigDecimal.valueOf(20))
+                .totalAmount(BigDecimal.valueOf(900))
+                .pin("5JR9R11")
+                .mobileNumber("+994559996655")
+                .businessKey(BUSINESS_KEY.getValue())
+                .build();
+        var startScoringVariable = StartScoringVariable.builder()
+                .build();
+        var startScoringRequest =
+                StartScoringRequest.builder().build();
+        var startScoringResponse = StartScoringResponse.builder()
+                .businessKey(BUSINESS_KEY.getValue())
+                .build();
+
+
+        when(operationRepository.findById(fraudCheckResultEvent.getTrackId()))
+                .thenReturn(Optional.of(operationEntity));
+        when(optimusClient.scoringStart(startScoringRequest))
+                .thenReturn(startScoringResponse);
+
+        scoringService.fraudResultProcess(fraudCheckResultEvent);
+
+         verify(optimusClient).scoringStart(startScoringRequest);
+
 
     }
 }
