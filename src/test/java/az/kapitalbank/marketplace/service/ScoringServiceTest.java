@@ -21,6 +21,9 @@ import az.kapitalbank.marketplace.client.optimus.model.process.ProcessData;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessVariableResponse;
 import az.kapitalbank.marketplace.client.optimus.model.process.SelectedOffer;
+import az.kapitalbank.marketplace.client.optimus.model.scoring.CompleteScoringRequest;
+import az.kapitalbank.marketplace.client.optimus.model.scoring.CustomerContact;
+import az.kapitalbank.marketplace.client.optimus.model.scoring.CustomerNumber;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringRequest;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringResponse;
 import az.kapitalbank.marketplace.client.umico.UmicoClient;
@@ -31,8 +34,8 @@ import az.kapitalbank.marketplace.constant.FraudType;
 import az.kapitalbank.marketplace.constant.ProcessStatus;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.TaskDefinitionKey;
-import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
+import az.kapitalbank.marketplace.dto.CompleteScoring;
 import az.kapitalbank.marketplace.dto.LeadDto;
 import az.kapitalbank.marketplace.dto.request.TelesalesResultRequestDto;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
@@ -48,7 +51,7 @@ import az.kapitalbank.marketplace.repository.OperationRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -96,52 +99,18 @@ class ScoringServiceTest {
         var telesalesResultRequestDto = TelesalesResultRequestDto.builder()
                 .telesalesOrderId("198d9ce8-a126-11ec-b909-0242ac120002")
                 .build();
-        var customerEntity = CustomerEntity.builder()
-                .cardId("31e93364-a127-11ec-b909-0242ac120002")
-                .completeProcessDate(LocalDateTime.now())
-                .build();
-        var orderEntity = OrderEntity.builder()
-                .rrn(RRN.getValue())
-                .totalAmount(BigDecimal.valueOf(900))
-                .commission(BigDecimal.valueOf(20))
-                .build();
-        var operationEntity = OperationEntity.builder()
-                .umicoDecisionStatus(UmicoDecisionStatus.APPROVED)
-                .loanContractStartDate(LocalDate.now())
-                .loanContractEndDate(LocalDate.now())
-                .customer(customerEntity)
-                .orders(List.of(orderEntity))
-                .commission(BigDecimal.valueOf(20))
-                .totalAmount(BigDecimal.valueOf(900))
-                .build();
-        var orderEntities = new ArrayList<OrderEntity>();
 
+        var operationEntity = getOperationEntity();
         var purchaseResponse = PurchaseResponse.builder()
                 .id("31e93364-a127-11ec-b909-0242ac120002")
                 .approvalCode("123456789")
                 .build();
-        orderEntity.setRrn(RRN.getValue());
-        orderEntity.setTransactionId(purchaseResponse.getId());
-        orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
-        orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
-        orderEntities.add(orderEntity);
-        operationEntity.setOrders(orderEntities);
-
         var umicoScoringDecisionRequest =
-                UmicoDecisionRequest.builder().trackId(operationEntity.getId())
-                        .decisionStatus(UmicoDecisionStatus.REJECTED)
-                        .loanContractStartDate(operationEntity.getLoanContractStartDate())
-                        .loanContractEndDate(operationEntity.getLoanContractEndDate())
-                        .customerId(operationEntity.getCustomer().getId())
-                        .commission(operationEntity.getCommission())
-                        .loanLimit(operationEntity.getTotalAmount()
-                                .add(operationEntity.getCommission()))
-                        .loanTerm(operationEntity.getLoanTerm()).build();
+                getUmicoDecisionRequest(operationEntity);
         var umicoScoringDecisionResponse = UmicoDecisionResponse.builder()
                 .httpStatus(5)
                 .status("success")
                 .build();
-
 
         when(umicoClient.sendDecisionToUmico(umicoScoringDecisionRequest, apiKey))
                 .thenReturn(umicoScoringDecisionResponse);
@@ -162,51 +131,15 @@ class ScoringServiceTest {
                 .telesalesOrderId("198d9ce8-a126-11ec-b909-0242ac120002")
                 .scoringStatus(ScoringStatus.APPROVED)
                 .build();
-        var customerEntity = CustomerEntity.builder()
-                .cardId("31e93364-a127-11ec-b909-0242ac120002")
-                .completeProcessDate(LocalDateTime.now())
-                .build();
-        var orderEntity = OrderEntity.builder()
-                .rrn(RRN.getValue())
-                .totalAmount(BigDecimal.valueOf(900))
-                .commission(BigDecimal.valueOf(20))
-                .build();
-        var operationEntity = OperationEntity.builder()
-                .umicoDecisionStatus(UmicoDecisionStatus.APPROVED)
-                .loanContractStartDate(LocalDate.now())
-                .loanContractEndDate(LocalDate.now())
-                .customer(customerEntity)
-                .orders(List.of(orderEntity))
-                .commission(BigDecimal.valueOf(20))
-                .totalAmount(BigDecimal.valueOf(900))
-                .umicoDecisionStatus(UmicoDecisionStatus.APPROVED)
-                .loanContractStartDate(telesalesResultRequestDto.getLoanContractStartDate())
-                .loanContractEndDate(telesalesResultRequestDto.getLoanContractEndDate())
-                .customer(customerEntity)
-                .build();
-        var orderEntities = new ArrayList<OrderEntity>();
+        var operationEntity = getOperationEntity(telesalesResultRequestDto);
 
         var purchaseResponse = PurchaseResponse.builder()
                 .id("31e93364-a127-11ec-b909-0242ac120002")
                 .approvalCode("123456789")
                 .build();
-        orderEntity.setRrn(RRN.getValue());
-        orderEntity.setTransactionId(purchaseResponse.getId());
-        orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
-        orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
-        orderEntities.add(orderEntity);
-        operationEntity.setOrders(orderEntities);
 
-        var umicoScoringDecisionRequest =
-                UmicoDecisionRequest.builder().trackId(operationEntity.getId())
-                        .decisionStatus(UmicoDecisionStatus.APPROVED)
-                        .loanContractStartDate(operationEntity.getLoanContractStartDate())
-                        .loanContractEndDate(operationEntity.getLoanContractEndDate())
-                        .customerId(operationEntity.getCustomer().getId())
-                        .commission(operationEntity.getCommission())
-                        .loanLimit(operationEntity.getTotalAmount()
-                                .add(operationEntity.getCommission()))
-                        .loanTerm(operationEntity.getLoanTerm()).build();
+
+        UmicoDecisionRequest umicoScoringDecisionRequest = getDecisionRequest(operationEntity);
         var umicoScoringDecisionResponse = UmicoDecisionResponse.builder()
                 .httpStatus(5)
                 .status("success")
@@ -226,9 +159,103 @@ class ScoringServiceTest {
 
     }
 
+    private UmicoDecisionRequest getDecisionRequest(OperationEntity operationEntity) {
+        var umicoScoringDecisionRequest =
+                UmicoDecisionRequest.builder().trackId(operationEntity.getId())
+                        .decisionStatus(UmicoDecisionStatus.APPROVED)
+                        .loanContractStartDate(operationEntity.getLoanContractStartDate())
+                        .loanContractEndDate(operationEntity.getLoanContractEndDate())
+                        .customerId(operationEntity.getCustomer().getId())
+                        .commission(operationEntity.getCommission())
+                        .loanLimit(operationEntity.getTotalAmount()
+                                .add(operationEntity.getCommission()))
+                        .loanTerm(operationEntity.getLoanTerm()).build();
+        return umicoScoringDecisionRequest;
+    }
+
+    private OperationEntity getOperationEntity(
+            TelesalesResultRequestDto telesalesResultRequestDto) {
+        var customerEntity = CustomerEntity.builder()
+                .cardId("31e93364-a127-11ec-b909-0242ac120002")
+                .completeProcessDate(LocalDateTime.now())
+                .build();
+        var orderEntity = OrderEntity.builder()
+                .rrn(RRN.getValue())
+                .totalAmount(BigDecimal.valueOf(900))
+                .commission(BigDecimal.valueOf(20))
+                .build();
+        return OperationEntity.builder()
+                .umicoDecisionStatus(UmicoDecisionStatus.APPROVED)
+                .loanContractStartDate(LocalDate.now())
+                .loanContractEndDate(LocalDate.now())
+                .customer(customerEntity)
+                .orders(List.of(orderEntity))
+                .commission(BigDecimal.valueOf(20))
+                .totalAmount(BigDecimal.valueOf(900))
+                .umicoDecisionStatus(UmicoDecisionStatus.APPROVED)
+                .loanContractStartDate(telesalesResultRequestDto.getLoanContractStartDate())
+                .loanContractEndDate(telesalesResultRequestDto.getLoanContractEndDate())
+                .customer(customerEntity)
+                .build();
+    }
+
+    private OperationEntity getOperationEntity() {
+        var customerEntity = CustomerEntity.builder()
+                .cardId("31e93364-a127-11ec-b909-0242ac120002")
+                .completeProcessDate(LocalDateTime.now())
+                .build();
+        var orderEntity = OrderEntity.builder()
+                .rrn(RRN.getValue())
+                .totalAmount(BigDecimal.valueOf(900))
+                .commission(BigDecimal.valueOf(20))
+                .build();
+        return OperationEntity.builder()
+                .id(UUID.fromString(TRACK_ID.getValue()))
+                .taskId("123")
+                .umicoDecisionStatus(UmicoDecisionStatus.APPROVED)
+                .loanContractStartDate(LocalDate.now())
+                .loanContractEndDate(LocalDate.now())
+                .customer(customerEntity)
+                .orders(List.of(orderEntity))
+                .commission(BigDecimal.valueOf(20))
+                .totalAmount(BigDecimal.valueOf(900))
+                .umicoDecisionStatus(UmicoDecisionStatus.APPROVED)
+                .customer(customerEntity)
+                .businessKey("asdkljasdl").build();
+    }
 
     @Test
-    void scoringResultProcess_InUserActivity_USER_TASK_SCORING() {
+    void completeScoring_Success() {
+        var completeScoring = CompleteScoring.builder().build();
+
+        var customerNumbers =
+                Arrays.asList(new CustomerNumber("A", completeScoring.getAdditionalNumber1()),
+                        new CustomerNumber("B", completeScoring.getAdditionalNumber2()));
+
+        CompleteScoringRequest completeScoringRequest = CompleteScoringRequest.builder()
+                .customerContact(new CustomerContact(customerNumbers))
+                .customerDecision(completeScoring.getCustomerDecision()).deliveryBranchCode("299")
+                .build();
+
+        scoringService.completeScoring(completeScoring);
+
+        verify(optimusClient).scoringComplete(completeScoring.getTaskId(), completeScoringRequest);
+    }
+
+    private UmicoDecisionRequest getUmicoDecisionRequest(OperationEntity operationEntity) {
+        return UmicoDecisionRequest.builder().trackId(operationEntity.getId())
+                .decisionStatus(UmicoDecisionStatus.REJECTED)
+                .loanContractStartDate(operationEntity.getLoanContractStartDate())
+                .loanContractEndDate(operationEntity.getLoanContractEndDate())
+                .customerId(operationEntity.getCustomer().getId())
+                .commission(operationEntity.getCommission())
+                .loanLimit(operationEntity.getTotalAmount()
+                        .add(operationEntity.getCommission()))
+                .loanTerm(operationEntity.getLoanTerm()).build();
+    }
+
+    @Test
+    void scoringResultProcess_InUserActivity_User_Task_Scoring() {
         String businessKey = "asdkljasdl";
         var operationEntity = OperationEntity.builder()
                 .taskId("123")
@@ -262,21 +289,11 @@ class ScoringServiceTest {
     }
 
     @Test
-    void scoringResultProcess_InUserActivity_USER_TASK_SIGN_DOCUMENTS() {
+    void scoringResultProcess_InUserActivity_User_Task_Sign_Documents() {
         String businessKey = "asdkljasdl";
-        var operationEntity = OperationEntity.builder()
-                .id(UUID.fromString(TRACK_ID.getValue()))
-                .taskId("123")
-                .totalAmount(BigDecimal.ONE)
-                .commission(BigDecimal.ONE)
-                .businessKey("asdkljasdl").build();
+        var operationEntity = getOperationEntity();
         var inUserActivityData = InUserActivityData.builder()
                 .taskDefinitionKey(TaskDefinitionKey.USER_TASK_SIGN_DOCUMENTS.name())
-                .build();
-        var scoringResultEvent = ScoringResultEvent.builder()
-                .businessKey("asdkljasdl")
-                .processStatus(ProcessStatus.IN_USER_ACTIVITY)
-                .data(inUserActivityData)
                 .build();
         var processResponse = ProcessResponse.builder()
                 .variables(ProcessData.builder()
@@ -292,42 +309,61 @@ class ScoringServiceTest {
         when(operationRepository.findById(UUID.fromString(TRACK_ID.getValue())))
                 .thenReturn(Optional.of(operationEntity));
 
-        scoringService.scoringResultProcess(scoringResultEvent);
+        var request = ScoringResultEvent.builder()
+                .businessKey("asdkljasdl")
+                .processStatus(ProcessStatus.IN_USER_ACTIVITY)
+                .data(inUserActivityData)
+                .build();
+        scoringService.scoringResultProcess(request);
 
         verify(optimusClient).getProcess(businessKey);
     }
 
     @Test
-    void scoringResultProcess_COMPLETED() {
+    void scoringResultProcess_Completed() {
         String businessKey = "asdkljasdl";
-        var operationEntity = OperationEntity.builder()
-                .taskId("123")
-                .totalAmount(BigDecimal.ONE)
-                .commission(BigDecimal.ONE)
-                .customer(CustomerEntity.builder().build())
-                .businessKey("asdkljasdl").build();
+        OperationEntity operationEntity = getOperationEntity();
         var inUserActivityData = InUserActivityData.builder()
                 .taskDefinitionKey("USER_TASK_SCORING")
-                .build();
-        var scoringResultEvent = ScoringResultEvent.builder()
-                .businessKey("asdkljasdl")
-                .processStatus(ProcessStatus.COMPLETED)
-                .data(inUserActivityData)
                 .build();
 
         var processVariableResponse = ProcessVariableResponse.builder()
                 .build();
-
-
         when(operationRepository.findByBusinessKey(businessKey))
                 .thenReturn(Optional.of(operationEntity));
         when(optimusClient.getProcessVariable(operationEntity.getBusinessKey(),
                 "pan")).thenReturn(processVariableResponse);
+        when(atlasClient.purchase(any(PurchaseRequest.class))).thenReturn(
+                PurchaseResponse.builder().build());
 
-        scoringService.scoringResultProcess(scoringResultEvent);
+        var request = ScoringResultEvent.builder()
+                .businessKey("asdkljasdl")
+                .processStatus(ProcessStatus.COMPLETED)
+                .data(inUserActivityData)
+                .build();
+        scoringService.scoringResultProcess(request);
         verify(optimusClient).getProcessVariable(operationEntity.getBusinessKey(), "pan");
     }
 
+    @Test
+    void scoringResultProcess_Incident_Happened() {
+        String businessKey = "asdkljasdl";
+        var operationEntity = getOperationEntity();
+
+        when(operationRepository.findByBusinessKey(businessKey))
+                .thenReturn(Optional.of(operationEntity));
+        when(telesalesService.sendLead(LeadDto.builder().trackId(operationEntity.getId()).build()))
+                .thenReturn(Optional.of("123"));
+        when(operationRepository.findById(operationEntity.getId())).thenReturn(
+                Optional.of(operationEntity));
+
+        var request = ScoringResultEvent.builder()
+                .businessKey("asdkljasdl")
+                .processStatus(ProcessStatus.INCIDENT_HAPPENED)
+                .build();
+        scoringService.scoringResultProcess(request);
+        verify(operationRepository).findByBusinessKey(businessKey);
+    }
 
     @Test
     void fraudResultProcess_Blacklist() {
@@ -430,53 +466,6 @@ class ScoringServiceTest {
     }
 
 
-   // @Test
-    void fraudResultProcess_NoFraudDetectedBehavior_and_BusinessKey_IsEmpty() {
-        var fraudCheckResultEvent = FraudCheckResultEvent.builder()
-                .trackId(UUID.randomUUID())
-                .build();
-        var operationEntity = OperationEntity.builder()
-                .umicoDecisionStatus(UmicoDecisionStatus.APPROVED)
-                .loanContractStartDate(LocalDate.now())
-                .loanContractEndDate(LocalDate.now())
-                .commission(BigDecimal.valueOf(20))
-                .totalAmount(BigDecimal.valueOf(900))
-                .pin("5JR9R11")
-                .mobileNumber("+994559996655")
-                .build();
-        var startScoringRequest =
-                StartScoringRequest.builder().build();
-        var startScoringResponse = StartScoringResponse.builder()
-                .build();
-        var leadDto = LeadDto.builder()
-                .trackId(UUID.fromString(TRACK_ID.getValue()))
-                .types(List.of(FraudType.UMICO_USER_ID))
-                .build();
-        String telesalesOrderId = TELESALES_ORDER_ID.getValue();
-        var operationEntityOptional = OperationEntity.builder()
-                .umicoDecisionStatus(UmicoDecisionStatus.APPROVED)
-                .loanContractStartDate(LocalDate.now())
-                .loanContractEndDate(LocalDate.now())
-                .commission(BigDecimal.valueOf(20))
-                .totalAmount(BigDecimal.valueOf(900))
-                .build();
-        operationEntityOptional.setTelesalesOrderId(telesalesOrderId);
-
-
-        when(operationRepository.findById(fraudCheckResultEvent.getTrackId()))
-                .thenReturn(Optional.of(operationEntity));
-        when(optimusClient.scoringStart(startScoringRequest))
-                .thenReturn(startScoringResponse);
-        when(telesalesMapper.toLeadDto(fraudCheckResultEvent)).thenReturn(leadDto);
-        when(telesalesService.sendLead(leadDto)).thenReturn(Optional.of(telesalesOrderId));
-        when(operationRepository.findById(UUID.fromString(TRACK_ID.getValue()))).thenReturn(
-                Optional.ofNullable(operationEntityOptional));
-
-        scoringService.fraudResultProcess(fraudCheckResultEvent);
-
-        verify(optimusClient).scoringStart(startScoringRequest);
-    }
-
     @Test
     void fraudResultProcess_NoFraudDetectedBehavior_StartScoringException() {
         var fraudCheckResultEvent = FraudCheckResultEvent.builder()
@@ -499,7 +488,7 @@ class ScoringServiceTest {
         when(operationRepository.findById(fraudCheckResultEvent.getTrackId()))
                 .thenReturn(Optional.of(operationEntity));
         when(optimusClient.scoringStart(startScoringRequest))
-                .thenThrow(new OptimusClientException("unsuccess","test"));
+                .thenThrow(new OptimusClientException("unsuccess", "test"));
 
         scoringService.fraudResultProcess(fraudCheckResultEvent);
 

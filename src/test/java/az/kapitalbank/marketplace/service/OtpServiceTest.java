@@ -68,31 +68,18 @@ class OtpServiceTest {
         var request = SendOtpRequestDto.builder()
                 .trackId(trackId).build();
         String cardConnectedNumber = "+994513601019";
-        SendOtpRequest sendOtpRequest = SendOtpRequest.builder()
-                .phoneNumber(cardConnectedNumber)
-                .definitionId(UUID.fromString("00608fa-9bae-11ec-b909-0242ac120002"))
-                .channel(ChannelRequest.builder()
-                        .channel("Umico Marketplace")
-                        .build())
-                .build();
+        SendOtpRequest sendOtpRequest =
+                getSendOtpRequest(cardConnectedNumber);
         SendOtpResponse sendOtpResponse = SendOtpResponse.builder()
                 .message("success")
                 .build();
         var customerEntity = CustomerEntity.builder()
                 .cardId(CARD_UID.getValue())
                 .build();
-        var operationEntity = OperationEntity.builder()
-                .pin("5JR9R1E")
-                .fullName("Qurbanov Terlan")
-                .customer(customerEntity)
-                .build();
-        var substrictions = List.of(Subscription.builder()
-                .schema("3DS")
-                .channel("SMPP_ALL")
-                .address("+994513601019")
-                .build());
-        var subscriptionResponse =
-                SubscriptionResponse.builder().subscriptions(substrictions).build();
+        OperationEntity operationEntity =
+                getOperationEntity(customerEntity);
+        SubscriptionResponse subscriptionResponse =
+                getSubscriptionResponse();
 
         //WHEN
         when(operationRepository.findById(trackId)).thenReturn(Optional.of(operationEntity));
@@ -110,9 +97,37 @@ class OtpServiceTest {
         assertEquals(expected, actual);
     }
 
-    @Test
-    void verify_Success() {
-        var trackId = UUID.randomUUID();
+    private SubscriptionResponse getSubscriptionResponse() {
+        List<Subscription> subscriptions = List.of(Subscription.builder()
+                .schema("3DS")
+                .channel("SMPP_ALL")
+                .address("+994513601019")
+                .build());
+        var subscriptionResponse =
+                SubscriptionResponse.builder().subscriptions(subscriptions).build();
+        return subscriptionResponse;
+    }
+
+
+    private OperationEntity getOperationEntity(CustomerEntity customerEntity) {
+        return OperationEntity.builder()
+                .pin("5JR9R1E")
+                .fullName("Qurbanov Terlan")
+                .customer(customerEntity)
+                .build();
+    }
+
+    private OperationEntity getOperationEntity(CustomerEntity customerEntity,
+                                               List<OrderEntity> orders) {
+        return OperationEntity.builder()
+                .pin("5JR9R1E")
+                .fullName("Qurbanov Terlan")
+                .customer(customerEntity)
+                .orders(orders)
+                .build();
+    }
+
+    private OperationEntity getOperationEntity() {
         var customerEntity = CustomerEntity.builder()
                 .cardId(CARD_UID.getValue())
                 .build();
@@ -122,29 +137,30 @@ class OtpServiceTest {
                 .commission(BigDecimal.valueOf(25))
                 .build();
         var orders = List.of(orderEntity);
-        var operationEntity = OperationEntity.builder()
-                .pin("5JR9R1E")
-                .fullName("Qurbanov Terlan")
-                .customer(customerEntity)
-                .orders(orders)
+        return getOperationEntity(customerEntity, orders);
+    }
+
+    private SendOtpRequest getSendOtpRequest(String cardConnectedNumber) {
+        return SendOtpRequest.builder()
+                .phoneNumber(cardConnectedNumber)
+                .definitionId(UUID.fromString("00608fa-9bae-11ec-b909-0242ac120002"))
+                .channel(ChannelRequest.builder()
+                        .channel("Umico Marketplace")
+                        .build())
                 .build();
-        var substrictions = List.of(Subscription.builder()
-                .schema("3DS")
-                .channel("SMPP_ALL")
-                .address("+994513601019")
-                .build());
-        var subscriptionResponse =
-                SubscriptionResponse.builder().subscriptions(substrictions).build();
+    }
+
+    @Test
+    void verify_Success() {
+        var trackId = UUID.randomUUID();
+        OperationEntity operationEntity = getOperationEntity();
+        var subscriptionResponse = getSubscriptionResponse();
         var verify = OtpVerifyResponse.builder()
                 .status("success")
                 .build();
         var otpVerifyRequestDto = OtpVerifyRequestDto.builder()
                 .otp("2222")
                 .trackId(trackId)
-                .build();
-        var otpVerifyRequest = OtpVerifyRequest.builder()
-                .otp(otpVerifyRequestDto.getOtp())
-                .phoneNumber("+994513601019")
                 .build();
         var purchaseResponse = PurchaseResponse.builder()
                 .id("83660ed4-9e42-11ec-b909-0242ac120002")
@@ -155,7 +171,7 @@ class OtpServiceTest {
                 .thenReturn(Optional.of(operationEntity));
         when(atlasClient.findAllByUid(CARD_UID.getValue(), "", ""))
                 .thenReturn(subscriptionResponse);
-        when(otpClient.verify(otpVerifyRequest)).thenReturn(verify);
+        when(otpClient.verify(any(OtpVerifyRequest.class))).thenReturn(verify);
         when(atlasClient.purchase(any(PurchaseRequest.class))).thenReturn(purchaseResponse);
 
         var actual = otpService.verify(otpVerifyRequestDto);
