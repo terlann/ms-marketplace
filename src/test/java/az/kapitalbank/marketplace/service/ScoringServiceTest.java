@@ -11,16 +11,24 @@ import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseResponse;
 import az.kapitalbank.marketplace.client.dvs.DvsClient;
+import az.kapitalbank.marketplace.client.dvs.model.DvsGetDetailsResponse;
 import az.kapitalbank.marketplace.client.optimus.OptimusClient;
+import az.kapitalbank.marketplace.client.optimus.model.process.CreateCardCreditRequest;
+import az.kapitalbank.marketplace.client.optimus.model.process.Offer;
+import az.kapitalbank.marketplace.client.optimus.model.process.ProcessData;
+import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
+import az.kapitalbank.marketplace.client.optimus.model.process.ProcessVariableResponse;
+import az.kapitalbank.marketplace.client.optimus.model.process.SelectedOffer;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringRequest;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringResponse;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringVariable;
 import az.kapitalbank.marketplace.client.umico.UmicoClient;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionResponse;
-import az.kapitalbank.marketplace.constant.Currency;
 import az.kapitalbank.marketplace.constant.FraudResultStatus;
 import az.kapitalbank.marketplace.constant.FraudType;
+import az.kapitalbank.marketplace.constant.ProcessStatus;
+import az.kapitalbank.marketplace.constant.TaskDefinitionKey;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.LeadDto;
@@ -31,6 +39,8 @@ import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.mapper.ScoringMapper;
 import az.kapitalbank.marketplace.mapper.TelesalesMapper;
 import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
+import az.kapitalbank.marketplace.messaging.event.InUserActivityData;
+import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import java.math.BigDecimal;
@@ -104,11 +114,6 @@ class ScoringServiceTest {
                 .build();
         var orderEntities = new ArrayList<OrderEntity>();
 
-        var purchaseRequest = PurchaseRequest.builder().rrn(RRN.getValue())
-                .amount(orderEntity.getTotalAmount().add(orderEntity.getCommission()))
-                .description("fee=" + orderEntity.getCommission())
-                .currency(Currency.AZN.getCode()).terminalName(terminalName)
-                .uid(operationEntity.getCustomer().getCardId()).build();
         var purchaseResponse = PurchaseResponse.builder()
                 .id("31e93364-a127-11ec-b909-0242ac120002")
                 .approvalCode("123456789")
@@ -148,6 +153,109 @@ class ScoringServiceTest {
         verify(operationRepository).save(any(OperationEntity.class));
 
     }
+
+
+    @Test
+    void scoringResultProcess_InUserActivity_USER_TASK_SCORING() {
+        String businessKey = "asdkljasdl";
+        var operationEntity = OperationEntity.builder()
+                .taskId("123")
+                .totalAmount(BigDecimal.ONE)
+                .commission(BigDecimal.ONE)
+                .businessKey("asdkljasdl").build();
+        var inUserActivityData = InUserActivityData.builder()
+                .taskDefinitionKey(TaskDefinitionKey.USER_TASK_SCORING.name())
+                .build();
+        var scoringResultEvent = ScoringResultEvent.builder()
+                .businessKey("asdkljasdl")
+                .processStatus(ProcessStatus.IN_USER_ACTIVITY)
+                .data(inUserActivityData)
+                .build();
+        var processResponse = ProcessResponse.builder()
+                .variables(ProcessData.builder()
+                        .selectedOffer(SelectedOffer.builder()
+                                .cardOffer(Offer.builder()
+                                        .availableLoanAmount(BigDecimal.valueOf(1000))
+                                        .build())
+                                .build())
+                        .build())
+                .build();
+
+        when(operationRepository.findByBusinessKey(businessKey))
+                .thenReturn(Optional.of(operationEntity));
+        when(optimusClient.getProcess(businessKey)).thenReturn(processResponse);
+        scoringService.scoringResultProcess(scoringResultEvent);
+
+        verify(optimusClient).getProcess(businessKey);
+    }
+
+    @Test
+    void scoringResultProcess_InUserActivity_USER_TASK_SIGN_DOCUMENTS() {
+        String businessKey = "asdkljasdl";
+        var operationEntity = OperationEntity.builder()
+                .id(UUID.fromString(TRACK_ID.getValue()))
+                .taskId("123")
+                .totalAmount(BigDecimal.ONE)
+                .commission(BigDecimal.ONE)
+                .businessKey("asdkljasdl").build();
+        var inUserActivityData = InUserActivityData.builder()
+                .taskDefinitionKey(TaskDefinitionKey.USER_TASK_SIGN_DOCUMENTS.name())
+                .build();
+        var scoringResultEvent = ScoringResultEvent.builder()
+                .businessKey("asdkljasdl")
+                .processStatus(ProcessStatus.IN_USER_ACTIVITY)
+                .data(inUserActivityData)
+                .build();
+        var processResponse = ProcessResponse.builder()
+                .variables(ProcessData.builder()
+                        .createCardCreditRequest(CreateCardCreditRequest.builder().build())
+                        .build())
+                .build();
+
+        when(operationRepository.findByBusinessKey(businessKey))
+                .thenReturn(Optional.of(operationEntity));
+        when(optimusClient.getProcess(businessKey)).thenReturn(processResponse);
+        when(dvsClient.getDetails(UUID.fromString(TRACK_ID.getValue()), null))
+                .thenReturn(DvsGetDetailsResponse.builder().build());
+        when(operationRepository.findById(UUID.fromString(TRACK_ID.getValue())))
+                .thenReturn(Optional.of(operationEntity));
+
+        scoringService.scoringResultProcess(scoringResultEvent);
+
+        verify(optimusClient).getProcess(businessKey);
+    }
+
+    @Test
+    void scoringResultProcess_COMPLETED() {
+        String businessKey = "asdkljasdl";
+        var operationEntity = OperationEntity.builder()
+                .taskId("123")
+                .totalAmount(BigDecimal.ONE)
+                .commission(BigDecimal.ONE)
+                .customer(CustomerEntity.builder().build())
+                .businessKey("asdkljasdl").build();
+        var inUserActivityData = InUserActivityData.builder()
+                .taskDefinitionKey("USER_TASK_SCORING")
+                .build();
+        var scoringResultEvent = ScoringResultEvent.builder()
+                .businessKey("asdkljasdl")
+                .processStatus(ProcessStatus.COMPLETED)
+                .data(inUserActivityData)
+                .build();
+
+        var processVariableResponse = ProcessVariableResponse.builder()
+                .build();
+
+
+        when(operationRepository.findByBusinessKey(businessKey))
+                .thenReturn(Optional.of(operationEntity));
+        when(optimusClient.getProcessVariable(operationEntity.getBusinessKey(),
+                "pan")).thenReturn(processVariableResponse);
+
+        scoringService.scoringResultProcess(scoringResultEvent);
+        verify(optimusClient).getProcessVariable(operationEntity.getBusinessKey(), "pan");
+    }
+
 
     @Test
     void fraudResultProcess_Blacklist() {
@@ -248,7 +356,7 @@ class ScoringServiceTest {
 
         scoringService.fraudResultProcess(fraudCheckResultEvent);
 
-         verify(optimusClient).scoringStart(startScoringRequest);
+        verify(optimusClient).scoringStart(startScoringRequest);
 
 
     }
