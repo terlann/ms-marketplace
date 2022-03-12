@@ -1,9 +1,8 @@
 package az.kapitalbank.marketplace.dto.request;
 
-import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.util.UUID;
-
+import javax.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -1,11 +1,8 @@
 package az.kapitalbank.marketplace.service;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.model.response.AccountResponse;
@@ -18,16 +15,17 @@ import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.dto.response.BalanceResponseDto;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
-import az.kapitalbank.marketplace.service.CustomerService;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class CustomerServiceTest {
@@ -41,7 +39,7 @@ class CustomerServiceTest {
     private IamasClient iamasClient;
 
     @InjectMocks
-    CustomerService onlineQueueService;
+    CustomerService customerService;
 
     @Test
     void checkPerson() {
@@ -57,7 +55,7 @@ class CustomerServiceTest {
                 .build();
         var iamasResponses = List.of(iamasResponse);
         when(iamasClient.findPersonByPin(pin)).thenReturn(iamasResponses);
-        onlineQueueService.checkPerson(pin);
+        customerService.checkPerson(pin);
         verify(iamasClient).findPersonByPin(pin);
     }
 
@@ -81,14 +79,14 @@ class CustomerServiceTest {
                 .accounts(List.of(accountResponse))
                 .build();
         when(customerRepository.findById(customerId)).thenReturn(Optional.of(customerEntity));
-        when(atlasClient.findCardByUID(cardId, ResultType.ACCOUNT)).thenReturn(cardDetailResponse);
+        when(atlasClient.findCardByUid(cardId, ResultType.ACCOUNT)).thenReturn(cardDetailResponse);
         var expected = BalanceResponseDto.builder()
                 .cardExpiryDate(cardDetailResponse.getExpiryDate())
                 .loanLimit(BigDecimal.valueOf(1000))
                 .loanUtilized(BigDecimal.valueOf(500))
                 .availableBalance(BigDecimal.valueOf(500))
                 .build();
-        var actual = onlineQueueService.getBalance(umicoUserId, customerId);
+        var actual = customerService.getBalance(umicoUserId, customerId);
         assertEquals(expected, actual);
 
     }
@@ -109,14 +107,14 @@ class CustomerServiceTest {
                 .accounts(new ArrayList<>())
                 .build();
         when(customerRepository.findById(customerId)).thenReturn(Optional.of(customerEntity));
-        when(atlasClient.findCardByUID(cardId, ResultType.ACCOUNT)).thenReturn(cardDetailResponse);
+        when(atlasClient.findCardByUid(cardId, ResultType.ACCOUNT)).thenReturn(cardDetailResponse);
         var expected = BalanceResponseDto.builder()
                 .cardExpiryDate(cardDetailResponse.getExpiryDate())
                 .loanLimit(BigDecimal.ZERO)
                 .loanUtilized(BigDecimal.ZERO)
                 .availableBalance(BigDecimal.ZERO)
                 .build();
-        var actual = onlineQueueService.getBalance(umicoUserId, customerId);
+        var actual = customerService.getBalance(umicoUserId, customerId);
         assertEquals(expected, actual);
 
     }

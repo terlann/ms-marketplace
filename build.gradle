@@ -76,7 +76,7 @@ test {
 
 checkstyle {
     toolVersion = "${checkstyleVersion}"
-    configFile = file("qa/checkstyle/checkstyle.xml")
+    configFile = file("checkstyle/checkstyle.xml")
 }
 
 checkstyleMain {
@@ -97,7 +97,7 @@ sonarqube {
         property "sonar.host.url", "https://sonarqube.kapitalbank.az"
         property "sonar.scm.forceReloadAll", "true"
         property "sonar.java.checkstyle.reportPaths", "build/reports/checkstyle/main.xml"
-        property "sonar.cpd.exclusions", "**/az/kapitalbank/marketplace/**"
+        property "sonar.cpd.exclusions", "**/az/kapitalbank/ms/**"
         property "sonar.coverage.exclusions",
                 "**/az/kapitalbank/marketplace/client/**," +
                         "**/az/kapitalbank/marketplace/config/**," +
@@ -106,10 +106,11 @@ sonarqube {
                         "**/az/kapitalbank/marketplace/dto/**," +
                         "**/az/kapitalbank/marketplace/entity/**," +
                         "**/az/kapitalbank/marketplace/exception/**," +
-                        "**/az/kapitalbank/marketplace/mapper/**," +
-                        "**/az/kapitalbank/marketplace/messaging/**," +
-                        "**/az/kapitalbank/marketplace/repository/**," +
+                        "**/az/kapitalbank/marketplace/mapper/**"
+                        "**/az/kapitalbank/marketplace/messaging/**"
+                        "**/az/kapitalbank/marketplace/repository/**"
                         "**/az/kapitalbank/marketplace/util/**"
+
     }
 }
 jacoco {

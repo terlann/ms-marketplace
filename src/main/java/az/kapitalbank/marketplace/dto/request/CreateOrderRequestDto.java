@@ -1,13 +1,12 @@
 package az.kapitalbank.marketplace.dto.request;
 
+import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
+import az.kapitalbank.marketplace.dto.OrderProductItem;
+import java.math.BigDecimal;
+import java.util.List;
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
-import java.math.BigDecimal;
-import java.util.List;
-
-import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
-import az.kapitalbank.marketplace.dto.OrderProductItem;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

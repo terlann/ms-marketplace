@@ -1,4 +1,4 @@
-package az.kapitalbank.marketplace.messaging.event;
+package az.kapitalbank.marketplace.dto;
 
 import az.kapitalbank.marketplace.constant.FraudResultStatus;
 import az.kapitalbank.marketplace.constant.FraudType;
@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class FraudCheckResultEvent {
+public class LeadDto {
     private UUID trackId;
     private FraudResultStatus fraudResultStatus;
     private List<FraudType> types;

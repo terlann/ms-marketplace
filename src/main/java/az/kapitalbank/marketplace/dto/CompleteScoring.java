@@ -1,8 +1,7 @@
 package az.kapitalbank.marketplace.dto;
 
-import java.util.UUID;
-
 import az.kapitalbank.marketplace.client.optimus.model.scoring.CustomerDecision;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Data;

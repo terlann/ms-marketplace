@@ -1,8 +1,7 @@
 package az.kapitalbank.marketplace.client.optimus.model.process;
 
-import java.util.Date;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Date;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Data;

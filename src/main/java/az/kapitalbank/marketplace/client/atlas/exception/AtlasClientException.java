@@ -1,8 +1,7 @@
 package az.kapitalbank.marketplace.client.atlas.exception;
 
-import java.util.UUID;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import java.util.UUID;
 import lombok.Getter;
 
 @Getter

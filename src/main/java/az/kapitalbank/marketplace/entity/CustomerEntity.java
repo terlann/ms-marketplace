@@ -1,14 +1,15 @@
 package az.kapitalbank.marketplace.entity;
 
-import javax.persistence.CascadeType;
-import javax.persistence.Entity;
-import javax.persistence.OneToMany;
-import javax.persistence.Table;
+import az.kapitalbank.marketplace.constant.CustomerStatus;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
-import az.kapitalbank.marketplace.constant.CustomerStatus;
+import javax.persistence.CascadeType;
+import javax.persistence.Entity;
+import javax.persistence.EnumType;
+import javax.persistence.Enumerated;
+import javax.persistence.OneToMany;
+import javax.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,6 +31,7 @@ public class CustomerEntity extends BaseEntity {
     String umicoUserId;
     boolean isAgreement;
     String cardId;
+    @Enumerated(EnumType.STRING)
     CustomerStatus status;
     LocalDateTime completeProcessDate;
 
