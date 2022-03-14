@@ -253,7 +253,7 @@ class ScoringServiceTest {
     }
 
     @Test
-    void scoringResultProcess_inUserActivity_userTaskScoring() {
+    void scoringResultProcess_InUserActivity_UserTaskScoring() {
         String businessKey = "asdkljasdl";
         var operationEntity = OperationEntity.builder()
                 .taskId("123")
