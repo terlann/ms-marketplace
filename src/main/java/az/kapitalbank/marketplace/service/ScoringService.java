@@ -324,7 +324,7 @@ public class ScoringService {
         log.info("Complete scoring result...");
         var processVariableResponse =
                 optimusClient.getProcessVariable(operationEntity.getBusinessKey(),
-                        "pan");
+                        "uid");
         var customerEntity = operationEntity.getCustomer();
         customerEntity.setCardId(processVariableResponse.getUid());
         customerRepository.save(customerEntity);

@@ -3,6 +3,7 @@ package az.kapitalbank.marketplace.service;
 import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
 import static az.kapitalbank.marketplace.constants.TestConstants.CUSTOMER_ID;
 import static az.kapitalbank.marketplace.constants.TestConstants.TRACK_ID;
+import static az.kapitalbank.marketplace.constants.TestConstants.UMICO_USER_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -84,9 +85,40 @@ class OrderServiceTest {
 
     @Test
     void createOrder_firstOperation() {
+
+        CreateOrderRequestDto request =
+                getCreateOrderRequestDto(null);
+        var customerEntity = CustomerEntity.builder()
+                .cardId(CARD_UID.getValue()).build();
+        var operationEntity = OperationEntity.builder()
+                .id(UUID.fromString(TRACK_ID.getValue()))
+                .build();
+        var orderEntity = OrderEntity.builder().build();
+        var fraudCheckEvent = FraudCheckEvent.builder().build();
+
+        when(customerRepository.findByUmicoUserId(UMICO_USER_ID.getValue()))
+                .thenReturn(Optional.empty());
+        when(customerMapper.toCustomerEntity(request.getCustomerInfo())).thenReturn(customerEntity);
+        when(customerRepository.save(customerEntity)).thenReturn(customerEntity);
+        when(amountUtil.getCommission(BigDecimal.valueOf(50), 12))
+                .thenReturn(BigDecimal.valueOf(12));
+        when(operationMapper.toOperationEntity(request)).thenReturn(operationEntity);
+        when(orderMapper.toOrderEntity(request.getDeliveryInfo().get(0),
+                BigDecimal.valueOf(12))).thenReturn(orderEntity);
+        when(orderMapper.toProductEntity(OrderProductItem.builder().orderNo("123").build(),
+                orderEntity.getOrderNo())).thenReturn(ProductEntity.builder().build());
+        when(operationRepository.save(operationEntity)).thenReturn(operationEntity);
+        when(createOrderMapper.toOrderEvent(request)).thenReturn(fraudCheckEvent);
+        var actual = orderService.createOrder(request);
+        var expected = CreateOrderResponse.of(UUID.fromString(TRACK_ID.getValue()));
+        assertEquals(expected, actual);
+    }
+
+    @Test
+    void createOrder_SecondOperation() {
         var customerId = UUID.fromString(CUSTOMER_ID.getValue());
 
-        CreateOrderRequestDto createOrderRequestDto =
+        CreateOrderRequestDto request =
                 getCreateOrderRequestDto(customerId);
         var customerEntity = CustomerEntity.builder()
                 .cardId(CARD_UID.getValue()).build();
@@ -101,9 +133,9 @@ class OrderServiceTest {
                 .build();
         var orderEntity = OrderEntity.builder().build();
         var fraudCheckEvent = FraudCheckEvent.builder().build();
-        mockCreateOrderFirstOperation(customerId, createOrderRequestDto, customerEntity,
+        mockCreateOrderFirstOperation(customerId, request, customerEntity,
                 cardDetailResponse, operationEntity, orderEntity, fraudCheckEvent);
-        var actual = orderService.createOrder(createOrderRequestDto);
+        var actual = orderService.createOrder(request);
         var expected = CreateOrderResponse.of(UUID.fromString(TRACK_ID.getValue()));
         assertEquals(expected, actual);
     }
@@ -114,6 +146,9 @@ class OrderServiceTest {
                 .loanTerm(12)
                 .customerInfo(CustomerInfo.builder()
                         .customerId(customerId)
+                        .umicoUserId(UMICO_USER_ID.getValue())
+                        .additionalPhoneNumber1("9941112233")
+                        .additionalPhoneNumber2("9941112234")
                         .build())
                 .deliveryInfo(List.of(OrderProductDeliveryInfo.builder()
                         .totalAmount(BigDecimal.valueOf(50))
@@ -122,6 +157,7 @@ class OrderServiceTest {
                 .products(List.of(OrderProductItem.builder()
                         .orderNo("123")
                         .build()))
+
                 .build();
     }
 
