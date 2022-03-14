@@ -4,7 +4,7 @@ import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
 import static az.kapitalbank.marketplace.constants.TestConstants.RRN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
@@ -20,7 +20,6 @@ import az.kapitalbank.marketplace.client.otp.model.SendOtpRequest;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpResponse;
 import az.kapitalbank.marketplace.dto.request.OtpVerifyRequestDto;
 import az.kapitalbank.marketplace.dto.request.SendOtpRequestDto;
-import az.kapitalbank.marketplace.dto.response.OtpVerifyResponseDto;
 import az.kapitalbank.marketplace.dto.response.SendOtpResponseDto;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
@@ -67,7 +66,7 @@ class OtpServiceTest {
         var trackId = UUID.fromString("3a30a65a-9bec-11ec-b909-0242ac120002");
         var request = SendOtpRequestDto.builder()
                 .trackId(trackId).build();
-        String cardConnectedNumber = "+994513601019";
+        String cardConnectedNumber = "994553601019";
         SendOtpRequest sendOtpRequest =
                 getSendOtpRequest(cardConnectedNumber);
         SendOtpResponse sendOtpResponse = SendOtpResponse.builder()
@@ -81,17 +80,14 @@ class OtpServiceTest {
         SubscriptionResponse subscriptionResponse =
                 getSubscriptionResponse();
 
-        //WHEN
         when(operationRepository.findById(trackId)).thenReturn(Optional.of(operationEntity));
         when(atlasClient.findAllByUid(CARD_UID.getValue(), "", "")).thenReturn(
                 subscriptionResponse);
-        lenient().when(otpClient.send(sendOtpRequest)).thenReturn(sendOtpResponse);
-
-        //THEN
+        when(otpClient.send(sendOtpRequest)).thenReturn(sendOtpResponse);
 
         var actual = otpService.send(request);
         var expected =
-                SendOtpResponseDto.builder().maskedMobileNum("*********1019").message("success")
+                SendOtpResponseDto.builder().maskedMobileNumber("99455***1019")
                         .build();
 
         assertEquals(expected, actual);
@@ -99,13 +95,11 @@ class OtpServiceTest {
 
     private SubscriptionResponse getSubscriptionResponse() {
         List<Subscription> subscriptions = List.of(Subscription.builder()
-                .schema("3DS")
+                .scheme("3DS")
                 .channel("SMPP_ALL")
-                .address("+994513601019")
+                .address("994553601019")
                 .build());
-        var subscriptionResponse =
-                SubscriptionResponse.builder().subscriptions(subscriptions).build();
-        return subscriptionResponse;
+        return SubscriptionResponse.builder().subscriptions(subscriptions).build();
     }
 
 
@@ -155,32 +149,26 @@ class OtpServiceTest {
         var trackId = UUID.randomUUID();
         OperationEntity operationEntity = getOperationEntity();
         var subscriptionResponse = getSubscriptionResponse();
-        var verify = OtpVerifyResponse.builder()
-                .status("success")
-                .build();
-        var otpVerifyRequestDto = OtpVerifyRequestDto.builder()
-                .otp("2222")
-                .trackId(trackId)
-                .build();
+
         var purchaseResponse = PurchaseResponse.builder()
                 .id("83660ed4-9e42-11ec-b909-0242ac120002")
                 .approvalCode("789456")
                 .build();
-
+        var otpVerifyResponse = OtpVerifyResponse.builder().build();
         when(operationRepository.findById(any()))
                 .thenReturn(Optional.of(operationEntity));
         when(atlasClient.findAllByUid(CARD_UID.getValue(), "", ""))
                 .thenReturn(subscriptionResponse);
-        when(otpClient.verify(any(OtpVerifyRequest.class))).thenReturn(verify);
         when(atlasClient.purchase(any(PurchaseRequest.class))).thenReturn(purchaseResponse);
+        when(otpClient.verify(any(OtpVerifyRequest.class))).thenReturn(otpVerifyResponse);
 
-        var actual = otpService.verify(otpVerifyRequestDto);
-        var expected = OtpVerifyResponseDto.builder()
+        var requestDto = OtpVerifyRequestDto.builder()
+                .otp("2222")
                 .trackId(trackId)
-                .status("success")
                 .build();
+        otpService.verify(requestDto);
 
-        assertEquals(expected, actual);
+        verify(atlasClient).purchase(any(PurchaseRequest.class));
 
     }
 }

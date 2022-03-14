@@ -164,9 +164,30 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(OtpClientException.class)
-    public ResponseEntity<ErrorResponseDto> otpException(OtpClientException ex) {
-        log.error(ex.getMessage());
-        var errorResponseDto = new ErrorResponseDto(Error.OTP_EXCEPTION);
+    public ResponseEntity<ErrorResponseDto> otpClientException(OtpClientException ex) {
+        log.error(ex.toString());
+        Error error;
+        switch (ex.getDetail()) {
+            case "phone blocked":
+            case "user blocked":
+                error = Error.OTP_PHONE_BLOCKED;
+                break;
+            case "send otp limit exceed":
+                error = Error.OTP_SEND_LIMIT_EXCEED;
+                break;
+            case "otp not found":
+                error = Error.OTP_NOT_FOUND;
+                break;
+            case "invalid otp. remaining attempt: 1":
+                error = Error.OTP_ATTEMPT_LIMIT_ONE;
+                break;
+            case "invalid otp. remaining attempt: 2":
+                error = Error.OTP_ATTEMPT_LIMIT_TWO;
+                break;
+            default:
+                error = Error.OTP_EXCEPTION;
+        }
+        var errorResponseDto = new ErrorResponseDto(error);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 }

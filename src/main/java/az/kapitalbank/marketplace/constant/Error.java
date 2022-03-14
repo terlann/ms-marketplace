@@ -27,7 +27,12 @@ public enum Error {
     ORDER_NOT_LINKED_TO_CUSTOMER("E113", "Order is not linked to customer"),
     NO_PERMISSION("E114", "No permission reverse/purchase"),
     ATLAS_EXCEPTION("E115", "Exception in Complete"),
-    OTP_EXCEPTION("E116", "OTP Error Ocurred");
+    OTP_PHONE_BLOCKED("E116", "Phone Blocked"),
+    OTP_SEND_LIMIT_EXCEED("E117", "send otp limit exceed"),
+    OTP_NOT_FOUND("E118", "Otp not found"),
+    OTP_EXCEPTION("E119", "Otp Exception"),
+    OTP_ATTEMPT_LIMIT_ONE("E120", "Invalid otp! remaining attempt: 1"),
+    OTP_ATTEMPT_LIMIT_TWO("E121", "Invalid otp! remaining attempt: 2");
 
     String code;
     String message;

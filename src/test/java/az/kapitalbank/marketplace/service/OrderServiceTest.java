@@ -184,7 +184,6 @@ class OrderServiceTest {
         when(orderMapper.toProductEntity(OrderProductItem.builder().orderNo("123").build(),
                 orderEntity.getOrderNo())).thenReturn(ProductEntity.builder().build());
         when(operationRepository.save(operationEntity)).thenReturn(operationEntity);
-        when(createOrderMapper.toOrderEvent(createOrderRequestDto)).thenReturn(fraudCheckEvent);
     }
 
 

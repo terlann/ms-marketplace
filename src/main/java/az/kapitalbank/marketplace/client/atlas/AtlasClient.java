@@ -37,7 +37,7 @@ public interface AtlasClient {
     CardDetailResponse findCardByUid(@PathVariable String uid,
                                      @RequestParam ResultType resultType);
 
-    @GetMapping("/api/card-messaging/cards/{uid}/subscriptions")
+    @GetMapping("/card-messaging/cards/{uid}/subscriptions")
     SubscriptionResponse findAllByUid(@PathVariable String uid,
                                       @RequestParam String channel,
                                       @RequestParam String schema);
