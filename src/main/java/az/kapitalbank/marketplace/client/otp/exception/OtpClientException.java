@@ -2,8 +2,10 @@ package az.kapitalbank.marketplace.client.otp.exception;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
+import lombok.ToString;
 
 @Getter
+@ToString
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class OtpClientException extends RuntimeException {
 
@@ -12,7 +14,7 @@ public class OtpClientException extends RuntimeException {
     private final String message;
     private final String detail;
 
-    public OtpClientException(String message, String code, String error, String detail) {
+    public OtpClientException(String code, String error, String message, String detail) {
         super(message);
         this.code = code;
         this.error = error;

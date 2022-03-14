@@ -3,16 +3,14 @@ package az.kapitalbank.marketplace.service;
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.otp.OtpClient;
-import az.kapitalbank.marketplace.client.otp.exception.OtpClientException;
 import az.kapitalbank.marketplace.client.otp.model.ChannelRequest;
 import az.kapitalbank.marketplace.client.otp.model.OtpVerifyRequest;
-import az.kapitalbank.marketplace.client.otp.model.OtpVerifyResponse;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpRequest;
 import az.kapitalbank.marketplace.constant.Currency;
+import az.kapitalbank.marketplace.constant.OtpConstant;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.dto.request.OtpVerifyRequestDto;
 import az.kapitalbank.marketplace.dto.request.SendOtpRequestDto;
-import az.kapitalbank.marketplace.dto.response.OtpVerifyResponseDto;
 import az.kapitalbank.marketplace.dto.response.SendOtpResponseDto;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
@@ -22,9 +20,10 @@ import az.kapitalbank.marketplace.exception.SubscriptionNotFoundException;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
 import az.kapitalbank.marketplace.util.GenerateUtil;
-import az.kapitalbank.marketplace.util.MaskedMobileNum;
+import az.kapitalbank.marketplace.util.OtpUtil;
 import java.util.ArrayList;
 import java.util.UUID;
+import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -46,24 +45,24 @@ public class OtpService {
     @Value("${purchase.terminal-name}")
     String terminalName;
 
+    @Transactional
     public SendOtpResponseDto send(SendOtpRequestDto request) {
+        log.info("Starting send otp service. Request : {}", request);
         String cardConnectedNumber = getMobileNumber(request.getTrackId());
         log.info("Sending OTP: Mobile Number: " + cardConnectedNumber);
         SendOtpRequest sendOtpRequest = SendOtpRequest.builder()
                 .phoneNumber(cardConnectedNumber)
-                .definitionId(UUID.fromString("00608fa-9bae-11ec-b909-0242ac120002"))
-                .channel(ChannelRequest.builder()
-                        .channel("Umico Marketplace")
-                        .build())
+                .definitionId(UUID.fromString(OtpConstant.DEFINITION_ID.getValue()))
+                .channel(new ChannelRequest("Umico Marketplace"))
                 .build();
         var sendOtp = otpClient.send(sendOtpRequest);
         log.info("Sended OTP Response: " + sendOtp.getMessage());
 
-        return new SendOtpResponseDto(sendOtp.getMessage(),
-                MaskedMobileNum.maskedMobNumber(cardConnectedNumber));
+        return new SendOtpResponseDto(OtpUtil.maskMobileNumber(cardConnectedNumber));
     }
 
-    public OtpVerifyResponseDto verify(OtpVerifyRequestDto request) {
+    @Transactional
+    public void verify(OtpVerifyRequestDto request) {
         var operationEntity = operationRepository.findById(request.getTrackId())
                 .orElseThrow(
                         () -> new OperationNotFoundException("trackId: " + request.getTrackId()));
@@ -75,25 +74,9 @@ public class OtpService {
                 .otp(request.getOtp())
                 .phoneNumber(cardConnectedNumber)
                 .build();
-        var verify = new OtpVerifyResponse();
-        try {
-            verify = otpClient.verify(otpVerifyRequest);
-            log.info("Verifed OTP Response: - " + verify.getStatus());
-        } catch (OtpClientException ex) {
-            String message =
-                    String.format("message: %s , detail: %s ", ex.getMessage(), ex.getDetail());
-            log.info("OTP Verify Client Exception: - " + message);
-            return OtpVerifyResponseDto.builder()
-                    .status(message)
-                    .trackId(request.getTrackId())
-                    .build();
-        }
-        if (verify.getStatus().equalsIgnoreCase("success")) {
-            prePurchaseOrder(operationEntity, customerEntity);
-
-        }
-
-        return new OtpVerifyResponseDto(request.getTrackId(), verify.getStatus());
+        var verify = otpClient.verify(otpVerifyRequest);
+        log.info("Verifed OTP Response: - " + verify.getStatus());
+        prePurchaseOrder(operationEntity, customerEntity);
     }
 
     private void prePurchaseOrder(OperationEntity operationEntity, CustomerEntity customerEntity) {
@@ -134,7 +117,7 @@ public class OtpService {
                 .findAllByUid(cardId, "", "");
         return subscriptionResponse.getSubscriptions().stream()
                 .filter(subscription -> subscription.getChannel().equals("SMPP_ALL")
-                        && subscription.getSchema().contains("3DS")).findFirst()
+                        && subscription.getScheme().contains("3DS")).findFirst()
                 .orElseThrow(() -> new SubscriptionNotFoundException("CardUID: " + cardId))
                 .getAddress();
     }

@@ -1,21 +1,16 @@
 package az.kapitalbank.marketplace.client.atlas.model.response;
 
-import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.experimental.FieldDefaults;
 
-@Getter
-@Setter
+@Data
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@FieldDefaults(level = AccessLevel.PRIVATE)
 public class Subscription {
-    String channel;
-    String schema;
-    String address;
+    private String channel;
+    private String scheme;
+    private String address;
 }

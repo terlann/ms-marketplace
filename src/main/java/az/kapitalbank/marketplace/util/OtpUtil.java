@@ -4,11 +4,10 @@ import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class MaskedMobileNum {
-    public static String maskedMobNumber(String mobNumb) {
-
-        char[] arr = mobNumb.toCharArray();
-        for (int i = 0; i < arr.length - 4; i++) {
+public class OtpUtil {
+    public static String maskMobileNumber(String mobileNumber) {
+        char[] arr = mobileNumber.toCharArray();
+        for (int i = 5; i < 8; i++) {
             arr[i] = '*';
         }
         return String.valueOf(arr);
