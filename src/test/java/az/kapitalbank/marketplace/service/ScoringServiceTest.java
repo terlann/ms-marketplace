@@ -160,17 +160,15 @@ class ScoringServiceTest {
     }
 
     private UmicoDecisionRequest getDecisionRequest(OperationEntity operationEntity) {
-        var umicoScoringDecisionRequest =
-                UmicoDecisionRequest.builder().trackId(operationEntity.getId())
-                        .decisionStatus(UmicoDecisionStatus.APPROVED)
-                        .loanContractStartDate(operationEntity.getLoanContractStartDate())
-                        .loanContractEndDate(operationEntity.getLoanContractEndDate())
-                        .customerId(operationEntity.getCustomer().getId())
-                        .commission(operationEntity.getCommission())
-                        .loanLimit(operationEntity.getTotalAmount()
-                                .add(operationEntity.getCommission()))
-                        .loanTerm(operationEntity.getLoanTerm()).build();
-        return umicoScoringDecisionRequest;
+        return UmicoDecisionRequest.builder().trackId(operationEntity.getId())
+                .decisionStatus(UmicoDecisionStatus.APPROVED)
+                .loanContractStartDate(operationEntity.getLoanContractStartDate())
+                .loanContractEndDate(operationEntity.getLoanContractEndDate())
+                .customerId(operationEntity.getCustomer().getId())
+                .commission(operationEntity.getCommission())
+                .loanLimit(operationEntity.getTotalAmount()
+                        .add(operationEntity.getCommission()))
+                .loanTerm(operationEntity.getLoanTerm()).build();
     }
 
     private OperationEntity getOperationEntity(
@@ -255,7 +253,7 @@ class ScoringServiceTest {
     }
 
     @Test
-    void scoringResultProcess_InUserActivity_User_Task_Scoring() {
+    void scoringResultProcess_InUserActivity_UserTaskScoring() {
         String businessKey = "asdkljasdl";
         var operationEntity = OperationEntity.builder()
                 .taskId("123")
@@ -289,7 +287,7 @@ class ScoringServiceTest {
     }
 
     @Test
-    void scoringResultProcess_InUserActivity_User_Task_Sign_Documents() {
+    void scoringResultProcess_InUserActivity_UserTaskSignDocuments() {
         String businessKey = "asdkljasdl";
         var operationEntity = getOperationEntity();
         var inUserActivityData = InUserActivityData.builder()
@@ -332,7 +330,7 @@ class ScoringServiceTest {
         when(operationRepository.findByBusinessKey(businessKey))
                 .thenReturn(Optional.of(operationEntity));
         when(optimusClient.getProcessVariable(operationEntity.getBusinessKey(),
-                "pan")).thenReturn(processVariableResponse);
+                "uid")).thenReturn(processVariableResponse);
         when(atlasClient.purchase(any(PurchaseRequest.class))).thenReturn(
                 PurchaseResponse.builder().build());
 
@@ -342,7 +340,7 @@ class ScoringServiceTest {
                 .data(inUserActivityData)
                 .build();
         scoringService.scoringResultProcess(request);
-        verify(optimusClient).getProcessVariable(operationEntity.getBusinessKey(), "pan");
+        verify(optimusClient).getProcessVariable(operationEntity.getBusinessKey(), "uid");
     }
 
     @Test
@@ -372,7 +370,6 @@ class ScoringServiceTest {
                 .fraudResultStatus(FraudResultStatus.BLACKLIST)
                 .build();
         var trackId = fraudCheckResultEvent.getTrackId();
-        var fraudResultStatus = fraudCheckResultEvent.getFraudResultStatus();
 
         var operationEntity = OperationEntity.builder()
                 .umicoDecisionStatus(UmicoDecisionStatus.APPROVED)
@@ -392,7 +389,6 @@ class ScoringServiceTest {
                 .httpStatus(5)
                 .status("success")
                 .build();
-
 
         when(operationRepository.findById(trackId)).thenReturn(Optional.of(operationEntity));
         when(umicoClient.sendDecisionToUmico(umicoScoringDecisionRequest, apiKey))
@@ -414,20 +410,20 @@ class ScoringServiceTest {
                 .types(List.of(FraudType.UMICO_USER_ID))
                 .build();
         String telesalesOrderId = TELESALES_ORDER_ID.getValue();
-        var operationEntityOptional = OperationEntity.builder()
+        var operationEntity = OperationEntity.builder()
                 .umicoDecisionStatus(UmicoDecisionStatus.APPROVED)
                 .loanContractStartDate(LocalDate.now())
                 .loanContractEndDate(LocalDate.now())
                 .commission(BigDecimal.valueOf(20))
                 .totalAmount(BigDecimal.valueOf(900))
                 .build();
-        operationEntityOptional.setTelesalesOrderId(telesalesOrderId);
+        operationEntity.setTelesalesOrderId(telesalesOrderId);
 
 
         when(telesalesMapper.toLeadDto(fraudCheckResultEvent)).thenReturn(leadDto);
         when(telesalesService.sendLead(leadDto)).thenReturn(Optional.of(telesalesOrderId));
         when(operationRepository.findById(UUID.fromString(TRACK_ID.getValue()))).thenReturn(
-                Optional.ofNullable(operationEntityOptional));
+                Optional.of(operationEntity));
 
         scoringService.fraudResultProcess(fraudCheckResultEvent);
         verify(telesalesService).sendLead(leadDto);
