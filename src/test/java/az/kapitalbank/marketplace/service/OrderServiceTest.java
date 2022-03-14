@@ -203,7 +203,7 @@ class OrderServiceTest {
         when(orderRepository.findByOrderNo(reverseRequestDto.getOrderNo()))
                 .thenReturn(Optional.of(orderEntity));
         when(atlasClient.reverse(orderEntity.getTransactionId(), reversPurchaseRequest))
-                .thenThrow(new AtlasClientException(null,null,null));
+                .thenThrow(new AtlasClientException(null, null, null));
 
         var actual = orderService.reverse(reverseRequestDto);
         var expected = PurchaseResponseDto.builder()
@@ -264,7 +264,7 @@ class OrderServiceTest {
                 .thenReturn(Optional.of(customerEntity));
         when(orderRepository.findByOrderNoIn(orderNoList)).thenReturn(
                 List.of(orderEntity));
-        when(atlasClient.complete(any())).thenThrow(new AtlasClientException(null,null,null));
+        when(atlasClient.complete(any())).thenThrow(new AtlasClientException(null, null, null));
         var actual = orderService.purchase(purchaseRequestDto);
         var expected = List.of(PurchaseResponseDto.builder()
                 .status(OrderStatus.FAIL).build());

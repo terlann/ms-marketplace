@@ -4,6 +4,7 @@ import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
 import static az.kapitalbank.marketplace.constants.TestConstants.RRN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
@@ -30,6 +31,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import lombok.experimental.NonFinal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -54,6 +56,8 @@ class OtpServiceTest {
     @InjectMocks
     OtpService otpService;
 
+
+    @NonFinal
     @Value("${purchase.terminal-name}")
     String terminalName;
 
@@ -64,26 +68,26 @@ class OtpServiceTest {
         var request = SendOtpRequestDto.builder()
                 .trackId(trackId).build();
         String cardConnectedNumber = "+994513601019";
-        var sendOtpRequest = getSendOtpRequest(cardConnectedNumber);
+        SendOtpRequest sendOtpRequest =
+                getSendOtpRequest(cardConnectedNumber);
         SendOtpResponse sendOtpResponse = SendOtpResponse.builder()
                 .message("success")
                 .build();
         var customerEntity = CustomerEntity.builder()
                 .cardId(CARD_UID.getValue())
                 .build();
-        var operationEntity = getOperationEntity(customerEntity);
-        var substrictions = List.of(Subscription.builder()
-                .schema("3DS")
-                .channel("SMPP_ALL")
-                .address("+994513601019")
-                .build());
-        var subscriptionResponse =
-                SubscriptionResponse.builder().subscriptions(substrictions).build();
+        OperationEntity operationEntity =
+                getOperationEntity(customerEntity);
+        SubscriptionResponse subscriptionResponse =
+                getSubscriptionResponse();
 
+        //WHEN
         when(operationRepository.findById(trackId)).thenReturn(Optional.of(operationEntity));
         when(atlasClient.findAllByUid(CARD_UID.getValue(), "", "")).thenReturn(
                 subscriptionResponse);
-        when(otpClient.send(sendOtpRequest)).thenReturn(sendOtpResponse);
+        lenient().when(otpClient.send(sendOtpRequest)).thenReturn(sendOtpResponse);
+
+        //THEN
 
         var actual = otpService.send(request);
         var expected =
@@ -93,77 +97,17 @@ class OtpServiceTest {
         assertEquals(expected, actual);
     }
 
-
-    private SendOtpRequest getSendOtpRequest(String cardConnectedNumber) {
-        return SendOtpRequest.builder()
-                .phoneNumber(cardConnectedNumber)
-                .definitionId(UUID.fromString("00608fa-9bae-11ec-b909-0242ac120002"))
-                .channel(ChannelRequest.builder()
-                        .channel("Umico Marketplace")
-                        .build())
-                .build();
-    }
-
-    @Test
-    void verify_Success() {
-        var otpVerifyRequestDto = OtpVerifyRequestDto.builder().build();
-        var customerEntity = CustomerEntity.builder()
-                .cardId(CARD_UID.getValue())
-                .build();
-        var orderEntity = OrderEntity.builder()
-                .rrn(RRN.getValue())
-                .totalAmount(BigDecimal.valueOf(1500))
-                .commission(BigDecimal.valueOf(25))
-                .build();
-        var operationEntity = getOperationEntity(customerEntity, List.of(orderEntity));
-        List<Subscription> substrictions = getSubstrictions();
-        var subscriptionResponse =
-                SubscriptionResponse.builder().subscriptions(substrictions).build();
-        var verify = OtpVerifyResponse.builder()
-                .status("success")
-                .build();
-        var purchaseResponse = getPurchaseResponse();
-
-        when(operationRepository.findById(any()))
-                .thenReturn(Optional.of(operationEntity));
-        when(atlasClient.findAllByUid(CARD_UID.getValue(), "", ""))
-                .thenReturn(subscriptionResponse);
-        when(otpClient.verify(any(OtpVerifyRequest.class))).thenReturn(verify);
-        when(atlasClient.purchase(any(PurchaseRequest.class)))
-                .thenReturn(purchaseResponse);
-        var actual = otpService.verify(otpVerifyRequestDto);
-        var expected = OtpVerifyResponseDto.builder()
-                .status("success").build();
-        assertEquals(expected, actual);
-
-    }
-
-    private PurchaseResponse getPurchaseResponse() {
-        return PurchaseResponse.builder()
-                .id("83660ed4-9e42-11ec-b909-0242ac120002")
-                .approvalCode("789456")
-                .build();
-
-    }
-
-    private OtpVerifyRequest getOtpVerifyRequest() {
-        return OtpVerifyRequest.builder()
-                .otp("2222")
-                .phoneNumber("+994513601019")
-                .build();
-    }
-
-    private List<Subscription> getSubstrictions() {
-        return getSubscriptions();
-    }
-
-    private List<Subscription> getSubscriptions() {
-        return List.of(Subscription.builder()
+    private SubscriptionResponse getSubscriptionResponse() {
+        List<Subscription> subscriptions = List.of(Subscription.builder()
                 .schema("3DS")
                 .channel("SMPP_ALL")
                 .address("+994513601019")
                 .build());
+        var subscriptionResponse =
+                SubscriptionResponse.builder().subscriptions(subscriptions).build();
+        return subscriptionResponse;
     }
+
 
     private OperationEntity getOperationEntity(CustomerEntity customerEntity) {
         return OperationEntity.builder()
@@ -181,5 +125,62 @@ class OtpServiceTest {
                 .customer(customerEntity)
                 .orders(orders)
                 .build();
+    }
+
+    private OperationEntity getOperationEntity() {
+        var customerEntity = CustomerEntity.builder()
+                .cardId(CARD_UID.getValue())
+                .build();
+        var orderEntity = OrderEntity.builder()
+                .rrn(RRN.getValue())
+                .totalAmount(BigDecimal.valueOf(1500))
+                .commission(BigDecimal.valueOf(25))
+                .build();
+        var orders = List.of(orderEntity);
+        return getOperationEntity(customerEntity, orders);
+    }
+
+    private SendOtpRequest getSendOtpRequest(String cardConnectedNumber) {
+        return SendOtpRequest.builder()
+                .phoneNumber(cardConnectedNumber)
+                .definitionId(UUID.fromString("00608fa-9bae-11ec-b909-0242ac120002"))
+                .channel(ChannelRequest.builder()
+                        .channel("Umico Marketplace")
+                        .build())
+                .build();
+    }
+
+    @Test
+    void verify_Success() {
+        var trackId = UUID.randomUUID();
+        OperationEntity operationEntity = getOperationEntity();
+        var subscriptionResponse = getSubscriptionResponse();
+        var verify = OtpVerifyResponse.builder()
+                .status("success")
+                .build();
+        var otpVerifyRequestDto = OtpVerifyRequestDto.builder()
+                .otp("2222")
+                .trackId(trackId)
+                .build();
+        var purchaseResponse = PurchaseResponse.builder()
+                .id("83660ed4-9e42-11ec-b909-0242ac120002")
+                .approvalCode("789456")
+                .build();
+
+        when(operationRepository.findById(any()))
+                .thenReturn(Optional.of(operationEntity));
+        when(atlasClient.findAllByUid(CARD_UID.getValue(), "", ""))
+                .thenReturn(subscriptionResponse);
+        when(otpClient.verify(any(OtpVerifyRequest.class))).thenReturn(verify);
+        when(atlasClient.purchase(any(PurchaseRequest.class))).thenReturn(purchaseResponse);
+
+        var actual = otpService.verify(otpVerifyRequestDto);
+        var expected = OtpVerifyResponseDto.builder()
+                .trackId(trackId)
+                .status("success")
+                .build();
+
+        assertEquals(expected, actual);
+
     }
 }
