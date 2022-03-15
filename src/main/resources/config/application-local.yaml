@@ -13,7 +13,7 @@ spring:
     password: 7?-+sfVndfe2L=4\Nk3B
   cloud:
     function:
-      definition: checkFraud;checkFraudResult;startScoringResult;orderDvsStatus
+      definition: checkFraud;checkFraudResult;scoringResult;verificationResult
     stream:
       binders:
         kafka-bpm:
@@ -23,32 +23,30 @@ spring:
         kafka-mp:
           type: kafka
           environment.spring.cloud.stream.kafka.binder:
-            brokers: 10.0.81.211:9092
+            brokers: localhost:9092
             auto-create-topics: true
             auto-add-partitions: true
-            min-partition-count: 2
+            min-partition-count: 1
       bindings:
-        input:
-          consumer:
-        startScoringResult-in-0:
+        scoringResult-in-0:
           binder: kafka-bpm
           contentType: application/json
           destination: bpm-market-place-online-state
-          group: marketplace-bpm-online-state-1
+          group: marketplace-bpm-online-state-local
         checkFraudResult-in-0:
           binder: kafka-mp
           contentType: application/json
-          group: marketplace-fraud-result-1
+          group: marketplace-fraud-result-local
           destination: mp-fraud-validation-result
         checkFraud-out-0:
           binder: kafka-mp
           contentType: application/json
-          group: marketplace-fraud-1
+          group: marketplace-fraud-local
           destination: mp-fraud-validation
-        orderDvsStatus-in-0:
+        verificationResult-in-0:
           binder: kafka-mp
           contentType: application/json
-          group: marketplace-dvs-1
+          group: marketplace-dvs-local
           destination: mp-order-dvs
 
 optimus:
@@ -65,7 +63,7 @@ client:
   umico:
     url: https://broker-stage.umico.az
   adp-atlas:
-    url: https://pre.adp-atlas.kapitalbank.az
+    url: https://dev.adp-atlas.kapitalbank.az
   adp-optimus:
     url: https://pre.adp-optimus.kapitalbank.az/
   adp-dvs:
@@ -73,7 +71,7 @@ client:
   externalinteg:
     url: http://pre.externalinteg.kapitalbank.az/api
   ms-otp:
-    url:https://pre.ms-otp.kapitalbank.az/v1
+    url: https://pre.ms-otp.kapitalbank.az/v1
 feign:
   httpclient:
     disable-ssl-validation: true

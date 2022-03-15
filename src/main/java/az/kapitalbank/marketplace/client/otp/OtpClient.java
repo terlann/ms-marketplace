@@ -9,7 +9,9 @@ import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.bind.annotation.PostMapping;
 
-@FeignClient(name = "sms-client", url = "${client.ms-otp.url}")
+@FeignClient(name = "otp-client",
+        url = "${client.ms-otp.url}",
+        configuration = OtpClient.FeignConfiguration.class)
 public interface OtpClient {
     @PostMapping("/otp/send")
     SendOtpResponse send(SendOtpRequest sendOtpRequest);

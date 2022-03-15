@@ -24,6 +24,7 @@ public interface TelesalesMapper {
     @Mapping(source = "operationEntity.email", target = "email")
     @Mapping(source = "operationEntity.loanTerm", target = "duration")
     @Mapping(target = "position", constant = ApplicationConstant.UMICO_MARKETPLACE)
+    @Mapping(target = "productType", constant = ApplicationConstant.SRS_PRODUCT_TYPE)
     @Mapping(source = "fraudTypes", target = "orderComment", qualifiedByName = "mapFraudTypes")
     CreateTelesalesOrderRequest toTelesalesOrder(OperationEntity operationEntity,
                                                  List<FraudType> fraudTypes);

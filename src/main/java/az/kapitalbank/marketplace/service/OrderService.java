@@ -84,11 +84,8 @@ public class OrderService {
         var customerId = request.getCustomerInfo().getCustomerId();
         CustomerEntity customerEntity = getCustomerEntity(request, customerId);
         OperationEntity operationEntity = saveOperationEntity(request, customerEntity);
-
         var trackId = operationEntity.getId();
-        if (customerId != null && customerEntity.getCompleteProcessDate() != null) {
-            log.info("what we send umico");
-        } else {
+        if (customerId == null && customerEntity.getCompleteProcessDate() == null) {
             var fraudCheckEvent = createOrderMapper.toOrderEvent(request);
             fraudCheckEvent.setTrackId(trackId);
             customerOrderProducer.sendMessage(fraudCheckEvent);
@@ -102,7 +99,6 @@ public class OrderService {
                                                 CustomerEntity customerEntity) {
         var operationEntity = operationMapper.toOperationEntity(request);
         operationEntity.setCustomer(customerEntity);
-
         var operationCommission = BigDecimal.ZERO;
         var orderEntities = new ArrayList<OrderEntity>();
         var productEntities = new ArrayList<ProductEntity>();
@@ -112,7 +108,6 @@ public class OrderService {
             operationCommission = operationCommission.add(commission);
             var orderEntity = orderMapper.toOrderEntity(deliveryInfo, commission);
             orderEntity.setOperation(operationEntity);
-
             for (var orderProductItem : request.getProducts()) {
                 if (deliveryInfo.getOrderNo().equals(orderProductItem.getOrderNo())) {
                     var productEntity =
@@ -170,19 +165,15 @@ public class OrderService {
     public CheckOrderResponseDto checkOrder(String telesalesOrderId) {
         log.info("Check order is started... telesalesOrderId  - {}", telesalesOrderId);
         var operationEntityOptional = operationRepository.findByTelesalesOrderId(telesalesOrderId);
-
         var operationEntity = operationEntityOptional.orElseThrow(
                 () -> new OperationNotFoundException("telesalesOrderId - " + telesalesOrderId));
-
         var scoringStatus = operationEntity.getScoringStatus();
         if (scoringStatus != null) {
             throw new OperationAlreadyScoredException("telesalesOrderId - " + telesalesOrderId);
         }
-
         var orderResponseDto = orderMapper.entityToDto(operationEntity);
         log.info("Check order was finished... telesalesOrderId - {}", telesalesOrderId);
         return orderResponseDto;
-
     }
 
     public List<PurchaseResponseDto> purchase(PurchaseRequestDto request) {
@@ -190,15 +181,12 @@ public class OrderService {
         var customerId = request.getCustomerId();
         var customerEntity = customerRepository.findById(customerId)
                 .orElseThrow(() -> new CustomerNotFoundException(customerId.toString()));
-
         var purchaseResponseDtoList = new ArrayList<PurchaseResponseDto>();
         var cardId = customerEntity.getCardId();
         var orderNoList = request.getDeliveryOrders().stream()
                 .map(DeliveryProductDto::getOrderNo)
                 .collect(Collectors.toList());
-
         var orders = orderRepository.findByOrderNoIn(orderNoList);
-
         for (var order : orders) {
             var transactionStatus = order.getTransactionStatus();
             if (transactionStatus == TransactionStatus.PURCHASE
@@ -315,7 +303,6 @@ public class OrderService {
         return purchaseResponse;
     }
 
-
     private void validateCustomerBalance(CreateOrderRequestDto request, String cardId) {
         var purchaseAmount = getPurchaseAmount(request);
         var availableBalance = getAvailableBalance(cardId);
@@ -329,7 +316,6 @@ public class OrderService {
         var totalOrderAmount = createOrderRequestDto.getDeliveryInfo().stream()
                 .map(OrderProductDeliveryInfo::getTotalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-
         if (totalOrderAmount.compareTo(loanAmount) != 0) {
             throw new NoMatchLoanAmountException(loanAmount, totalOrderAmount);
         }
@@ -339,7 +325,6 @@ public class OrderService {
         var purchaseAmount = getPurchaseAmount(request);
         var minLimit = BigDecimal.valueOf(50);
         var maxLimit = BigDecimal.valueOf(20000);
-
         if (purchaseAmount.compareTo(minLimit) < 0 || purchaseAmount.compareTo(maxLimit) > 0) {
             throw new TotalAmountLimitException(purchaseAmount);
         }
@@ -348,7 +333,6 @@ public class OrderService {
     private BigDecimal getPurchaseAmount(CreateOrderRequestDto request) {
         var totalAmount = request.getTotalAmount();
         var totalCommission = BigDecimal.ZERO;
-
         for (var order : request.getDeliveryInfo()) {
             var commission =
                     amountUtil.getCommission(order.getTotalAmount(), request.getLoanTerm());
@@ -359,7 +343,6 @@ public class OrderService {
 
     private BigDecimal getAvailableBalance(String cardId) {
         var cardDetailResponse = atlasClient.findCardByUid(cardId, ResultType.ACCOUNT);
-
         var primaryAccount = cardDetailResponse.getAccounts()
                 .stream()
                 .filter(x -> x.getStatus() == AccountStatus.OPEN_PRIMARY)
@@ -370,5 +353,4 @@ public class OrderService {
         }
         return primaryAccount.get().getAvailableBalance();
     }
-
 }

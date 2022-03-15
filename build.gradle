@@ -98,7 +98,18 @@ sonarqube {
         property "sonar.scm.forceReloadAll", "true"
         property "sonar.java.checkstyle.reportPaths", "build/reports/checkstyle/main.xml"
         property "sonar.cpd.exclusions", "**/az/kapitalbank/ms/**"
-        property "sonar.coverage.exclusions", "**/az/kapitalbank/marketplace/**,"
+        property "sonar.coverage.exclusions",
+                "**/az/kapitalbank/marketplace/client/**," +
+                        "**/az/kapitalbank/marketplace/config/**," +
+                        "**/az/kapitalbank/marketplace/constant/**," +
+                        "**/az/kapitalbank/marketplace/controller/**," +
+                        "**/az/kapitalbank/marketplace/dto/**," +
+                        "**/az/kapitalbank/marketplace/entity/**," +
+                        "**/az/kapitalbank/marketplace/exception/**," +
+                        "**/az/kapitalbank/marketplace/mapper/**," +
+                        "**/az/kapitalbank/marketplace/messaging/**," +
+                        "**/az/kapitalbank/marketplace/repository/**," +
+                        "**/az/kapitalbank/marketplace/util/**"
 
     }
 }

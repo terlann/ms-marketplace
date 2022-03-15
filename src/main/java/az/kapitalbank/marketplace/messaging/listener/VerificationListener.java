@@ -10,10 +10,8 @@ import az.kapitalbank.marketplace.dto.CompleteScoring;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.messaging.event.VerificationResultEvent;
-import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.service.ScoringService;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.Objects;
@@ -37,7 +35,6 @@ public class VerificationListener {
     ScoringService scoringService;
     OperationRepository operationRepository;
     OptimusClient optimusClient;
-    CustomerRepository customerRepository;
     UmicoClient umicoClient;
 
     @NonFinal
@@ -59,9 +56,9 @@ public class VerificationListener {
 
                         verificationStatusBehavior(verificationResultEvent, operationEntity);
                     }
-                } catch (JsonProcessingException ex) {
+                } catch (Exception ex) {
                     log.error("Verification status consume.Message - {},"
-                            + " JsonProcessingException - {}", message, ex.getMessage());
+                            + " Exception - {}", message, ex.getMessage());
                 }
             }
         };
