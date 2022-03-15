@@ -2,7 +2,6 @@ package az.kapitalbank.marketplace.messaging.listener;
 
 import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
 import az.kapitalbank.marketplace.service.ScoringService;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -31,9 +30,9 @@ public class FraudListener {
                             objectMapper.readValue(message, FraudCheckResultEvent.class);
                     log.info("check fraud result consumer. Message - {}", fraudCheckResultEvent);
                     scoringService.fraudResultProcess(fraudCheckResultEvent);
-                } catch (JsonProcessingException ex) {
+                } catch (Exception ex) {
                     log.error(
-                            "check fraud result consume.Message - {}, JsonProcessingException - {}",
+                            "Exception check fraud result consume.Message - {}, Exception - {}",
                             message,
                             ex.getMessage());
                 }
