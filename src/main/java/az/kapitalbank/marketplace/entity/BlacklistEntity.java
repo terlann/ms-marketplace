@@ -1,6 +1,7 @@
 package az.kapitalbank.marketplace.entity;
 
 import az.kapitalbank.marketplace.constant.BlacklistType;
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
@@ -29,6 +30,7 @@ public class BlacklistEntity extends BaseEntity {
     BlacklistType type;
 
     @NonNull
+    @Column(unique = true)
     String value;
 
     String reason;

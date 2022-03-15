@@ -2,7 +2,6 @@ package az.kapitalbank.marketplace.messaging.listener;
 
 import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
 import az.kapitalbank.marketplace.service.ScoringService;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -31,8 +30,8 @@ public class ScoringListener {
                             objectMapper.readValue(message, ScoringResultEvent.class);
                     log.info("scoring result consumer. Message - {}", startScoringResult);
                     scoringService.scoringResultProcess(startScoringResult);
-                } catch (JsonProcessingException ex) {
-                    log.error("scoring result consume.Message - {}, JsonProcessingException - {}",
+                } catch (Exception ex) {
+                    log.error("Exception scoring result consume.Message - {}, Exception - {}",
                             message,
                             ex.getMessage());
                 }

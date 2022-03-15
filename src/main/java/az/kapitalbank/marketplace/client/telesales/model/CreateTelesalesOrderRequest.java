@@ -30,4 +30,5 @@ public class CreateTelesalesOrderRequest {
     Boolean isEGovAgreement;
     Boolean isMkrAgreement;
     String orderComment;
+    String productType;
 }
