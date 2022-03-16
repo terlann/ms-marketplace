@@ -15,6 +15,7 @@ import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotLinkedToCustomer;
 import az.kapitalbank.marketplace.exception.PersonNotFoundException;
+import az.kapitalbank.marketplace.exception.SubscriptionNotFoundException;
 import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
 import az.kapitalbank.marketplace.exception.UmicoUserNotFoundException;
 import az.kapitalbank.marketplace.exception.UniqueAdditionalNumberException;
@@ -163,26 +164,36 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
+    @ExceptionHandler(SubscriptionNotFoundException.class)
+    public ResponseEntity<ErrorResponseDto> subscriptionNotFoundException(
+            SubscriptionNotFoundException ex) {
+        log.error(ex.getMessage());
+        var errorResponseDto = new ErrorResponseDto(Error.SUBSCRIPTION_NOT_FOUND);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
+
     @ExceptionHandler(OtpClientException.class)
     public ResponseEntity<ErrorResponseDto> otpClientException(OtpClientException ex) {
         log.error(ex.toString());
         Error error;
         switch (ex.getDetail()) {
             case "phone blocked":
-            case "user blocked":
                 error = Error.OTP_PHONE_BLOCKED;
                 break;
-            case "send otp limit exceed":
-                error = Error.OTP_SEND_LIMIT_EXCEED;
+            case "send otp limit exceeded":
+                error = Error.OTP_SEND_LIMIT_EXCEEDED;
                 break;
             case "otp not found":
                 error = Error.OTP_NOT_FOUND;
                 break;
+            case "invalid otp. remaining attempt: 2":
+                error = Error.OTP_ATTEMPT_LIMIT_TWO;
+                break;
             case "invalid otp. remaining attempt: 1":
                 error = Error.OTP_ATTEMPT_LIMIT_ONE;
                 break;
-            case "invalid otp. remaining attempt: 2":
-                error = Error.OTP_ATTEMPT_LIMIT_TWO;
+            case "invalid otp. user blocked":
+                error = Error.INVALID_OTP_AND_PHONE_BLOCKED;
                 break;
             default:
                 error = Error.OTP_EXCEPTION;
