@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class SendOtpRequest {
-    private ChannelRequest channel;
+    private ChannelRequest data;
     private UUID definitionId;
     private String phoneNumber;
 }

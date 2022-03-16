@@ -329,6 +329,8 @@ class ScoringServiceTest {
                 .build();
         when(operationRepository.findByBusinessKey(businessKey))
                 .thenReturn(Optional.of(operationEntity));
+        when(customerRepository.save(operationEntity.getCustomer()))
+                .thenReturn(operationEntity.getCustomer());
         when(optimusClient.getProcessVariable(operationEntity.getBusinessKey(),
                 "uid")).thenReturn(processVariableResponse);
         when(atlasClient.purchase(any(PurchaseRequest.class))).thenReturn(
