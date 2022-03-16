@@ -63,7 +63,7 @@ client:
   umico:
     url: https://broker-stage.umico.az
   adp-atlas:
-    url: https://dev.adp-atlas.kapitalbank.az
+    url: https://pre.adp-atlas.kapitalbank.az
   adp-optimus:
     url: https://pre.adp-optimus.kapitalbank.az/
   adp-dvs:

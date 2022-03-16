@@ -48,40 +48,39 @@ public class OtpService {
     @Transactional
     public SendOtpResponseDto send(SendOtpRequestDto request) {
         log.info("Starting send otp service. Request : {}", request);
-        String cardConnectedNumber = getMobileNumber(request.getTrackId());
-        log.info("Sending OTP: Mobile Number: " + cardConnectedNumber);
+        String cardLinkedNumber = getMobileNumber(request.getTrackId());
+        log.info("Sending OTP: Mobile Number: " + cardLinkedNumber);
         SendOtpRequest sendOtpRequest = SendOtpRequest.builder()
-                .phoneNumber(cardConnectedNumber)
+                .phoneNumber(cardLinkedNumber)
                 .definitionId(UUID.fromString(OtpConstant.DEFINITION_ID.getValue()))
-                .channel(new ChannelRequest("Umico Marketplace"))
+                .data(new ChannelRequest("Umico Marketplace"))
                 .build();
         var sendOtp = otpClient.send(sendOtpRequest);
-        log.info("Sended OTP Response: " + sendOtp.getMessage());
+        log.info("Sent OTP Response: " + sendOtp.getMessage());
 
-        return new SendOtpResponseDto(OtpUtil.maskMobileNumber(cardConnectedNumber));
+        return new SendOtpResponseDto(OtpUtil.maskMobileNumber(cardLinkedNumber));
     }
 
     @Transactional
     public void verify(OtpVerifyRequestDto request) {
+        log.info("Verify starting. request: {}", request);
         var operationEntity = operationRepository.findById(request.getTrackId())
                 .orElseThrow(
                         () -> new OperationNotFoundException("trackId: " + request.getTrackId()));
         var customerEntity = operationEntity.getCustomer();
         String cardConnectedNumber = getMobileNumber(request.getTrackId());
-        log.info("Verifing OTP: Mobile Number - {} , TrackId - {}: " + cardConnectedNumber,
-                request.getTrackId());
+        log.info("Verifying OTP: Mobile Number - {}", cardConnectedNumber);
         var otpVerifyRequest = OtpVerifyRequest.builder()
                 .otp(request.getOtp())
                 .phoneNumber(cardConnectedNumber)
                 .build();
         var verify = otpClient.verify(otpVerifyRequest);
-        log.info("Verifed OTP Response: - " + verify.getStatus());
+        log.info("Verified OTP Response: - " + verify.getStatus());
         prePurchaseOrder(operationEntity, customerEntity);
     }
 
     private void prePurchaseOrder(OperationEntity operationEntity, CustomerEntity customerEntity) {
-        log.info("Purchase process began. TrackId: " + operationEntity.getId());
-
+        log.info("Purchase process started. TrackId: " + operationEntity.getId());
         var orderEntities = operationEntity.getOrders();
         var purchasedOrders = new ArrayList<OrderEntity>();
         var cardId = customerEntity.getCardId();
@@ -95,6 +94,7 @@ public class OtpService {
                     .terminalName(terminalName)
                     .uid(cardId)
                     .build();
+            log.info("pre purchase process starting. request: {}", purchaseRequest);
             var purchaseResponse = atlasClient.purchase(purchaseRequest);
             orderEntity.setRrn(rrn);
             orderEntity.setTransactionId(purchaseResponse.getId());
@@ -115,6 +115,7 @@ public class OtpService {
         log.info("Card UUID: " + cardId);
         var subscriptionResponse = atlasClient
                 .findAllByUid(cardId, "", "");
+        log.info("AtlasClient subscriptionResponse : {}", subscriptionResponse.toString());
         return subscriptionResponse.getSubscriptions().stream()
                 .filter(subscription -> subscription.getChannel().equals("SMPP_ALL")
                         && subscription.getScheme().contains("3DS")).findFirst()

@@ -1,7 +1,6 @@
 package az.kapitalbank.marketplace.client.atlas.model.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,6 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class SubscriptionResponse {
-    private List<Subscription> subscriptions;
+public class AtlasClientErrorResponse {
+    private String uuid;
+    private String code;
+    private String message;
 }
