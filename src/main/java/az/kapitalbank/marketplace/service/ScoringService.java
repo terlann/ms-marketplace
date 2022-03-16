@@ -327,13 +327,15 @@ public class ScoringService {
                         "uid");
         var customerEntity = operationEntity.getCustomer();
         customerEntity.setCardId(processVariableResponse.getUid());
-        customerRepository.save(customerEntity);
-        CustomerEntity customer = prePurchaseOrders(operationEntity, customerEntity);
+        customerEntity = customerRepository.save(customerEntity);
+        operationEntity.setCustomer(customerEntity);
+        CustomerEntity customer = prePurchaseOrders(operationEntity);
         log.info("Purchased all orders.");
 
         var umicoApprovedDecisionRequest =
                 UmicoDecisionRequest.builder().trackId(operationEntity.getId())
-                        .commission(operationEntity.getCommission()).customerId(customer.getId())
+                        .commission(operationEntity.getCommission())
+                        .customerId(customer.getId())
                         .decisionStatus(UmicoDecisionStatus.APPROVED)
                         .loanTerm(operationEntity.getLoanTerm())
                         .loanLimit(operationEntity.getTotalAmount())
@@ -346,8 +348,7 @@ public class ScoringService {
                 operationEntity.getId());
     }
 
-    private CustomerEntity prePurchaseOrders(OperationEntity operationEntity,
-                                             CustomerEntity customerEntity) {
+    private CustomerEntity prePurchaseOrders(OperationEntity operationEntity) {
         var orders = operationEntity.getOrders();
         var customer = operationEntity.getCustomer();
         for (var order : orders) {
@@ -372,8 +373,8 @@ public class ScoringService {
         operationEntity.setDvsOrderStatus(DvsStatus.CONFIRMED);
         operationEntity.setScoringDate(LocalDateTime.now());
         operationEntity.setScoringStatus(ScoringStatus.APPROVED);
-        customerEntity.setCompleteProcessDate(LocalDateTime.now());
-        operationEntity.setCustomer(customerEntity);
+        customer.setCompleteProcessDate(LocalDateTime.now());
+        operationEntity.setCustomer(customer);
         operationRepository.save(operationEntity);
         return customer;
     }
