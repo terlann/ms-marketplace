@@ -48,17 +48,17 @@ public class OtpService {
     @Transactional
     public SendOtpResponseDto send(SendOtpRequestDto request) {
         log.info("Starting send otp service. Request : {}", request);
-        String cardConnectedNumber = getMobileNumber(request.getTrackId());
-        log.info("Sending OTP: Mobile Number: " + cardConnectedNumber);
+        String cardLinkedNumber = getMobileNumber(request.getTrackId());
+        log.info("Sending OTP: Mobile Number: " + cardLinkedNumber);
         SendOtpRequest sendOtpRequest = SendOtpRequest.builder()
-                .phoneNumber(cardConnectedNumber)
+                .phoneNumber(cardLinkedNumber)
                 .definitionId(UUID.fromString(OtpConstant.DEFINITION_ID.getValue()))
                 .data(new ChannelRequest("Umico Marketplace"))
                 .build();
         var sendOtp = otpClient.send(sendOtpRequest);
         log.info("Sent OTP Response: " + sendOtp.getMessage());
 
-        return new SendOtpResponseDto(OtpUtil.maskMobileNumber(cardConnectedNumber));
+        return new SendOtpResponseDto(OtpUtil.maskMobileNumber(cardLinkedNumber));
     }
 
     @Transactional
