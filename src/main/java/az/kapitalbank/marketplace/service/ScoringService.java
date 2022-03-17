@@ -49,6 +49,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
+import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -209,6 +210,7 @@ public class ScoringService {
                 businessKey);
     }
 
+    @Transactional
     public void scoringResultProcess(ScoringResultEvent scoringResultEvent) {
         var businessKey = scoringResultEvent.getBusinessKey();
         var operationEntity = operationRepository.findByBusinessKey(businessKey)
@@ -286,19 +288,20 @@ public class ScoringService {
         operationEntity.setLoanContractEndDate(end);
         operationEntity.setTaskId(taskId);
         operationEntity.setDvsOrderId(dvsId);
+        operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.PREAPPROVED);
         operationRepository.save(operationEntity);
         try {
             var webUrl = dvsClient.getDetails(trackId, dvsId).getWebUrl();
             log.info("Dvs client web url - {}", webUrl);
             sendDecision(UmicoDecisionStatus.PREAPPROVED, trackId, webUrl);
         } catch (DvsClientException e) {
-            sendTelesalesOnDvsClientExceoption(operationEntity, trackId, businessKey, e);
+            sendTelesalesOnDvsClientException(operationEntity, trackId, businessKey, e);
         }
     }
 
-    private void sendTelesalesOnDvsClientExceoption(OperationEntity operationEntity,
-                                                    UUID trackId, String businessKey,
-                                                    DvsClientException e) {
+    private void sendTelesalesOnDvsClientException(OperationEntity operationEntity,
+                                                   UUID trackId, String businessKey,
+                                                   DvsClientException e) {
         log.info("Dvs client get details exception. trackId - {}, exception - {}",
                 trackId, e.getMessage());
         var leadDto = LeadDto.builder().trackId(trackId).build();
