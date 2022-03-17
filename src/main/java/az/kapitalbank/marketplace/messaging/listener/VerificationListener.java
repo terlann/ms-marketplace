@@ -70,7 +70,7 @@ public class VerificationListener {
         var verificationStatus = verificationResultEvent.getStatus();
         switch (verificationStatus) {
             case "pending":
-                onVerificationSatusPending(verificationResultEvent,
+                onVerificationStatusPending(verificationResultEvent,
                         operationEntity);
                 break;
             case "rejected":
@@ -116,11 +116,9 @@ public class VerificationListener {
                 operationEntity.getId());
         operationEntity.setDvsOrderStatus(DvsStatus.REJECTED);
         operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
-        operationRepository.save(operationEntity);
         if (operationEntity.getTaskId() != null
                 && operationEntity.getLoanContractDeletedAt() == null) {
             operationEntity.setLoanContractDeletedAt(LocalDateTime.now());
-            operationRepository.save(operationEntity);
             try {
                 optimusClient.deleteLoan(businessKey);
             } catch (Exception e) {
@@ -131,10 +129,11 @@ public class VerificationListener {
                         e.getMessage());
             }
         }
+        operationRepository.save(operationEntity);
     }
 
-    private void onVerificationSatusPending(VerificationResultEvent verificationResultEvent,
-                                            OperationEntity operationEntity) {
+    private void onVerificationStatusPending(VerificationResultEvent verificationResultEvent,
+                                             OperationEntity operationEntity) {
         log.info("Verification status result. Response - {}",
                 verificationResultEvent);
         var umicoPendingDecisionRequest = UmicoDecisionRequest.builder()
