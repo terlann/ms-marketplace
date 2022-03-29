@@ -4,23 +4,26 @@ import static az.kapitalbank.marketplace.constant.AtlasConstant.AZN;
 import static az.kapitalbank.marketplace.constant.AtlasConstant.TERMINAL_NAME;
 
 import java.math.BigDecimal;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.FieldDefaults;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE)
 public class PurchaseRequest {
-    private BigDecimal amount;
-    private String pan;
-    private String rrn;
-    private String uid;
-    private String description;
+    BigDecimal amount;
+    String pan;
+    String rrn;
+    String uid;
+    String description;
     @Builder.Default
-    private Integer currency = AZN;
+    Integer currency = AZN;
     @Builder.Default
-    private String terminalName = TERMINAL_NAME;
+    String terminalName = TERMINAL_NAME;
 }
