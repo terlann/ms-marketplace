@@ -1,5 +1,7 @@
 package az.kapitalbank.marketplace.service;
 
+import static az.kapitalbank.marketplace.constant.TelesalesConstant.UMICO_SOURCE_CODE;
+
 import az.kapitalbank.marketplace.client.loan.LoanClient;
 import az.kapitalbank.marketplace.client.telesales.TelesalesClient;
 import az.kapitalbank.marketplace.constant.ProductType;
@@ -31,6 +33,11 @@ public class TelesalesService {
 
     public Optional<String> sendLead(LeadDto leadDto) {
         var trackId = leadDto.getTrackId();
+        try {
+            sendLeadToLoanService(trackId);
+        } catch (Exception ex) {
+            log.info("Exception occur send lead to ms loan !");
+        }
         log.info("Send lead to telesales is started : trackId - {}", trackId);
         try {
             var operationEntity = operationRepository.findById(trackId)
@@ -45,15 +52,11 @@ public class TelesalesService {
             var createTelesalesOrderResponse =
                     telesalesClient.sendLead(createTelesalesOrderRequest);
             log.info("Send lead to telesales was finished successfully..."
-                    + " trackId -{}, Response - {}", trackId);
-            log.info("Send lead to telesales was finished : trackId - {}, response - {}",
-                    trackId, createTelesalesOrderResponse);
-            sendLeadToLoanService(trackId);
+                    + " trackId -{}, Response - {}", trackId, createTelesalesOrderResponse);
             return Optional.of(createTelesalesOrderResponse.getOperationId());
         } catch (Exception e) {
             log.error("Send lead to telesales was finished unsuccessfully."
-                            + " trackId -{}, Exception - {}", trackId,
-                    e.getMessage());
+                    + " trackId -{}, Exception - {}", trackId, e.getMessage());
             return Optional.empty();
         }
     }
@@ -61,7 +64,7 @@ public class TelesalesService {
     public Optional<LoanResponse> sendLeadToLoanService(UUID trackId) {
         try {
             log.info("Send lead to loan service is started... trackId - {}", trackId);
-            String source = "0007";
+            String source = UMICO_SOURCE_CODE;
             var operationEntity = operationRepository.findById(trackId)
                     .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
 
