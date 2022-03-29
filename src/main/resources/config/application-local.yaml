@@ -67,6 +67,8 @@ client:
     url: http://pre.externalinteg.kapitalbank.az/api
   ms-otp:
     url: https://pre.ms-otp.kapitalbank.az/v1
+  loan:
+    url: https://dev.ms-loan.kapitalbank.az/
 feign:
   httpclient:
     disable-ssl-validation: true
