@@ -2,7 +2,7 @@ package az.kapitalbank.marketplace.client.atlas;
 
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
-import az.kapitalbank.marketplace.client.atlas.model.request.ReversPurchaseRequest;
+import az.kapitalbank.marketplace.client.atlas.model.request.ReversePurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.response.CardDetailResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseCompleteResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseResponse;
@@ -31,7 +31,7 @@ public interface AtlasClient {
     PurchaseCompleteResponse complete(@RequestBody PurchaseCompleteRequest request);
 
     @PutMapping("/transfers/{id}/reverse")
-    ReverseResponse reverse(@PathVariable String id, @RequestBody ReversPurchaseRequest request);
+    ReverseResponse reverse(@PathVariable String id, @RequestBody ReversePurchaseRequest request);
 
     @GetMapping("/cards/uid/{uid}")
     CardDetailResponse findCardByUid(@PathVariable String uid,

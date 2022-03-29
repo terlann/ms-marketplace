@@ -24,7 +24,7 @@ public class TelesalesService {
 
     public Optional<String> sendLead(LeadDto leadDto) {
         var trackId = leadDto.getTrackId();
-        log.info("Send lead to telesales is started... trackId - {}", trackId);
+        log.info("Send lead to telesales is started : trackId - {}", trackId);
         try {
             var operationEntity = operationRepository.findById(trackId)
                     .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
@@ -37,17 +37,13 @@ public class TelesalesService {
             log.info("Send lead to telesales : request - {}", createTelesalesOrderRequest);
             var createTelesalesOrderResponse =
                     telesalesClient.sendLead(createTelesalesOrderRequest);
-            log.info(
-                    "Send lead to telesales was finished successfully..."
-                            + " trackId -{}, Response - {}",
+            log.info("Send lead to telesales was finished : trackId - {}, response - {}",
                     trackId,
                     createTelesalesOrderResponse);
             return Optional.of(createTelesalesOrderResponse.getOperationId());
         } catch (Exception e) {
-            log.error(
-                    "Send lead to telesales was finished unsuccessfully."
-                            + " trackId -{}, Exception - {}",
-                    trackId, e.getMessage());
+            log.error("Send lead to telesales was failed : trackId - {}, exception - {}",
+                    trackId, e);
             return Optional.empty();
         }
     }

@@ -34,7 +34,7 @@ public class FraudListener {
                     log.error(
                             "Exception check fraud result consume.Message - {}, Exception - {}",
                             message,
-                            ex.getMessage());
+                            ex);
                 }
             }
         };

@@ -1,7 +1,7 @@
 package az.kapitalbank.marketplace.controller;
 
-import az.kapitalbank.marketplace.dto.request.OtpVerifyRequestDto;
 import az.kapitalbank.marketplace.dto.request.SendOtpRequestDto;
+import az.kapitalbank.marketplace.dto.request.VerifyOtpRequestDto;
 import az.kapitalbank.marketplace.dto.response.SendOtpResponseDto;
 import az.kapitalbank.marketplace.service.OtpService;
 import lombok.RequiredArgsConstructor;
@@ -25,7 +25,7 @@ public class OtpController {
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<Void> verify(@RequestBody OtpVerifyRequestDto request) {
+    public ResponseEntity<Void> verify(@RequestBody VerifyOtpRequestDto request) {
         otpService.verify(request);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }

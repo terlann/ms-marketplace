@@ -24,6 +24,5 @@ public interface OperationMapper {
     @Mapping(source = "customerInfo.fullName", target = "fullName")
     @Mapping(source = "customerInfo.additionalPhoneNumber1", target = "additionalPhoneNumber1")
     @Mapping(source = "customerInfo.additionalPhoneNumber2", target = "additionalPhoneNumber2")
-    @Mapping(source = "customerInfo.birthday", target = "birthday")
     OperationEntity toOperationEntity(CreateOrderRequestDto source);
 }

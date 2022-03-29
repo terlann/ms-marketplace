@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class OtpVerifyRequestDto {
+public class VerifyOtpRequestDto {
     private UUID trackId;
     private String otp;
 }

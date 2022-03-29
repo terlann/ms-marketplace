@@ -17,4 +17,8 @@ public class LeadDto {
     private UUID trackId;
     private FraudResultStatus fraudResultStatus;
     private List<FraudType> types;
+
+    public LeadDto(UUID trackId) {
+        this.trackId = trackId;
+    }
 }
