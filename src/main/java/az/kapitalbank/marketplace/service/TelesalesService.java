@@ -45,10 +45,9 @@ public class TelesalesService {
             var createTelesalesOrderResponse =
                     telesalesClient.sendLead(createTelesalesOrderRequest);
             log.info("Send lead to telesales was finished successfully..."
-                            + " trackId -{}, Response - {}", trackId,
+                    + " trackId -{}, Response - {}", trackId);
             log.info("Send lead to telesales was finished : trackId - {}, response - {}",
-                    trackId,
-                    createTelesalesOrderResponse);
+                    trackId, createTelesalesOrderResponse);
             sendLeadToLoanService(trackId);
             return Optional.of(createTelesalesOrderResponse.getOperationId());
         } catch (Exception e) {
@@ -78,14 +77,12 @@ public class TelesalesService {
                             .build();
             log.info("Send lead to loan service : request - {}", loanRequest);
             LoanResponse response = loanClient.sendLead(source, loanRequest);
-            log.info("Send lead to loan service was finished successfully... "
-                            + "trackId -{}, Response - {}", trackId,
-                    response);
+            log.info("Send lead to loan service was finished successfully... trackId -{},"
+                    + " Response - {}", trackId, response);
             return Optional.of(response);
-        } catch (Exception ex) {
+        } catch (Exception e) {
             log.error("Send lead to loan service was finished unsuccessfully. "
-                            + "trackId -{}, Exception - {}",
-                    trackId, ex.getMessage());
+                    + "trackId -{}, Exception - {}", trackId, e.getMessage());
             log.error("Send lead to telesales was failed : trackId - {}, exception - {}",
                     trackId, e);
             return Optional.empty();
