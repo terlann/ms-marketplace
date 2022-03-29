@@ -1,8 +1,8 @@
 package az.kapitalbank.marketplace.client.atlas.model.request;
 
 import static az.kapitalbank.marketplace.constant.AtlasConstant.AZN;
+import static az.kapitalbank.marketplace.constant.AtlasConstant.TERMINAL_NAME;
 
-import az.kapitalbank.marketplace.constant.AtlasConstant;
 import java.math.BigDecimal;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -21,7 +21,7 @@ public class PurchaseCompleteRequest {
     String approvalCode;
     Integer installments;
     @Builder.Default
-    private Integer currency = AZN;
+    Integer currency = AZN;
     @Builder.Default
-    private String terminalName = AtlasConstant.TERMINAL_NAME;
+    String terminalName = TERMINAL_NAME;
 }
