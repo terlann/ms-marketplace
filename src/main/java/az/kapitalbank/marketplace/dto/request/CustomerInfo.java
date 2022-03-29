@@ -26,7 +26,6 @@ public class CustomerInfo {
     String email;
     Boolean isAgreement;
     String workPlace;
-    LocalDate birthday;
     String additionalPhoneNumber1;
     String additionalPhoneNumber2;
     String latitude;

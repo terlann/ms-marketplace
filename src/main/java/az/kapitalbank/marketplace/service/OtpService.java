@@ -1,35 +1,33 @@
 package az.kapitalbank.marketplace.service;
 
+import static az.kapitalbank.marketplace.constant.OptimusConstant.SALES_SOURCE;
+
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
+import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.otp.OtpClient;
 import az.kapitalbank.marketplace.client.otp.model.ChannelRequest;
-import az.kapitalbank.marketplace.client.otp.model.OtpVerifyRequest;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpRequest;
-import az.kapitalbank.marketplace.constant.Currency;
+import az.kapitalbank.marketplace.client.otp.model.VerifyOtpRequest;
 import az.kapitalbank.marketplace.constant.OtpConstant;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
-import az.kapitalbank.marketplace.dto.request.OtpVerifyRequestDto;
 import az.kapitalbank.marketplace.dto.request.SendOtpRequestDto;
+import az.kapitalbank.marketplace.dto.request.VerifyOtpRequestDto;
 import az.kapitalbank.marketplace.dto.response.SendOtpResponseDto;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
-import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.SubscriptionNotFoundException;
 import az.kapitalbank.marketplace.repository.OperationRepository;
-import az.kapitalbank.marketplace.repository.OrderRepository;
 import az.kapitalbank.marketplace.util.GenerateUtil;
 import az.kapitalbank.marketplace.util.OtpUtil;
-import java.util.ArrayList;
+import java.time.LocalDateTime;
 import java.util.UUID;
 import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -37,89 +35,84 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class OtpService {
-    AtlasClient atlasClient;
+
     OtpClient otpClient;
+    AtlasClient atlasClient;
     OperationRepository operationRepository;
-    OrderRepository orderRepository;
-    @NonFinal
-    @Value("${purchase.terminal-name}")
-    String terminalName;
 
     @Transactional
     public SendOtpResponseDto send(SendOtpRequestDto request) {
-        log.info("Starting send otp service. Request : {}", request);
-        String cardLinkedNumber = getMobileNumber(request.getTrackId());
-        log.info("Sending OTP: Mobile Number: " + cardLinkedNumber);
-        SendOtpRequest sendOtpRequest = SendOtpRequest.builder()
-                .phoneNumber(cardLinkedNumber)
+        log.info("Send otp process is started : request : {}", request);
+        var trackId = request.getTrackId();
+        var operationEntity = operationRepository.findById(trackId)
+                .orElseThrow(() -> new OperationNotFoundException("trackId: " + trackId));
+        var cardId = operationEntity.getCustomer().getCardId();
+        String cardLinkedMobileNumber = getCardLinkedMobileNumber(cardId);
+        SendOtpRequest sendOtpRequest = SendOtpRequest.builder().phoneNumber(cardLinkedMobileNumber)
                 .definitionId(UUID.fromString(OtpConstant.DEFINITION_ID.getValue()))
-                .data(new ChannelRequest("Umico Marketplace"))
-                .build();
-        var sendOtp = otpClient.send(sendOtpRequest);
-        log.info("Sent OTP Response: " + sendOtp.getMessage());
-
-        return new SendOtpResponseDto(OtpUtil.maskMobileNumber(cardLinkedNumber));
+                .data(new ChannelRequest(SALES_SOURCE)).build();
+        log.info("Send otp : request - {}", sendOtpRequest);
+        var sendOtpResponse = otpClient.send(sendOtpRequest);
+        log.info("Send otp process was finished : response - {}", sendOtpResponse);
+        return new SendOtpResponseDto(OtpUtil.maskMobileNumber(cardLinkedMobileNumber));
     }
 
     @Transactional
-    public void verify(OtpVerifyRequestDto request) {
-        log.info("Verify starting. request: {}", request);
-        var operationEntity = operationRepository.findById(request.getTrackId())
-                .orElseThrow(
-                        () -> new OperationNotFoundException("trackId: " + request.getTrackId()));
+    public void verify(VerifyOtpRequestDto request) {
+        log.info("Verify otp process is started : request : {}", request);
+        var trackId = request.getTrackId();
+        var operationEntity = operationRepository.findById(trackId)
+                .orElseThrow(() -> new OperationNotFoundException("trackId: " + trackId));
         var customerEntity = operationEntity.getCustomer();
-        String cardConnectedNumber = getMobileNumber(request.getTrackId());
-        log.info("Verifying OTP: Mobile Number - {}", cardConnectedNumber);
-        var otpVerifyRequest = OtpVerifyRequest.builder()
-                .otp(request.getOtp())
-                .phoneNumber(cardConnectedNumber)
-                .build();
-        var verify = otpClient.verify(otpVerifyRequest);
-        log.info("Verified OTP Response: - " + verify.getStatus());
+        String cardLinkedMobileNumber = getCardLinkedMobileNumber(customerEntity.getCardId());
+        var otpVerifyRequest =
+                VerifyOtpRequest.builder().otp(request.getOtp()).phoneNumber(cardLinkedMobileNumber)
+                        .build();
+        log.info("Verify otp : request - {}", otpVerifyRequest);
+        var verifyOtpResponse = otpClient.verify(otpVerifyRequest);
+        log.info("Verify otp process was finished : response - {}", verifyOtpResponse);
         prePurchaseOrder(operationEntity, customerEntity);
     }
 
     private void prePurchaseOrder(OperationEntity operationEntity, CustomerEntity customerEntity) {
-        log.info("Purchase process started. TrackId: " + operationEntity.getId());
-        var orderEntities = operationEntity.getOrders();
-        var purchasedOrders = new ArrayList<OrderEntity>();
+        log.info("Regular order purchase process is started : trackId: " + operationEntity.getId());
         var cardId = customerEntity.getCardId();
-        for (var orderEntity : orderEntities) {
+        for (var orderEntity : operationEntity.getOrders()) {
             var rrn = GenerateUtil.rrn();
-            var purchaseRequest = PurchaseRequest.builder()
-                    .rrn(rrn)
+            var purchaseRequest = PurchaseRequest.builder().rrn(rrn)
                     .amount(orderEntity.getTotalAmount().add(orderEntity.getCommission()))
-                    .description("fee=" + orderEntity.getCommission())
-                    .currency(Currency.AZN.getCode())
-                    .terminalName(terminalName)
-                    .uid(cardId)
-                    .build();
-            log.info("pre purchase process starting. request: {}", purchaseRequest);
-            var purchaseResponse = atlasClient.purchase(purchaseRequest);
+                    .description("fee=" + orderEntity.getCommission()).uid(cardId).build();
+            try {
+                var purchaseResponse = atlasClient.purchase(purchaseRequest);
+                orderEntity.setTransactionId(purchaseResponse.getId());
+                orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
+                orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
+            } catch (AtlasClientException e) {
+                orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_PURCHASE);
+                orderEntity.setTransactionError(e.getMessage());
+            }
             orderEntity.setRrn(rrn);
-            orderEntity.setTransactionId(purchaseResponse.getId());
-            orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
-            orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
-            purchasedOrders.add(orderEntity);
+            orderEntity.setTransactionDate(LocalDateTime.now());
         }
-        orderRepository.saveAll(purchasedOrders);
-        log.info("Regular order was created with purchase. customerId - {}, trackId - {}",
+        operationRepository.save(operationEntity);
+        log.info("Regular order purchase process was finished : customerId - {}, trackId - {}",
                 customerEntity.getId(), operationEntity.getId());
     }
 
-    private String getMobileNumber(UUID trackId) {
-        log.info("get mobile number: " + trackId);
-        var operationEntity = operationRepository.findById(trackId)
-                .orElseThrow(() -> new OperationNotFoundException("trackId: " + trackId));
-        var cardId = operationEntity.getCustomer().getCardId();
-        log.info("Card UUID: " + cardId);
-        var subscriptionResponse = atlasClient
-                .findAllByUid(cardId, "", "");
-        log.info("AtlasClient subscriptionResponse : {}", subscriptionResponse.toString());
-        return subscriptionResponse.getSubscriptions().stream()
+    private String getCardLinkedMobileNumber(String cardId) {
+        log.info("Card linked mobile number process is started : cardId - {}", cardId);
+        var subscriptionResponse = atlasClient.findAllByUid(cardId, "", "");
+        log.info("AtlasClient subscriptionResponse : {}", subscriptionResponse);
+        var cardLinkedMobileNumber = subscriptionResponse.getSubscriptions().stream()
                 .filter(subscription -> subscription.getChannel().equals("SMPP_ALL")
-                        && subscription.getScheme().contains("3DS")).findFirst()
-                .orElseThrow(() -> new SubscriptionNotFoundException("CardUID: " + cardId))
+                        && subscription.getScheme().contains("3DS"))
+                .findFirst()
+                .orElseThrow(() -> new SubscriptionNotFoundException("cardId: " + cardId))
                 .getAddress();
+        log.info(
+                "Card linked mobile number process was finished : "
+                        + "cardId - {}, cardLinkedMobileNumber - {}",
+                cardId, cardLinkedMobileNumber);
+        return cardLinkedMobileNumber;
     }
 }

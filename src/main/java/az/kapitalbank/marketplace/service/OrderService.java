@@ -1,11 +1,13 @@
 package az.kapitalbank.marketplace.service;
 
+import static az.kapitalbank.marketplace.constant.AtlasConstant.REVERSE_DESCRIPTION;
+import static az.kapitalbank.marketplace.constant.CommonConstant.CUSTOMER_NOT_FOUND_BY_ID;
+
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteRequest;
-import az.kapitalbank.marketplace.client.atlas.model.request.ReversPurchaseRequest;
+import az.kapitalbank.marketplace.client.atlas.model.request.ReversePurchaseRequest;
 import az.kapitalbank.marketplace.constant.AccountStatus;
-import az.kapitalbank.marketplace.constant.Currency;
 import az.kapitalbank.marketplace.constant.OrderStatus;
 import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
@@ -33,7 +35,6 @@ import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotLinkedToCustomer;
 import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
 import az.kapitalbank.marketplace.exception.UniqueAdditionalNumberException;
-import az.kapitalbank.marketplace.mapper.CreateOrderMapper;
 import az.kapitalbank.marketplace.mapper.CustomerMapper;
 import az.kapitalbank.marketplace.mapper.OperationMapper;
 import az.kapitalbank.marketplace.mapper.OrderMapper;
@@ -50,12 +51,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -64,33 +64,30 @@ import org.springframework.stereotype.Service;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class OrderService {
 
-    @NonFinal
-    @Value("${purchase.terminal-name}")
-    String terminalName;
     AmountUtil amountUtil;
     OrderMapper orderMapper;
     AtlasClient atlasClient;
     CustomerMapper customerMapper;
     OrderRepository orderRepository;
     OperationMapper operationMapper;
-    CreateOrderMapper createOrderMapper;
     CustomerRepository customerRepository;
     FraudCheckSender customerOrderProducer;
     OperationRepository operationRepository;
 
+    @Transactional
     public CreateOrderResponse createOrder(CreateOrderRequestDto request) {
-        log.info("Create order process is started... Request - {}", request);
-        validateOrderAmount(request);
+        log.info("Create order process is started : request - {}", request);
+        validateTotalOrderAmount(request);
         var customerId = request.getCustomerInfo().getCustomerId();
         CustomerEntity customerEntity = getCustomerEntity(request, customerId);
         OperationEntity operationEntity = saveOperationEntity(request, customerEntity);
         var trackId = operationEntity.getId();
         if (customerId == null && customerEntity.getCompleteProcessDate() == null) {
-            var fraudCheckEvent = createOrderMapper.toOrderEvent(request);
+            log.info("First transaction process is started : customerId - {}, trackId - {}",
+                    customerEntity.getId(), trackId);
+            var fraudCheckEvent = orderMapper.toOrderEvent(request);
             fraudCheckEvent.setTrackId(trackId);
             customerOrderProducer.sendMessage(fraudCheckEvent);
-            log.info("New customer started process. customerId - {}, trackId - {}",
-                    customerEntity.getId(), trackId);
         }
         return CreateOrderResponse.of(trackId);
     }
@@ -110,8 +107,7 @@ public class OrderService {
             orderEntity.setOperation(operationEntity);
             for (var orderProductItem : request.getProducts()) {
                 if (deliveryInfo.getOrderNo().equals(orderProductItem.getOrderNo())) {
-                    var productEntity =
-                            orderMapper.toProductEntity(orderProductItem, orderEntity.getOrderNo());
+                    var productEntity = orderMapper.toProductEntity(orderProductItem);
                     productEntity.setOrder(orderEntity);
                     productEntities.add(productEntity);
                 }
@@ -142,12 +138,13 @@ public class OrderService {
             }
         } else {
             customerEntity = customerRepository.findById(customerId).orElseThrow(
-                    () -> new CustomerNotFoundException("customerId - " + customerId));
+                    () -> new CustomerNotFoundException(CUSTOMER_NOT_FOUND_BY_ID + customerId));
             var isExistsCustomerByDecisionStatus = operationRepository
                     .existsByCustomerAndUmicoDecisionStatusIn(customerEntity,
                             Set.of(UmicoDecisionStatus.PENDING, UmicoDecisionStatus.PREAPPROVED));
             if (isExistsCustomerByDecisionStatus) {
-                throw new CustomerNotCompletedProcessException("customerId - " + customerId);
+                throw new CustomerNotCompletedProcessException(
+                        CUSTOMER_NOT_FOUND_BY_ID + customerId);
             }
             validateCustomerBalance(request, customerEntity.getCardId());
         }
@@ -163,7 +160,7 @@ public class OrderService {
     }
 
     public CheckOrderResponseDto checkOrder(String telesalesOrderId) {
-        log.info("Check order is started... telesalesOrderId  - {}", telesalesOrderId);
+        log.info("Check order is started : telesalesOrderId  - {}", telesalesOrderId);
         var operationEntityOptional = operationRepository.findByTelesalesOrderId(telesalesOrderId);
         var operationEntity = operationEntityOptional.orElseThrow(
                 () -> new OperationNotFoundException("telesalesOrderId - " + telesalesOrderId));
@@ -172,21 +169,23 @@ public class OrderService {
             throw new OperationAlreadyScoredException("telesalesOrderId - " + telesalesOrderId);
         }
         var orderResponseDto = orderMapper.entityToDto(operationEntity);
-        log.info("Check order was finished... telesalesOrderId - {}", telesalesOrderId);
+        log.info("Check order was finished : telesalesOrderId - {}", telesalesOrderId);
         return orderResponseDto;
     }
 
+    @Transactional
     public List<PurchaseResponseDto> purchase(PurchaseRequestDto request) {
-        log.info("Purchase process is started. request - {}", request);
+        log.info("Purchase process is started : request - {}", request);
         var customerId = request.getCustomerId();
         var customerEntity = customerRepository.findById(customerId)
-                .orElseThrow(() -> new CustomerNotFoundException(customerId.toString()));
-        var purchaseResponseDtoList = new ArrayList<PurchaseResponseDto>();
+                .orElseThrow(
+                        () -> new CustomerNotFoundException(CUSTOMER_NOT_FOUND_BY_ID + customerId));
         var cardId = customerEntity.getCardId();
         var orderNoList = request.getDeliveryOrders().stream()
                 .map(DeliveryProductDto::getOrderNo)
                 .collect(Collectors.toList());
         var orders = orderRepository.findByOrderNoIn(orderNoList);
+        var purchaseResponseDtoList = new ArrayList<PurchaseResponseDto>();
         for (var order : orders) {
             var transactionStatus = order.getTransactionStatus();
             if (transactionStatus == TransactionStatus.PURCHASE
@@ -196,7 +195,7 @@ public class OrderService {
                 purchaseResponseDtoList.add(purchaseResponseDto);
             }
         }
-        log.info("Purchase process was finished. trackId - {}, customerId - {}",
+        log.info("Purchase process was finished : trackId - {}, customerId - {}",
                 request.getTrackId(), request.getCustomerId());
         return purchaseResponseDtoList;
     }
@@ -204,31 +203,26 @@ public class OrderService {
     private PurchaseResponseDto purchaseOrder(String cardId, OrderEntity order) {
         var purchaseResponseDto = new PurchaseResponseDto();
         var rrn = GenerateUtil.rrn();
-        var purchaseCompleteRequest =
-                getPurchaseCompleteRequest(cardId, order, rrn);
+        var purchaseCompleteRequest = getPurchaseCompleteRequest(cardId, order, rrn);
         try {
             var purchaseCompleteResponse = atlasClient
                     .complete(purchaseCompleteRequest);
             var transactionId = purchaseCompleteResponse.getId();
             order.setTransactionId(transactionId);
-            order.setRrn(rrn);
             order.setTransactionStatus(TransactionStatus.COMPLETE);
             purchaseResponseDto.setStatus(OrderStatus.SUCCESS);
         } catch (AtlasClientException ex) {
-            purchaseResponseDto.setStatus(OrderStatus.FAIL);
             order.setTransactionStatus(TransactionStatus.FAIL_IN_COMPLETE);
             order.setTransactionError(ex.getMessage());
-            log.error("Atlas complete process was failed. orderNo - {}",
-                    order.getOrderNo());
+            purchaseResponseDto.setStatus(OrderStatus.FAIL);
+            log.error("Atlas complete process was failed. orderNo - {}", order.getOrderNo());
             String errorMessager = "Atlas Exception: UUID - %s  ,  code - %s, message - %s";
-            log.error(String.format(errorMessager,
-                    ex.getUuid(),
-                    ex.getCode(),
-                    ex.getMessage()));
+            log.error(String.format(errorMessager, ex.getUuid(), ex.getCode(), ex.getMessage()));
         }
-        purchaseResponseDto.setOrderNo(order.getOrderNo());
+        order.setRrn(rrn);
         order.setTransactionDate(LocalDateTime.now());
         orderRepository.save(order);
+        purchaseResponseDto.setOrderNo(order.getOrderNo());
         return purchaseResponseDto;
     }
 
@@ -242,15 +236,14 @@ public class OrderService {
                 .uid(cardId)
                 .amount(totalPayment)
                 .approvalCode(order.getApprovalCode())
-                .currency(Currency.AZN.getCode())
                 .rrn(rrn)
-                .terminalName(terminalName)
                 .installments(order.getOperation().getLoanTerm())
                 .build();
     }
 
+    @Transactional
     public PurchaseResponseDto reverse(ReverseRequestDto request) {
-        log.info("Reverse process is started. request - {}", request);
+        log.info("Reverse process is started : request - {}", request);
         var customerId = request.getCustomerId();
         var orderNo = request.getOrderNo();
         var orderEntity = orderRepository.findByOrderNo(orderNo)
@@ -264,9 +257,8 @@ public class OrderService {
                 throw new OrderNotLinkedToCustomer(
                         "orderNo - " + orderNo + ", customerId - " + customerId);
             }
-            PurchaseResponseDto purchaseResponse =
-                    reverseOrder(orderEntity);
-            log.info("Reverse process was finished. orderNo - {}, customerId - {}",
+            var purchaseResponse = reverseOrder(orderEntity);
+            log.info("Reverse process was finished : orderNo - {}, customerId - {}",
                     request.getOrderNo(), request.getCustomerId());
             return purchaseResponse;
         }
@@ -277,29 +269,28 @@ public class OrderService {
 
     private PurchaseResponseDto reverseOrder(OrderEntity orderEntity) {
         var purchaseResponse = new PurchaseResponseDto();
-        var reversRequest = ReversPurchaseRequest.builder()
-                .description("umico-marketplace reverse operation").build();
         try {
             var reverseResponse =
-                    atlasClient.reverse(orderEntity.getTransactionId(), reversRequest);
-            purchaseResponse.setStatus(OrderStatus.SUCCESS);
+                    atlasClient.reverse(orderEntity.getTransactionId(),
+                            new ReversePurchaseRequest(REVERSE_DESCRIPTION));
             orderEntity.setTransactionId(String.valueOf(reverseResponse.getId()));
             orderEntity.setTransactionStatus(TransactionStatus.REVERSE);
+            purchaseResponse.setStatus(OrderStatus.SUCCESS);
         } catch (AtlasClientException ex) {
-            purchaseResponse.setStatus(OrderStatus.FAIL);
             orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_REVERSE);
-            log.error("Atlas reverse process was failed. orderNo - {}",
+            orderEntity.setTransactionError(ex.getMessage());
+            purchaseResponse.setStatus(OrderStatus.FAIL);
+            log.error("Atlas reverse process was failed : orderNo - {}",
                     orderEntity.getOrderNo());
             String errorMessager = "Atlas Exception: UUID - %s  ,  code - %s, message - %s";
-            orderEntity.setTransactionError(String.format(errorMessager,
+            log.error(String.format(errorMessager,
                     ex.getUuid(),
                     ex.getCode(),
                     ex.getMessage()));
-            log.error(errorMessager);
         }
-        purchaseResponse.setOrderNo(orderEntity.getOrderNo());
         orderEntity.setTransactionDate(LocalDateTime.now());
         orderRepository.save(orderEntity);
+        purchaseResponse.setOrderNo(orderEntity.getOrderNo());
         return purchaseResponse;
     }
 
@@ -311,34 +302,35 @@ public class OrderService {
         }
     }
 
-    private void validateOrderAmount(CreateOrderRequestDto createOrderRequestDto) {
-        var loanAmount = createOrderRequestDto.getTotalAmount();
-        var totalOrderAmount = createOrderRequestDto.getDeliveryInfo().stream()
+    private void validateTotalOrderAmount(CreateOrderRequestDto createOrderRequestDto) {
+        log.info("Validate total order amount is started...");
+        var selectedTotalOrderAmount = createOrderRequestDto.getTotalAmount();
+        var calculatedTotalOrderAmount = createOrderRequestDto.getDeliveryInfo().stream()
                 .map(OrderProductDeliveryInfo::getTotalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        if (totalOrderAmount.compareTo(loanAmount) != 0) {
-            throw new NoMatchLoanAmountException(loanAmount, totalOrderAmount);
+        if (calculatedTotalOrderAmount.compareTo(selectedTotalOrderAmount) != 0) {
+            throw new NoMatchLoanAmountException(selectedTotalOrderAmount,
+                    calculatedTotalOrderAmount);
         }
     }
 
     private void validatePurchaseAmountLimit(CreateOrderRequestDto request) {
         var purchaseAmount = getPurchaseAmount(request);
-        var minLimit = BigDecimal.valueOf(50);
-        var maxLimit = BigDecimal.valueOf(20000);
-        if (purchaseAmount.compareTo(minLimit) < 0 || purchaseAmount.compareTo(maxLimit) > 0) {
+        var minLimitAmount = BigDecimal.valueOf(50);
+        var maxLimitAmount = BigDecimal.valueOf(20000);
+        if (purchaseAmount.compareTo(minLimitAmount) < 0
+                || purchaseAmount.compareTo(maxLimitAmount) > 0) {
             throw new TotalAmountLimitException(purchaseAmount);
         }
     }
 
     private BigDecimal getPurchaseAmount(CreateOrderRequestDto request) {
         var totalAmount = request.getTotalAmount();
-        var totalCommission = BigDecimal.ZERO;
-        for (var order : request.getDeliveryInfo()) {
-            var commission =
-                    amountUtil.getCommission(order.getTotalAmount(), request.getLoanTerm());
-            totalCommission = totalCommission.add(commission);
-        }
-        return totalAmount.add(totalCommission);
+        var loanTerm = request.getLoanTerm();
+        var allOrderCommission = request.getDeliveryInfo().stream()
+                .map(order -> amountUtil.getCommission(order.getTotalAmount(), loanTerm))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        return totalAmount.add(allOrderCommission);
     }
 
     private BigDecimal getAvailableBalance(String cardId) {
@@ -348,7 +340,7 @@ public class OrderService {
                 .filter(x -> x.getStatus() == AccountStatus.OPEN_PRIMARY)
                 .findFirst();
         if (primaryAccount.isEmpty()) {
-            log.error("Account not found in open primary status.cardId - {}", cardId);
+            log.warn("Account not found in open primary status.cardId - {}", cardId);
             return BigDecimal.ZERO;
         }
         return primaryAccount.get().getAvailableBalance();

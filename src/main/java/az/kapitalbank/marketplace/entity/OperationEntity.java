@@ -50,7 +50,6 @@ public class OperationEntity extends BaseEntity {
     String fullName;
     String additionalPhoneNumber1;
     String additionalPhoneNumber2;
-    LocalDate birthday;
     String taskId;
     String businessKey;
     LocalDateTime scoringDate;
@@ -62,7 +61,9 @@ public class OperationEntity extends BaseEntity {
     DvsStatus dvsOrderStatus;
     @Enumerated(EnumType.STRING)
     UmicoDecisionStatus umicoDecisionStatus;
-    LocalDateTime loanContractDeletedAt;
+    String umicoDecisionError;
+    String sendTelesalesError;
+    LocalDateTime deleteLoanAttemptDate;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false, updatable = false)

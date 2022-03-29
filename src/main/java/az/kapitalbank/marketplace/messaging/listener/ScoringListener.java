@@ -33,7 +33,7 @@ public class ScoringListener {
                 } catch (Exception ex) {
                     log.error("Exception scoring result consume.Message - {}, Exception - {}",
                             message,
-                            ex.getMessage());
+                            ex);
                 }
             }
         };

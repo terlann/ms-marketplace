@@ -47,7 +47,7 @@ public class OrderEntity extends BaseEntity {
     @Enumerated(EnumType.STRING)
     TransactionStatus transactionStatus;
 
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "operation_id", nullable = false, updatable = false)
     OperationEntity operation;
 
