@@ -1,27 +1,14 @@
 package az.kapitalbank.marketplace.messaging.listener;
 
-import az.kapitalbank.marketplace.client.optimus.OptimusClient;
-import az.kapitalbank.marketplace.client.optimus.model.scoring.CustomerDecision;
-import az.kapitalbank.marketplace.client.umico.UmicoClient;
-import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
-import az.kapitalbank.marketplace.constant.DvsStatus;
-import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
-import az.kapitalbank.marketplace.dto.CompleteScoring;
-import az.kapitalbank.marketplace.entity.OperationEntity;
-import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.messaging.event.VerificationResultEvent;
-import az.kapitalbank.marketplace.repository.OperationRepository;
-import az.kapitalbank.marketplace.service.ScoringService;
+import az.kapitalbank.marketplace.service.VerificationService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.function.Consumer;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
@@ -32,14 +19,7 @@ import org.springframework.stereotype.Component;
 public class VerificationListener {
 
     ObjectMapper objectMapper;
-    ScoringService scoringService;
-    OperationRepository operationRepository;
-    OptimusClient optimusClient;
-    UmicoClient umicoClient;
-
-    @NonFinal
-    @Value("${umico.api-key}")
-    String apiKey;
+    VerificationService verificationService;
 
     @Bean
     public Consumer<String> verificationResult() {
@@ -49,104 +29,14 @@ public class VerificationListener {
                     var verificationResultEvent =
                             objectMapper.readValue(message, VerificationResultEvent.class);
                     log.info("Verification status consumer. Message - {}", verificationResultEvent);
-                    if (verificationResultEvent != null) {
-                        var trackId = verificationResultEvent.getTrackId();
-                        var operationEntity = operationRepository.findById(trackId).orElseThrow(
-                                () -> new OperationNotFoundException("trackId - " + trackId));
-
-                        verificationStatusBehavior(verificationResultEvent, operationEntity);
-                    }
+                    verificationService.verificationResultProcess(verificationResultEvent);
                 } catch (Exception ex) {
-                    log.error("Verification status consume.Message - {},"
-                            + " Exception - {}", message, ex.getMessage());
+                    log.error("Exception verification status consume.Message - {},"
+                            + " Exception - {}", message, ex);
                 }
             }
         };
     }
 
-    private void verificationStatusBehavior(VerificationResultEvent verificationResultEvent,
-                                            OperationEntity operationEntity) {
-        var businessKey = operationEntity.getBusinessKey();
-        var verificationStatus = verificationResultEvent.getStatus();
-        switch (verificationStatus) {
-            case "pending":
-                onVerificationSatusPending(verificationResultEvent,
-                        operationEntity);
-                break;
-            case "rejected":
-                onVerificationStatusRejected(verificationResultEvent,
-                        operationEntity, businessKey);
-                break;
-            case "confirmed":
-                onVerificationStatusConfirmed(verificationResultEvent,
-                        operationEntity);
-                break;
-            default:
-        }
-    }
 
-    private void onVerificationStatusConfirmed(VerificationResultEvent verificationResultEvent,
-                                               OperationEntity operationEntity) {
-        log.info("Verification status confirmed result. Response - {}",
-                verificationResultEvent);
-        var completeScoringWithConfirm =
-                CompleteScoring.builder()
-                        .trackId(operationEntity.getId())
-                        .taskId(operationEntity.getTaskId())
-                        .businessKey(operationEntity.getBusinessKey())
-                        .additionalNumber1(operationEntity.getAdditionalPhoneNumber1())
-                        .additionalNumber2(operationEntity.getAdditionalPhoneNumber2())
-                        .customerDecision(CustomerDecision.CONFIRM_CREDIT)
-                        .build();
-        scoringService.completeScoring(completeScoringWithConfirm);
-    }
-
-    private void onVerificationStatusRejected(VerificationResultEvent verificationResultEvent,
-                                              OperationEntity operationEntity, String businessKey) {
-        log.info("Verification status rejected result. Response - {}",
-                verificationResultEvent);
-        var umicoRejectedDecisionRequest = UmicoDecisionRequest.builder()
-                .trackId(operationEntity.getId())
-                .decisionStatus(UmicoDecisionStatus.REJECTED)
-                .loanTerm(operationEntity.getLoanTerm()).build();
-        log.info("Verification status result. Send decision request - {}",
-                umicoRejectedDecisionRequest);
-        umicoClient.sendDecisionToUmico(umicoRejectedDecisionRequest, apiKey);
-        log.info("Verification status sent to umico like REJECTED. trackId - {}",
-                operationEntity.getId());
-        operationEntity.setDvsOrderStatus(DvsStatus.REJECTED);
-        operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
-        operationRepository.save(operationEntity);
-        if (operationEntity.getTaskId() != null
-                && operationEntity.getLoanContractDeletedAt() == null) {
-            operationEntity.setLoanContractDeletedAt(LocalDateTime.now());
-            operationRepository.save(operationEntity);
-            try {
-                optimusClient.deleteLoan(businessKey);
-            } catch (Exception e) {
-                log.error("Delete loan process error in"
-                                + " verification rejected status , "
-                                + "businessKey - {}, exception - {}",
-                        businessKey,
-                        e.getMessage());
-            }
-        }
-    }
-
-    private void onVerificationSatusPending(VerificationResultEvent verificationResultEvent,
-                                            OperationEntity operationEntity) {
-        log.info("Verification status result. Response - {}",
-                verificationResultEvent);
-        var umicoPendingDecisionRequest = UmicoDecisionRequest.builder()
-                .trackId(operationEntity.getId())
-                .decisionStatus(UmicoDecisionStatus.PENDING)
-                .loanTerm(operationEntity.getLoanTerm()).build();
-        log.info("Verification status result. Send decision request - {}",
-                umicoPendingDecisionRequest);
-        umicoClient.sendDecisionToUmico(umicoPendingDecisionRequest, apiKey);
-        log.info("Verification status sent to umico like PENDING.");
-        operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.PENDING);
-        operationEntity.setDvsOrderStatus(DvsStatus.PENDING);
-        operationRepository.save(operationEntity);
-    }
 }

@@ -15,6 +15,7 @@ import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotLinkedToCustomer;
 import az.kapitalbank.marketplace.exception.PersonNotFoundException;
+import az.kapitalbank.marketplace.exception.SubscriptionNotFoundException;
 import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
 import az.kapitalbank.marketplace.exception.UmicoUserNotFoundException;
 import az.kapitalbank.marketplace.exception.UniqueAdditionalNumberException;
@@ -36,6 +37,8 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @RestControllerAdvice
 public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
 
+    private static final String EXCEPTION = "Exception: {}";
+
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
             MethodArgumentNotValidException ex,
@@ -54,63 +57,63 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(AtlasClientException.class)
     public ResponseEntity<ErrorResponseDto> atlasClientException(AtlasClientException ex) {
-        log.error("Atlas Exception: {}", ex.toString());
+        log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.ATLAS_EXCEPTION);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
     @ExceptionHandler({PersonNotFoundException.class, IamasClientException.class})
     public ResponseEntity<ErrorResponseDto> personNotFound(Exception ex) {
-        log.error(ex.getMessage());
+        log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.PERSON_NOT_FOUND);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponseDto);
     }
 
     @ExceptionHandler(OrderNotFoundException.class)
     public ResponseEntity<ErrorResponseDto> orderIdNotFound(OrderNotFoundException ex) {
-        log.error(ex.getMessage());
+        log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.ORDER_NOT_FOUND);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponseDto);
     }
 
     @ExceptionHandler(NoMatchLoanAmountException.class)
     public ResponseEntity<ErrorResponseDto> loanAmountIncorrect(NoMatchLoanAmountException ex) {
-        log.error(ex.getMessage());
+        log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.NO_MATCH_LOAN_AMOUNT);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
     @ExceptionHandler(UnknownLoanTerm.class)
     public ResponseEntity<ErrorResponseDto> loanTermIncorrect(UnknownLoanTerm ex) {
-        log.error(ex.getMessage());
+        log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.LOAN_TERM_NOT_FOUND);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponseDto);
     }
 
     @ExceptionHandler(TotalAmountLimitException.class)
     public ResponseEntity<ErrorResponseDto> exceedTotalAmountLimit(TotalAmountLimitException ex) {
-        log.error(ex.getMessage());
+        log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.PURCHASE_AMOUNT_LIMIT);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
     @ExceptionHandler(NoEnoughBalanceException.class)
     public ResponseEntity<ErrorResponseDto> noEnoughBalance(NoEnoughBalanceException ex) {
-        log.error(ex.getMessage());
+        log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.NO_ENOUGH_BALANCE);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
     @ExceptionHandler(OperationAlreadyScoredException.class)
     public ResponseEntity<ErrorResponseDto> alreadyScored(OperationAlreadyScoredException ex) {
-        log.error(ex.getMessage());
+        log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.OPERATION_ALREADY_SCORED);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
     @ExceptionHandler(OperationNotFoundException.class)
     public ResponseEntity<ErrorResponseDto> alreadyScored(OperationNotFoundException ex) {
-        log.error(ex.getMessage());
+        log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.OPERATION_NOT_FOUND);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponseDto);
     }
@@ -118,7 +121,7 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(CustomerNotFoundException.class)
     public ResponseEntity<ErrorResponseDto> customerNotFoundException(
             CustomerNotFoundException ex) {
-        log.error(ex.getMessage());
+        log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.CUSTOMER_NOT_FOUND);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
@@ -126,7 +129,7 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(UmicoUserNotFoundException.class)
     public ResponseEntity<ErrorResponseDto> umicoUserNotFoundException(
             UmicoUserNotFoundException ex) {
-        log.error(ex.getMessage());
+        log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.UMICO_USER_NOT_FOUND);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
@@ -134,7 +137,7 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(CustomerNotCompletedProcessException.class)
     public ResponseEntity<ErrorResponseDto> customerNotCompletedProcessException(
             CustomerNotCompletedProcessException ex) {
-        log.error(ex.getMessage());
+        log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.CUSTOMER_NOT_COMPLETED_PROCESS);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
@@ -142,7 +145,7 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(UniqueAdditionalNumberException.class)
     public ResponseEntity<ErrorResponseDto> uniqueAdditionalNumberException(
             UniqueAdditionalNumberException ex) {
-        log.error(ex.getMessage());
+        log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.UNIQUE_PHONE_NUMBER);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
@@ -150,7 +153,7 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(OrderNotLinkedToCustomer.class)
     public ResponseEntity<ErrorResponseDto> orderNotLinkedToCustomerException(
             OrderNotLinkedToCustomer ex) {
-        log.error(ex.getMessage());
+        log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.ORDER_NOT_LINKED_TO_CUSTOMER);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
@@ -158,8 +161,16 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(NoPermissionForTransaction.class)
     public ResponseEntity<ErrorResponseDto> orderMustNotCompleteException(
             NoPermissionForTransaction ex) {
-        log.error(ex.getMessage());
+        log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.NO_PERMISSION);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(SubscriptionNotFoundException.class)
+    public ResponseEntity<ErrorResponseDto> subscriptionNotFoundException(
+            SubscriptionNotFoundException ex) {
+        log.error(EXCEPTION, ex);
+        var errorResponseDto = new ErrorResponseDto(Error.SUBSCRIPTION_NOT_FOUND);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
@@ -169,20 +180,22 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
         Error error;
         switch (ex.getDetail()) {
             case "phone blocked":
-            case "user blocked":
                 error = Error.OTP_PHONE_BLOCKED;
                 break;
-            case "send otp limit exceed":
-                error = Error.OTP_SEND_LIMIT_EXCEED;
+            case "send otp limit exceeded":
+                error = Error.OTP_SEND_LIMIT_EXCEEDED;
                 break;
             case "otp not found":
                 error = Error.OTP_NOT_FOUND;
                 break;
+            case "invalid otp. remaining attempt: 2":
+                error = Error.OTP_ATTEMPT_LIMIT_TWO;
+                break;
             case "invalid otp. remaining attempt: 1":
                 error = Error.OTP_ATTEMPT_LIMIT_ONE;
                 break;
-            case "invalid otp. remaining attempt: 2":
-                error = Error.OTP_ATTEMPT_LIMIT_TWO;
+            case "invalid otp. user blocked":
+                error = Error.INVALID_OTP_AND_PHONE_BLOCKED;
                 break;
             default:
                 error = Error.OTP_EXCEPTION;

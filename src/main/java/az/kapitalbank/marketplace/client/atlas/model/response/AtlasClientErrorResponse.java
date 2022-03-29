@@ -1,4 +1,4 @@
-package az.kapitalbank.marketplace.client.otp.model;
+package az.kapitalbank.marketplace.client.atlas.model.response;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class OtpVerifyResponse {
-    private String status;
+public class AtlasClientErrorResponse {
+    private String uuid;
+    private String code;
+    private String message;
 }

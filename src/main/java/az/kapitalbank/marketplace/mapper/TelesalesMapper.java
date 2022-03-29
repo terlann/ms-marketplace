@@ -1,7 +1,9 @@
 package az.kapitalbank.marketplace.mapper;
 
+import static az.kapitalbank.marketplace.constant.OptimusConstant.CARD_PRODUCT_CODE;
+import static az.kapitalbank.marketplace.constant.OptimusConstant.SALES_SOURCE;
+
 import az.kapitalbank.marketplace.client.telesales.model.CreateTelesalesOrderRequest;
-import az.kapitalbank.marketplace.constant.ApplicationConstant;
 import az.kapitalbank.marketplace.constant.FraudType;
 import az.kapitalbank.marketplace.dto.LeadDto;
 import az.kapitalbank.marketplace.entity.OperationEntity;
@@ -23,8 +25,8 @@ public interface TelesalesMapper {
     @Mapping(source = "operationEntity.mobileNumber", target = "phoneMob")
     @Mapping(source = "operationEntity.email", target = "email")
     @Mapping(source = "operationEntity.loanTerm", target = "duration")
-    @Mapping(target = "position", constant = ApplicationConstant.UMICO_MARKETPLACE)
-    @Mapping(target = "productType", constant = ApplicationConstant.SRS_PRODUCT_TYPE)
+    @Mapping(target = "position", constant = SALES_SOURCE)
+    @Mapping(target = "productType", constant = CARD_PRODUCT_CODE)
     @Mapping(source = "fraudTypes", target = "orderComment", qualifiedByName = "mapFraudTypes")
     CreateTelesalesOrderRequest toTelesalesOrder(OperationEntity operationEntity,
                                                  List<FraudType> fraudTypes);

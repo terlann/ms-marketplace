@@ -7,6 +7,9 @@ import lombok.experimental.UtilityClass;
 public class GenerateUtil {
 
     public static String rrn() {
-        return "K-U-M" + UUID.randomUUID().toString().substring(8);
+        var temp = UUID.randomUUID();
+        var uuidString = Long.toHexString(temp.getMostSignificantBits())
+                + Long.toHexString(temp.getLeastSignificantBits());
+        return "bumm-" + uuidString.substring(3);
     }
 }

@@ -49,11 +49,6 @@ spring:
           group: marketplace-dvs-local
           destination: mp-order-dvs
 
-optimus:
-  process:
-    key: process_credit_online
-    product-type: CONSUMER_LOAN_MARKET_PLACE_ONLINE
-
 umico:
   api-key: 978f22df-62cb-4894-9811-ea26212c0b38
 
@@ -63,7 +58,7 @@ client:
   umico:
     url: https://broker-stage.umico.az
   adp-atlas:
-    url: https://dev.adp-atlas.kapitalbank.az
+    url: https://pre.adp-atlas.kapitalbank.az
   adp-optimus:
     url: https://pre.adp-optimus.kapitalbank.az/
   adp-dvs:
@@ -83,9 +78,6 @@ feign:
 
 server:
   port: 8080
-
-purchase:
-  terminal-name: R1020002
 
 commission:
   values:

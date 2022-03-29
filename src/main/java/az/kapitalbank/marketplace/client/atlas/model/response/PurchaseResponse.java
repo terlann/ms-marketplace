@@ -15,8 +15,6 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PurchaseResponse {
-
     String id;
     String approvalCode;
-
 }
