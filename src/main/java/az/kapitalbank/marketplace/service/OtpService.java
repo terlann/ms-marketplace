@@ -3,25 +3,18 @@ package az.kapitalbank.marketplace.service;
 import static az.kapitalbank.marketplace.constant.OptimusConstant.SALES_SOURCE;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
-import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
-import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.otp.OtpClient;
 import az.kapitalbank.marketplace.client.otp.model.ChannelRequest;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpRequest;
 import az.kapitalbank.marketplace.client.otp.model.VerifyOtpRequest;
 import az.kapitalbank.marketplace.constant.OtpConstant;
-import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.dto.request.SendOtpRequestDto;
 import az.kapitalbank.marketplace.dto.request.VerifyOtpRequestDto;
 import az.kapitalbank.marketplace.dto.response.SendOtpResponseDto;
-import az.kapitalbank.marketplace.entity.CustomerEntity;
-import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.SubscriptionNotFoundException;
 import az.kapitalbank.marketplace.repository.OperationRepository;
-import az.kapitalbank.marketplace.util.GenerateUtil;
 import az.kapitalbank.marketplace.util.OtpUtil;
-import java.time.LocalDateTime;
 import java.util.UUID;
 import javax.transaction.Transactional;
 import lombok.AccessLevel;
@@ -39,6 +32,7 @@ public class OtpService {
     OtpClient otpClient;
     AtlasClient atlasClient;
     OperationRepository operationRepository;
+    OrderService orderService;
 
     @Transactional
     public SendOtpResponseDto send(SendOtpRequestDto request) {
@@ -71,32 +65,9 @@ public class OtpService {
         log.info("Verify otp : request - {}", otpVerifyRequest);
         var verifyOtpResponse = otpClient.verify(otpVerifyRequest);
         log.info("Verify otp process was finished : response - {}", verifyOtpResponse);
-        prePurchaseOrder(operationEntity, customerEntity);
-    }
-
-    private void prePurchaseOrder(OperationEntity operationEntity, CustomerEntity customerEntity) {
-        log.info("Regular order purchase process is started : trackId: " + operationEntity.getId());
         var cardId = customerEntity.getCardId();
-        for (var orderEntity : operationEntity.getOrders()) {
-            var rrn = GenerateUtil.rrn();
-            var purchaseRequest = PurchaseRequest.builder().rrn(rrn)
-                    .amount(orderEntity.getTotalAmount().add(orderEntity.getCommission()))
-                    .description("fee=" + orderEntity.getCommission()).uid(cardId).build();
-            try {
-                var purchaseResponse = atlasClient.purchase(purchaseRequest);
-                orderEntity.setTransactionId(purchaseResponse.getId());
-                orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
-                orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
-            } catch (AtlasClientException e) {
-                orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_PURCHASE);
-                orderEntity.setTransactionError(e.getMessage());
-            }
-            orderEntity.setRrn(rrn);
-            orderEntity.setTransactionDate(LocalDateTime.now());
-        }
+        orderService.prePurchaseOrders(operationEntity, cardId);
         operationRepository.save(operationEntity);
-        log.info("Regular order purchase process was finished : customerId - {}, trackId - {}",
-                customerEntity.getId(), operationEntity.getId());
     }
 
     private String getCardLinkedMobileNumber(String cardId) {

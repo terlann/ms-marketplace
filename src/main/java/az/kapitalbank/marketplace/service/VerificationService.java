@@ -14,7 +14,6 @@ import az.kapitalbank.marketplace.client.optimus.model.scoring.CustomerDecision;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.CustomerNumber;
 import az.kapitalbank.marketplace.constant.DvsStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
-import az.kapitalbank.marketplace.dto.LeadDto;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.messaging.event.VerificationResultEvent;
 import az.kapitalbank.marketplace.repository.OperationRepository;
@@ -40,7 +39,6 @@ public class VerificationService {
     ScoringService scoringService;
     TelesalesService telesalesService;
     OperationRepository operationRepository;
-
 
     public Optional<String> getDvsUrl(UUID trackId, Long dvsId) {
         log.info("Dvs get web url is started : trackId - {} , dvsId - {}", trackId, dvsId);
@@ -89,12 +87,7 @@ public class VerificationService {
         if (completeScoring.isEmpty()) {
             var deleteLoan = scoringService.deleteLoan(operationEntity);
             deleteLoan.ifPresent(operationEntity::setDeleteLoanAttemptDate);
-            var leadDto = LeadDto.builder().trackId(operationEntity.getId()).build();
-            var telesalesOrderId = telesalesService.sendLead(leadDto);
-            telesalesOrderId.ifPresent(operationEntity::setTelesalesOrderId);
-            var sendDecision = umicoService.sendPendingDecision(operationEntity.getId());
-            sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
-            operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.PENDING);
+            telesalesService.sendLeadAndDecision(operationEntity);
         } else {
             operationEntity.setDvsOrderStatus(DvsStatus.CONFIRMED);
         }

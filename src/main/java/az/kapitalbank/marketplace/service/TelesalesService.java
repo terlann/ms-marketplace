@@ -6,9 +6,11 @@ import az.kapitalbank.marketplace.client.loan.LoanClient;
 import az.kapitalbank.marketplace.client.telesales.TelesalesClient;
 import az.kapitalbank.marketplace.constant.ProductType;
 import az.kapitalbank.marketplace.constant.SubProductType;
+import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.LeadDto;
 import az.kapitalbank.marketplace.dto.request.LoanRequest;
 import az.kapitalbank.marketplace.dto.response.LoanResponse;
+import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.mapper.TelesalesMapper;
 import az.kapitalbank.marketplace.repository.OperationRepository;
@@ -30,6 +32,7 @@ public class TelesalesService {
     TelesalesMapper telesalesMapper;
     OperationRepository operationRepository;
     LoanClient loanClient;
+    UmicoService umicoService;
 
     public Optional<String> sendLead(LeadDto leadDto) {
         var trackId = leadDto.getTrackId();
@@ -64,7 +67,6 @@ public class TelesalesService {
     public Optional<LoanResponse> sendLeadToLoanService(UUID trackId) {
         try {
             log.info("Send lead to loan service is started... trackId - {}", trackId);
-            String source = UMICO_SOURCE_CODE;
             var operationEntity = operationRepository.findById(trackId)
                     .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
 
@@ -79,7 +81,7 @@ public class TelesalesService {
                                     .getCommission()))
                             .build();
             log.info("Send lead to loan service : request - {}", loanRequest);
-            LoanResponse response = loanClient.sendLead(source, loanRequest);
+            LoanResponse response = loanClient.sendLead(UMICO_SOURCE_CODE, loanRequest);
             log.info("Send lead to loan service was finished successfully... trackId -{},"
                     + " Response - {}", trackId, response);
             return Optional.of(response);
@@ -90,5 +92,13 @@ public class TelesalesService {
                     trackId, e);
             return Optional.empty();
         }
+    }
+
+    public void sendLeadAndDecision(OperationEntity operationEntity) {
+        var telesalesOrderId = sendLead(new LeadDto(operationEntity.getId()));
+        telesalesOrderId.ifPresent(operationEntity::setTelesalesOrderId);
+        var sendDecision = umicoService.sendPendingDecision(operationEntity.getId());
+        sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
+        operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.PENDING);
     }
 }

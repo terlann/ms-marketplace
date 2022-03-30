@@ -6,6 +6,7 @@ import static az.kapitalbank.marketplace.constant.CommonConstant.CUSTOMER_NOT_FO
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteRequest;
+import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.ReversePurchaseRequest;
 import az.kapitalbank.marketplace.constant.AccountStatus;
 import az.kapitalbank.marketplace.constant.OrderStatus;
@@ -224,6 +225,27 @@ public class OrderService {
         orderRepository.save(order);
         purchaseResponseDto.setOrderNo(order.getOrderNo());
         return purchaseResponseDto;
+    }
+
+    public void prePurchaseOrders(OperationEntity operationEntity, String cardId) {
+        for (var orderEntity : operationEntity.getOrders()) {
+            var rrn = GenerateUtil.rrn();
+            var purchaseRequest = PurchaseRequest.builder().rrn(rrn)
+                    .amount(orderEntity.getTotalAmount().add(orderEntity.getCommission()))
+                    .description("fee=" + orderEntity.getCommission()).uid(cardId).build();
+            try {
+                var purchaseResponse = atlasClient.purchase(purchaseRequest);
+                orderEntity.setTransactionId(purchaseResponse.getId());
+                orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
+                orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
+            } catch (AtlasClientException e) {
+                orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_PURCHASE);
+                orderEntity.setTransactionError(e.getMessage());
+            }
+            orderEntity.setRrn(rrn);
+            orderEntity.setTransactionDate(LocalDateTime.now());
+        }
+        log.info(" Orders purchase process was finished...");
     }
 
     private PurchaseCompleteRequest getPurchaseCompleteRequest(String cardId, OrderEntity order,
