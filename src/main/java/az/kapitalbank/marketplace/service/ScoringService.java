@@ -126,7 +126,6 @@ public class ScoringService {
                 break;
             default:
         }
-
     }
 
     public Optional<LocalDateTime> deleteLoan(OperationEntity operationEntity) {
@@ -162,7 +161,6 @@ public class ScoringService {
         operationEntity.setBusinessKey(businessKey.get());
         operationRepository.save(operationEntity);
     }
-
 
     private void inUserActivityProcess(ScoringResultEvent scoringResultEvent,
                                        OperationEntity operationEntity) {
