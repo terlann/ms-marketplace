@@ -2,9 +2,6 @@ package az.kapitalbank.marketplace.service;
 
 import static az.kapitalbank.marketplace.constant.OptimusConstant.OPTIMUS_CLIENT_EXCEPTION;
 
-import az.kapitalbank.marketplace.client.atlas.AtlasClient;
-import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
-import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.optimus.OptimusClient;
 import az.kapitalbank.marketplace.client.optimus.exception.OptimusClientException;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
@@ -17,7 +14,6 @@ import az.kapitalbank.marketplace.constant.FraudResultStatus;
 import az.kapitalbank.marketplace.constant.ProcessStatus;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.TaskDefinitionKey;
-import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.LeadDto;
 import az.kapitalbank.marketplace.dto.request.TelesalesResultRequestDto;
@@ -29,7 +25,6 @@ import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
 import az.kapitalbank.marketplace.messaging.event.InUserActivityData;
 import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
 import az.kapitalbank.marketplace.repository.OperationRepository;
-import az.kapitalbank.marketplace.util.GenerateUtil;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -48,8 +43,8 @@ import org.springframework.stereotype.Service;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ScoringService {
 
-    AtlasClient atlasClient;
     UmicoService umicoService;
+    OrderService orderService;
     OptimusClient optimusClient;
     TelesalesService telesalesService;
     VerificationService verificationService;
@@ -67,7 +62,7 @@ public class ScoringService {
         }
         Optional<String> sendDecision;
         if (request.getScoringStatus() == ScoringStatus.APPROVED) {
-            purchaseOrders(operationEntity, request.getUid());
+            orderService.prePurchaseOrders(operationEntity, request.getUid());
             operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
             operationEntity.setScoringStatus(ScoringStatus.APPROVED);
             operationEntity.setScoringDate(LocalDateTime.now());
@@ -105,11 +100,7 @@ public class ScoringService {
             }
             if (fraudResultStatus == FraudResultStatus.SUSPICIOUS) {
                 log.warn("Fraud case was found in this operation : trackId - {}", trackId);
-                var telesalesOrderId = telesalesService.sendLead(new LeadDto(trackId));
-                telesalesOrderId.ifPresent(operationEntity::setTelesalesOrderId);
-                var sendDecision = umicoService.sendPendingDecision(trackId);
-                sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
-                operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.PENDING);
+                telesalesService.sendLeadAndDecision(operationEntity);
                 operationRepository.save(operationEntity);
                 return;
             }
@@ -172,6 +163,7 @@ public class ScoringService {
         operationRepository.save(operationEntity);
     }
 
+
     private void inUserActivityProcess(ScoringResultEvent scoringResultEvent,
                                        OperationEntity operationEntity) {
         var businessKey = operationEntity.getBusinessKey();
@@ -192,12 +184,7 @@ public class ScoringService {
         } else {
             var deleteLoan = deleteLoan(operationEntity);
             deleteLoan.ifPresent(operationEntity::setDeleteLoanAttemptDate);
-            var leadDto = LeadDto.builder().trackId(operationEntity.getId()).build();
-            var telesalesOrderId = telesalesService.sendLead(leadDto);
-            telesalesOrderId.ifPresent(operationEntity::setTelesalesOrderId);
-            var sendDecision = umicoService.sendPendingDecision(operationEntity.getId());
-            sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
-            operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.PENDING);
+            telesalesService.sendLeadAndDecision(operationEntity);
             operationRepository.save(operationEntity);
         }
     }
@@ -263,7 +250,7 @@ public class ScoringService {
         log.info("Complete scoring result : businessKey - {}", operationEntity.getBusinessKey());
         var cardId =
                 optimusClient.getProcessVariable(operationEntity.getBusinessKey(), "uid").getUid();
-        purchaseOrders(operationEntity, cardId);
+        orderService.prePurchaseOrders(operationEntity, cardId);
         log.info("Auto flow : orders purchase process was finished...");
         operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
         operationEntity.setScoringDate(LocalDateTime.now());
@@ -279,26 +266,6 @@ public class ScoringService {
                 operationEntity.getId(), customerEntity.getId());
     }
 
-    private void purchaseOrders(OperationEntity operationEntity, String cardId) {
-        for (var orderEntity : operationEntity.getOrders()) {
-            var rrn = GenerateUtil.rrn();
-            var purchaseRequest = PurchaseRequest.builder().rrn(rrn)
-                    .amount(orderEntity.getTotalAmount().add(orderEntity.getCommission()))
-                    .description("fee=" + orderEntity.getCommission()).uid(cardId).build();
-            try {
-                var purchaseResponse = atlasClient.purchase(purchaseRequest);
-                orderEntity.setTransactionId(purchaseResponse.getId());
-                orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
-                orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
-            } catch (AtlasClientException e) {
-                orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_PURCHASE);
-                orderEntity.setTransactionError(e.getMessage());
-            }
-            orderEntity.setRrn(rrn);
-            orderEntity.setTransactionDate(LocalDateTime.now());
-        }
-        log.info("Telesales result : orders purchase process was finished...");
-    }
 
     private void scoringErrorProcess(ScoringResultEvent scoringResultEvent,
                                      OperationEntity operationEntity) {
