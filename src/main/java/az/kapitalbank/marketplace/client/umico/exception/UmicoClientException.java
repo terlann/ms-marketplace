@@ -14,4 +14,8 @@ public class UmicoClientException extends RuntimeException {
     public UmicoClientException(String methodKey, String response) {
         super(String.format(MESSAGE, methodKey, response));
     }
+
+    public UmicoClientException(String description) {
+        super(description);
+    }
 }

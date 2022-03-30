@@ -1,7 +1,6 @@
 package az.kapitalbank.marketplace.messaging.sender;
 
 import az.kapitalbank.marketplace.messaging.event.FraudCheckEvent;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.LinkedList;
 import java.util.function.Supplier;
@@ -40,8 +39,8 @@ public class FraudCheckSender {
                     log.info("Fraud check was produced. Message - {}", jsonMessage);
                     fraudCheckEventLinkedList.poll();
                     return jsonMessage;
-                } catch (JsonProcessingException ex) {
-                    log.info("Fraud check producer. JsonProcessingException - {}", ex.getMessage());
+                } catch (Exception ex) {
+                    log.info("Fraud check producer. Exception - {}", ex);
                 }
             }
             return null;

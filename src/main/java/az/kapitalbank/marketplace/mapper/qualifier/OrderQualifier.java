@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 
 
 @Component
-public class CreateOrderQualifier {
+public class OrderQualifier {
 
     @Named("mapDeliveryAddresses")
     public Set<String> mapDeliveryAddresses(List<OrderProductDeliveryInfo> deliveryInfo) {

@@ -11,6 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class OtpVerifyResponse {
-    private String status;
+public class VerifyOtpRequest {
+    private String otp;
+    private String phoneNumber;
 }
+

@@ -24,7 +24,7 @@ public class CustomerNumber {
     @Data
     @AllArgsConstructor
     @FieldDefaults(level = AccessLevel.PRIVATE)
-    public class NumberDto {
+    public static class NumberDto {
         String number;
     }
 }

@@ -1,5 +1,6 @@
 package az.kapitalbank.marketplace.entity;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +29,7 @@ public class CustomerEntity extends BaseEntity {
     String umicoUserId;
     boolean isAgreement;
     String cardId;
+    BigDecimal lastTempAmount;
     LocalDateTime completeProcessDate;
 
     @Builder.Default
