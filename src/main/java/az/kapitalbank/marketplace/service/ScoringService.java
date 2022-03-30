@@ -92,7 +92,7 @@ public class ScoringService {
             var operationEntity = operationOptional.get();
             if (fraudResultStatus == FraudResultStatus.BLACKLIST) {
                 log.warn("This operation was found in blacklist : trackId - {}", trackId);
-                var sendDecision = umicoService.sendDeclinedDecision(trackId);
+                var sendDecision = umicoService.sendRejectedDecision(trackId);
                 sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
                 operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.DECLINED_BY_BLACKLIST);
                 operationRepository.save(operationEntity);
