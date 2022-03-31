@@ -8,7 +8,6 @@ import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
 import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
 import az.kapitalbank.marketplace.dto.response.PurchaseResponseDto;
 import az.kapitalbank.marketplace.service.OrderService;
-import az.kapitalbank.marketplace.service.ScoringService;
 import java.util.List;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
@@ -30,7 +29,6 @@ import org.springframework.web.bind.annotation.RestController;
 public class OrderController {
 
     OrderService service;
-    ScoringService scoringService;
 
     @PostMapping
     public ResponseEntity<CreateOrderResponse> createOrder(
@@ -48,7 +46,7 @@ public class OrderController {
     @PostMapping("/telesales/result")
     public ResponseEntity<Void> telesalesResult(
             @Valid @RequestBody TelesalesResultRequestDto request) {
-        scoringService.telesalesResult(request);
+        service.telesalesResult(request);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 

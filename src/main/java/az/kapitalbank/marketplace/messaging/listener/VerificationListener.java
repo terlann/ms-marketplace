@@ -1,7 +1,7 @@
 package az.kapitalbank.marketplace.messaging.listener;
 
 import az.kapitalbank.marketplace.messaging.event.VerificationResultEvent;
-import az.kapitalbank.marketplace.service.VerificationService;
+import az.kapitalbank.marketplace.service.ProductProcessService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 public class VerificationListener {
 
     ObjectMapper objectMapper;
-    VerificationService verificationService;
+    ProductProcessService productProcessService;
 
     @Bean
     public Consumer<String> verificationResult() {
@@ -29,7 +29,7 @@ public class VerificationListener {
                     var verificationResultEvent =
                             objectMapper.readValue(message, VerificationResultEvent.class);
                     log.info("Verification status consumer. Message - {}", verificationResultEvent);
-                    verificationService.verificationResultProcess(verificationResultEvent);
+                    productProcessService.verificationResultProcess(verificationResultEvent);
                 } catch (Exception ex) {
                     log.error("Exception verification status consume.Message - {},"
                             + " Exception - {}", message, ex);
