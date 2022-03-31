@@ -1,7 +1,8 @@
 package az.kapitalbank.marketplace.service;
 
 import static az.kapitalbank.marketplace.constant.AtlasConstant.REVERSE_DESCRIPTION;
-import static az.kapitalbank.marketplace.constant.CommonConstant.CUSTOMER_NOT_FOUND_BY_ID;
+import static az.kapitalbank.marketplace.constant.CommonConstant.CUSTOMER_ID_LOG;
+import static az.kapitalbank.marketplace.constant.CommonConstant.TELESALES_ORDER_ID_LOG;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
@@ -11,6 +12,7 @@ import az.kapitalbank.marketplace.client.atlas.model.request.ReversePurchaseRequ
 import az.kapitalbank.marketplace.constant.AccountStatus;
 import az.kapitalbank.marketplace.constant.OrderStatus;
 import az.kapitalbank.marketplace.constant.ResultType;
+import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.DeliveryProductDto;
@@ -18,6 +20,7 @@ import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
 import az.kapitalbank.marketplace.dto.request.PurchaseRequestDto;
 import az.kapitalbank.marketplace.dto.request.ReverseRequestDto;
+import az.kapitalbank.marketplace.dto.request.TelesalesResultRequestDto;
 import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
 import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
 import az.kapitalbank.marketplace.dto.response.PurchaseResponseDto;
@@ -49,6 +52,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -68,12 +72,46 @@ public class OrderService {
     AmountUtil amountUtil;
     OrderMapper orderMapper;
     AtlasClient atlasClient;
+    UmicoService umicoService;
     CustomerMapper customerMapper;
     OrderRepository orderRepository;
     OperationMapper operationMapper;
     CustomerRepository customerRepository;
     FraudCheckSender customerOrderProducer;
     OperationRepository operationRepository;
+
+    @Transactional
+    public void telesalesResult(TelesalesResultRequestDto request) {
+        var telesalesOrderId = request.getTelesalesOrderId().trim();
+        log.info("Telesales result is started... request - {}", request);
+        var operationEntity = operationRepository.findByTelesalesOrderId(telesalesOrderId)
+                .orElseThrow(() -> new OperationNotFoundException(
+                        TELESALES_ORDER_ID_LOG + telesalesOrderId));
+        if (operationEntity.getScoringStatus() != null) {
+            throw new OperationAlreadyScoredException(TELESALES_ORDER_ID_LOG + telesalesOrderId);
+        }
+        Optional<String> sendDecision;
+        if (request.getScoringStatus() == ScoringStatus.APPROVED) {
+            prePurchaseOrders(operationEntity, request.getUid());
+            operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
+            operationEntity.setScoringStatus(ScoringStatus.APPROVED);
+            operationEntity.setScoringDate(LocalDateTime.now());
+            operationEntity.setLoanContractStartDate(request.getLoanContractStartDate());
+            operationEntity.setLoanContractEndDate(request.getLoanContractEndDate());
+            var customerEntity = operationEntity.getCustomer();
+            customerEntity.setCardId(request.getUid());
+            customerEntity.setCompleteProcessDate(LocalDateTime.now());
+            sendDecision =
+                    umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
+        } else {
+            operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
+            operationEntity.setScoringStatus(ScoringStatus.REJECTED);
+            sendDecision = umicoService.sendRejectedDecision(operationEntity.getId());
+        }
+        sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
+        operationRepository.save(operationEntity);
+    }
+
 
     @Transactional
     public CreateOrderResponse createOrder(CreateOrderRequestDto request) {
@@ -139,13 +177,13 @@ public class OrderService {
             }
         } else {
             customerEntity = customerRepository.findById(customerId).orElseThrow(
-                    () -> new CustomerNotFoundException(CUSTOMER_NOT_FOUND_BY_ID + customerId));
+                    () -> new CustomerNotFoundException(CUSTOMER_ID_LOG + customerId));
             var isExistsCustomerByDecisionStatus = operationRepository
                     .existsByCustomerAndUmicoDecisionStatusIn(customerEntity,
                             Set.of(UmicoDecisionStatus.PENDING, UmicoDecisionStatus.PREAPPROVED));
             if (isExistsCustomerByDecisionStatus) {
                 throw new CustomerNotCompletedProcessException(
-                        CUSTOMER_NOT_FOUND_BY_ID + customerId);
+                        CUSTOMER_ID_LOG + customerId);
             }
             validateCustomerBalance(request, customerEntity.getCardId());
         }
@@ -164,10 +202,10 @@ public class OrderService {
         log.info("Check order is started : telesalesOrderId  - {}", telesalesOrderId);
         var operationEntityOptional = operationRepository.findByTelesalesOrderId(telesalesOrderId);
         var operationEntity = operationEntityOptional.orElseThrow(
-                () -> new OperationNotFoundException("telesalesOrderId - " + telesalesOrderId));
+                () -> new OperationNotFoundException(TELESALES_ORDER_ID_LOG + telesalesOrderId));
         var scoringStatus = operationEntity.getScoringStatus();
         if (scoringStatus != null) {
-            throw new OperationAlreadyScoredException("telesalesOrderId - " + telesalesOrderId);
+            throw new OperationAlreadyScoredException(TELESALES_ORDER_ID_LOG + telesalesOrderId);
         }
         var orderResponseDto = orderMapper.entityToDto(operationEntity);
         log.info("Check order was finished : telesalesOrderId - {}", telesalesOrderId);
@@ -180,7 +218,7 @@ public class OrderService {
         var customerId = request.getCustomerId();
         var customerEntity = customerRepository.findById(customerId)
                 .orElseThrow(
-                        () -> new CustomerNotFoundException(CUSTOMER_NOT_FOUND_BY_ID + customerId));
+                        () -> new CustomerNotFoundException(CUSTOMER_ID_LOG + customerId));
         var cardId = customerEntity.getCardId();
         var orderNoList = request.getDeliveryOrders().stream()
                 .map(DeliveryProductDto::getOrderNo)

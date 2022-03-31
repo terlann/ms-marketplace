@@ -4,18 +4,16 @@ import static az.kapitalbank.marketplace.constant.TelesalesConstant.UMICO_SOURCE
 
 import az.kapitalbank.marketplace.client.loan.LoanClient;
 import az.kapitalbank.marketplace.client.telesales.TelesalesClient;
+import az.kapitalbank.marketplace.constant.FraudType;
 import az.kapitalbank.marketplace.constant.ProductType;
 import az.kapitalbank.marketplace.constant.SubProductType;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
-import az.kapitalbank.marketplace.dto.LeadDto;
 import az.kapitalbank.marketplace.dto.request.LoanRequest;
 import az.kapitalbank.marketplace.dto.response.LoanResponse;
 import az.kapitalbank.marketplace.entity.OperationEntity;
-import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.mapper.TelesalesMapper;
-import az.kapitalbank.marketplace.repository.OperationRepository;
+import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -28,24 +26,16 @@ import org.springframework.stereotype.Service;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class TelesalesService {
 
-    TelesalesClient telesalesClient;
-    TelesalesMapper telesalesMapper;
-    OperationRepository operationRepository;
     LoanClient loanClient;
     UmicoService umicoService;
+    TelesalesClient telesalesClient;
+    TelesalesMapper telesalesMapper;
 
-    public Optional<String> sendLead(LeadDto leadDto) {
-        var trackId = leadDto.getTrackId();
-        try {
-            sendLeadToLoanService(trackId);
-        } catch (Exception ex) {
-            log.info("Exception occur send lead to ms loan !");
-        }
+    private Optional<String> sendLeadSrs(OperationEntity operationEntity,
+                                         List<FraudType> fraudTypes) {
+        var trackId = operationEntity.getId();
         log.info("Send lead to telesales is started : trackId - {}", trackId);
         try {
-            var operationEntity = operationRepository.findById(trackId)
-                    .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
-            var fraudTypes = leadDto.getTypes();
             var createTelesalesOrderRequest = telesalesMapper
                     .toTelesalesOrder(operationEntity, fraudTypes);
             var amountWithCommission = operationEntity.getTotalAmount().add(operationEntity
@@ -64,12 +54,10 @@ public class TelesalesService {
         }
     }
 
-    public Optional<LoanResponse> sendLeadToLoanService(UUID trackId) {
+    private Optional<String> sendLeadLoan(OperationEntity operationEntity) {
+        var trackId = operationEntity.getId();
         try {
-            log.info("Send lead to loan service is started... trackId - {}", trackId);
-            var operationEntity = operationRepository.findById(trackId)
-                    .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
-
+            log.info("Send lead to loan service is started : trackId - {}", trackId);
             LoanRequest loanRequest =
                     LoanRequest.builder()
                             .productType(ProductType.BIRKART)
@@ -82,11 +70,11 @@ public class TelesalesService {
                             .build();
             log.info("Send lead to loan service : request - {}", loanRequest);
             LoanResponse response = loanClient.sendLead(UMICO_SOURCE_CODE, loanRequest);
-            log.info("Send lead to loan service was finished successfully... trackId -{},"
+            log.info("Send lead to loan service was finished : trackId -{},"
                     + " Response - {}", trackId, response);
-            return Optional.of(response);
+            return Optional.of(response.getData().getLeadId());
         } catch (Exception e) {
-            log.error("Send lead to loan service was finished unsuccessfully. "
+            log.error("Send lead to loan service was failed : "
                     + "trackId -{}, Exception - {}", trackId, e.getMessage());
             log.error("Send lead to telesales was failed : trackId - {}, exception - {}",
                     trackId, e);
@@ -94,9 +82,11 @@ public class TelesalesService {
         }
     }
 
-    public void sendLeadAndDecision(OperationEntity operationEntity) {
-        var telesalesOrderId = sendLead(new LeadDto(operationEntity.getId()));
+    public void sendLead(OperationEntity operationEntity, List<FraudType> fraudTypes) {
+        var telesalesOrderId = sendLeadSrs(operationEntity, fraudTypes);
         telesalesOrderId.ifPresent(operationEntity::setTelesalesOrderId);
+        var loanId = sendLeadLoan(operationEntity);
+        loanId.ifPresent(operationEntity::setLoanId);
         var sendDecision = umicoService.sendPendingDecision(operationEntity.getId());
         sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
         operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.PENDING);

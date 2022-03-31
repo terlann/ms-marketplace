@@ -1,7 +1,7 @@
 package az.kapitalbank.marketplace.messaging.listener;
 
 import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
-import az.kapitalbank.marketplace.service.ScoringService;
+import az.kapitalbank.marketplace.service.ProductProcessService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 public class FraudListener {
 
     ObjectMapper objectMapper;
-    ScoringService scoringService;
+    ProductProcessService productProcessService;
 
     @Bean
     public Consumer<String> checkFraudResult() {
@@ -29,7 +29,7 @@ public class FraudListener {
                     var fraudCheckResultEvent =
                             objectMapper.readValue(message, FraudCheckResultEvent.class);
                     log.info("check fraud result consumer. Message - {}", fraudCheckResultEvent);
-                    scoringService.fraudResultProcess(fraudCheckResultEvent);
+                    productProcessService.fraudResultProcess(fraudCheckResultEvent);
                 } catch (Exception ex) {
                     log.error(
                             "Exception check fraud result consume.Message - {}, Exception - {}",

@@ -26,23 +26,6 @@ public class UmicoService {
     String apiKey;
     UmicoClient umicoClient;
 
-    public Optional<String> sendDecision(UmicoDecisionRequest umicoDecisionRequest) {
-        var trackId = umicoDecisionRequest.getTrackId();
-        log.info("Send decision to umico is started : trackId - {} , request - {}", trackId,
-                umicoDecisionRequest);
-        try {
-            var umicoDecisionResponse = umicoClient.sendDecision(umicoDecisionRequest, apiKey);
-            log.info("Send decision to umico was finished : trackId - {} , response - {}", trackId,
-                    umicoDecisionResponse);
-            return Optional.empty();
-        } catch (UmicoClientException e) {
-            log.error(
-                    "Send decision to umico was failed : trackId - {} , UmicoClientException - {}",
-                    trackId, e);
-            return Optional.ofNullable(e.getMessage());
-        }
-    }
-
     public Optional<String> sendPendingDecision(UUID trackId) {
         var umicoDecisionRequest =
                 UmicoDecisionRequest.builder().decisionStatus(UmicoDecisionStatus.PENDING)
@@ -57,11 +40,15 @@ public class UmicoService {
         return sendDecision(umicoDecisionRequest);
     }
 
-    public Optional<String> sendDeclinedDecision(UUID trackId) {
+    public Optional<String> sendPreApprovedDecision(UUID trackId,
+                                                    String dvsUrl,
+                                                    UmicoDecisionStatus decisionStatus) {
         var umicoDecisionRequest =
                 UmicoDecisionRequest.builder()
-                        .decisionStatus(UmicoDecisionStatus.DECLINED_BY_BLACKLIST)
-                        .trackId(trackId).build();
+                        .trackId(trackId)
+                        .dvsUrl(dvsUrl)
+                        .decisionStatus(decisionStatus)
+                        .build();
         return sendDecision(umicoDecisionRequest);
     }
 
@@ -78,5 +65,23 @@ public class UmicoService {
                         .loanContractStartDate(operationEntity.getLoanContractStartDate())
                         .loanContractEndDate(operationEntity.getLoanContractEndDate()).build();
         return sendDecision(umicoApprovedDecisionRequest);
+    }
+
+
+    private Optional<String> sendDecision(UmicoDecisionRequest umicoDecisionRequest) {
+        var trackId = umicoDecisionRequest.getTrackId();
+        log.info("Send decision to umico is started : trackId - {} , request - {}", trackId,
+                umicoDecisionRequest);
+        try {
+            var umicoDecisionResponse = umicoClient.sendDecision(umicoDecisionRequest, apiKey);
+            log.info("Send decision to umico was finished : trackId - {} , response - {}", trackId,
+                    umicoDecisionResponse);
+            return Optional.empty();
+        } catch (UmicoClientException e) {
+            log.error(
+                    "Send decision to umico was failed : trackId - {} , UmicoClientException - {}",
+                    trackId, e);
+            return Optional.ofNullable(e.getMessage());
+        }
     }
 }
