@@ -76,6 +76,7 @@ public class OrderService {
     CustomerMapper customerMapper;
     OrderRepository orderRepository;
     OperationMapper operationMapper;
+    CustomerService customerService;
     CustomerRepository customerRepository;
     FraudCheckSender customerOrderProducer;
     OperationRepository operationRepository;
@@ -92,17 +93,7 @@ public class OrderService {
         }
         Optional<String> sendDecision;
         if (request.getScoringStatus() == ScoringStatus.APPROVED) {
-            prePurchaseOrders(operationEntity, request.getUid());
-            operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
-            operationEntity.setScoringStatus(ScoringStatus.APPROVED);
-            operationEntity.setScoringDate(LocalDateTime.now());
-            operationEntity.setLoanContractStartDate(request.getLoanContractStartDate());
-            operationEntity.setLoanContractEndDate(request.getLoanContractEndDate());
-            var customerEntity = operationEntity.getCustomer();
-            customerEntity.setCardId(request.getUid());
-            customerEntity.setCompleteProcessDate(LocalDateTime.now());
-            sendDecision =
-                    umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
+            sendDecision = telesalesResultApproveProcess(request, operationEntity);
         } else {
             operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
             operationEntity.setScoringStatus(ScoringStatus.REJECTED);
@@ -112,6 +103,20 @@ public class OrderService {
         operationRepository.save(operationEntity);
     }
 
+    private Optional<String> telesalesResultApproveProcess(TelesalesResultRequestDto request,
+                                                           OperationEntity operationEntity) {
+        prePurchaseOrders(operationEntity, request.getUid());
+        operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
+        operationEntity.setScoringStatus(ScoringStatus.APPROVED);
+        operationEntity.setScoringDate(LocalDateTime.now());
+        operationEntity.setLoanContractStartDate(request.getLoanContractStartDate());
+        operationEntity.setLoanContractEndDate(request.getLoanContractEndDate());
+        var customerEntity = operationEntity.getCustomer();
+        customerEntity.setCardId(request.getUid());
+        customerEntity.setCompleteProcessDate(LocalDateTime.now());
+        return umicoService.sendApprovedDecision(operationEntity, customerEntity.getId(),
+                customerService.getLoanLimit(request.getUid()));
+    }
 
     @Transactional
     public CreateOrderResponse createOrder(CreateOrderRequestDto request) {
@@ -128,6 +133,7 @@ public class OrderService {
             fraudCheckEvent.setTrackId(trackId);
             customerOrderProducer.sendMessage(fraudCheckEvent);
         }
+        log.info("Create order was finished : trackId - {}", trackId);
         return CreateOrderResponse.of(trackId);
     }
 

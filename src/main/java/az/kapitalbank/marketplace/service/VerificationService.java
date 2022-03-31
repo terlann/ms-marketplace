@@ -22,7 +22,7 @@ public class VerificationService {
     UmicoService umicoService;
     OptimusClient optimusClient;
     ScoringService scoringService;
-    TelesalesService telesalesService;
+    LeadService leadService;
     OperationRepository operationRepository;
 
     public Optional<String> getDvsUrl(UUID trackId, Long dvsId) {

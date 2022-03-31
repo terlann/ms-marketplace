@@ -24,7 +24,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-public class TelesalesService {
+public class LeadService {
 
     LoanClient loanClient;
     UmicoService umicoService;
