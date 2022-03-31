@@ -34,6 +34,7 @@ public class ProductProcessService {
     UmicoService umicoService;
     OrderService orderService;
     ScoringService scoringService;
+    CustomerService customerService;
     TelesalesService telesalesService;
     VerificationService verificationService;
     OperationRepository operationRepository;
@@ -225,7 +226,8 @@ public class ProductProcessService {
             customerEntity.setCardId(cardId.get());
             customerEntity.setCompleteProcessDate(LocalDateTime.now());
             var sendDecision =
-                    umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
+                    umicoService.sendApprovedDecision(operationEntity, customerEntity.getId(),
+                            customerService.getLoanLimit(cardId.get()));
             sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
             operationRepository.save(operationEntity);
             log.info("Customer was finished whole flow : trackId - {} , customerId - {}",

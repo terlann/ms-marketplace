@@ -3,6 +3,7 @@ package az.kapitalbank.marketplace.dto.request;
 import az.kapitalbank.marketplace.dto.DeliveryProductDto;
 import java.util.List;
 import java.util.UUID;
+import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import lombok.AccessLevel;
@@ -24,5 +25,5 @@ public class PurchaseRequestDto {
     UUID trackId;
     @NotNull
     UUID customerId;
-    List<DeliveryProductDto> deliveryOrders;
+    List<@Valid DeliveryProductDto> deliveryOrders;
 }

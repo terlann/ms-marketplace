@@ -5,6 +5,7 @@ import az.kapitalbank.marketplace.client.umico.exception.UmicoClientException;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.entity.OperationEntity;
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -52,8 +53,8 @@ public class UmicoService {
         return sendDecision(umicoDecisionRequest);
     }
 
-    public Optional<String> sendApprovedDecision(OperationEntity operationEntity, UUID customerId) {
-        var loanLimit = operationEntity.getTotalAmount().add(operationEntity.getCommission());
+    public Optional<String> sendApprovedDecision(OperationEntity operationEntity, UUID customerId,
+                                                 BigDecimal loanLimit) {
         var umicoApprovedDecisionRequest =
                 UmicoDecisionRequest.builder()
                         .trackId(operationEntity.getId())
