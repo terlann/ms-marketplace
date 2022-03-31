@@ -1,7 +1,7 @@
 package az.kapitalbank.marketplace.messaging.listener;
 
 import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
-import az.kapitalbank.marketplace.service.ScoringService;
+import az.kapitalbank.marketplace.service.ProductProcessService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.Objects;
 import java.util.function.Consumer;
@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 public class ScoringListener {
 
     ObjectMapper objectMapper;
-    ScoringService scoringService;
+    ProductProcessService productProcessService;
 
     @Bean
     public Consumer<String> scoringResult() {
@@ -29,7 +29,7 @@ public class ScoringListener {
                     var startScoringResult =
                             objectMapper.readValue(message, ScoringResultEvent.class);
                     log.info("scoring result consumer. Message - {}", startScoringResult);
-                    scoringService.scoringResultProcess(startScoringResult);
+                    productProcessService.scoringResultProcess(startScoringResult);
                 } catch (Exception ex) {
                     log.error("Exception scoring result consume.Message - {}, Exception - {}",
                             message,

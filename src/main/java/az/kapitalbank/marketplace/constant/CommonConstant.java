@@ -5,5 +5,6 @@ import lombok.NoArgsConstructor;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class CommonConstant {
-    public static final String CUSTOMER_NOT_FOUND_BY_ID = "customerId - ";
+    public static final String CUSTOMER_ID_LOG = "customerId - ";
+    public static final String TELESALES_ORDER_ID_LOG = "telesalesOrderId - ";
 }
