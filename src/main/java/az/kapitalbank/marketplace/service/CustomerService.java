@@ -1,6 +1,7 @@
 package az.kapitalbank.marketplace.service;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
+import az.kapitalbank.marketplace.client.atlas.model.response.CardDetailResponse;
 import az.kapitalbank.marketplace.client.integration.IamasClient;
 import az.kapitalbank.marketplace.client.integration.model.IamasResponse;
 import az.kapitalbank.marketplace.constant.AccountStatus;
@@ -72,5 +73,22 @@ public class CustomerService {
                 .loanLimit(loanLimit)
                 .cardExpiryDate(cardDetailResponse.getExpiryDate())
                 .build();
+    }
+
+    public BigDecimal getLoanLimit(String cardId) {
+        CardDetailResponse cardDetailResponse;
+        try {
+            cardDetailResponse = atlasClient.findCardByUid(cardId, ResultType.ACCOUNT);
+        } catch (Exception ex) {
+            return BigDecimal.ZERO;
+        }
+        var primaryAccount = cardDetailResponse.getAccounts()
+                .stream()
+                .filter(x -> x.getStatus() == AccountStatus.OPEN_PRIMARY)
+                .findFirst();
+        if (primaryAccount.isPresent()) {
+            return primaryAccount.get().getOverdraftLimit();
+        }
+        return BigDecimal.ZERO;
     }
 }

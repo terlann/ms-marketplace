@@ -34,7 +34,8 @@ public class ProductProcessService {
     UmicoService umicoService;
     OrderService orderService;
     ScoringService scoringService;
-    TelesalesService telesalesService;
+    CustomerService customerService;
+    LeadService leadService;
     VerificationService verificationService;
     OperationRepository operationRepository;
 
@@ -56,7 +57,7 @@ public class ProductProcessService {
             }
             if (fraudResultStatus == FraudResultStatus.SUSPICIOUS) {
                 log.warn("Fraud case was found in this operation : trackId - {}", trackId);
-                telesalesService.sendLead(operationEntity, fraudCheckResultEvent.getTypes());
+                leadService.sendLead(operationEntity, fraudCheckResultEvent.getTypes());
                 operationRepository.save(operationEntity);
                 return;
             }
@@ -117,7 +118,7 @@ public class ProductProcessService {
         if (completeScoring.isEmpty()) {
             var deleteLoan = scoringService.deleteLoan(operationEntity);
             deleteLoan.ifPresent(operationEntity::setDeleteLoanAttemptDate);
-            telesalesService.sendLead(operationEntity, null);
+            leadService.sendLead(operationEntity, null);
         } else {
             operationEntity.setDvsOrderStatus(DvsStatus.CONFIRMED);
         }
@@ -164,7 +165,7 @@ public class ProductProcessService {
         } else {
             var deleteLoan = scoringService.deleteLoan(operationEntity);
             deleteLoan.ifPresent(operationEntity::setDeleteLoanAttemptDate);
-            telesalesService.sendLead(operationEntity, null);
+            leadService.sendLead(operationEntity, null);
             operationRepository.save(operationEntity);
         }
     }
@@ -178,12 +179,12 @@ public class ProductProcessService {
         if (scoredAmount.compareTo(selectedAmount) < 0) {
             log.info("Start scoring result - No enough amount : selectedAmount - {},"
                     + " scoredAmount - {}", selectedAmount, scoredAmount);
-            telesalesService.sendLead(operationEntity, null);
+            leadService.sendLead(operationEntity, null);
         } else {
             var createScoring =
                     scoringService.createScoring(operationEntity.getId(), taskId, scoredAmount);
             if (createScoring.isEmpty()) {
-                telesalesService.sendLead(operationEntity, null);
+                leadService.sendLead(operationEntity, null);
             }
         }
         operationRepository.save(operationEntity);
@@ -207,7 +208,7 @@ public class ProductProcessService {
             sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
             operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.PREAPPROVED);
         } else {
-            telesalesService.sendLead(operationEntity, null);
+            leadService.sendLead(operationEntity, null);
         }
         operationRepository.save(operationEntity);
     }
@@ -225,7 +226,8 @@ public class ProductProcessService {
             customerEntity.setCardId(cardId.get());
             customerEntity.setCompleteProcessDate(LocalDateTime.now());
             var sendDecision =
-                    umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
+                    umicoService.sendApprovedDecision(operationEntity, customerEntity.getId(),
+                            customerService.getLoanLimit(cardId.get()));
             sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
             operationRepository.save(operationEntity);
             log.info("Customer was finished whole flow : trackId - {} , customerId - {}",
@@ -238,7 +240,7 @@ public class ProductProcessService {
                 scoringService.startScoring(operationEntity.getId(), operationEntity.getPin(),
                         operationEntity.getMobileNumber());
         if (businessKey.isEmpty()) {
-            telesalesService.sendLead(operationEntity, null);
+            leadService.sendLead(operationEntity, null);
         } else {
             operationEntity.setBusinessKey(businessKey.get());
         }
@@ -256,7 +258,7 @@ public class ProductProcessService {
         }
         var deleteLoan = scoringService.deleteLoan(operationEntity);
         deleteLoan.ifPresent(operationEntity::setDeleteLoanAttemptDate);
-        telesalesService.sendLead(operationEntity, null);
+        leadService.sendLead(operationEntity, null);
         operationRepository.save(operationEntity);
     }
 }
