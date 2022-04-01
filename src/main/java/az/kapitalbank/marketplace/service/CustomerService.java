@@ -45,7 +45,6 @@ public class CustomerService {
     public BalanceResponseDto getBalance(String umicoUserId, UUID customerId) {
         var customerEntity = customerRepository.findById(customerId)
                 .orElseThrow(() -> new CustomerNotFoundException("customerId - " + customerId));
-
         if (!customerEntity.getUmicoUserId().equals(umicoUserId)) {
             throw new UmicoUserNotFoundException("umicoUserId - " + umicoUserId);
         }
@@ -63,8 +62,7 @@ public class CustomerService {
                     .loanUtilized(BigDecimal.ZERO)
                     .availableBalance(BigDecimal.ZERO)
                     .loanLimit(BigDecimal.ZERO)
-                    .cardExpiryDate(cardDetailResponse.getExpiryDate())
-                    .build();
+                    .cardExpiryDate(cardDetailResponse.getExpiryDate()).build();
         }
         var loanLimit = primaryAccount.get().getOverdraftLimit();
         var availableBalance = primaryAccount.get().getAvailableBalance();
