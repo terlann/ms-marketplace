@@ -57,7 +57,8 @@ public class CustomerService {
                 .filter(x -> x.getStatus() == AccountStatus.OPEN_PRIMARY)
                 .findFirst();
         if (primaryAccount.isEmpty()) {
-            log.error("Account not found in open primary status.cardId - {}", cardId);
+            log.error("Open primary account not found : cardId - {}, primaryAccount - {}", cardId,
+                    primaryAccount);
             return BalanceResponseDto.builder()
                     .loanUtilized(BigDecimal.ZERO)
                     .availableBalance(BigDecimal.ZERO)
@@ -80,6 +81,8 @@ public class CustomerService {
         try {
             cardDetailResponse = atlasClient.findCardByUid(cardId, ResultType.ACCOUNT);
         } catch (Exception ex) {
+            log.error("Get loan limit process was failed : cardId - {}, exception - {}",
+                    cardId, ex);
             return BigDecimal.ZERO;
         }
         var primaryAccount = cardDetailResponse.getAccounts()
@@ -89,6 +92,8 @@ public class CustomerService {
         if (primaryAccount.isPresent()) {
             return primaryAccount.get().getOverdraftLimit();
         }
+        log.error("Get loan limit process was finished : cardId - {}, primaryAccount - {}", cardId,
+                primaryAccount);
         return BigDecimal.ZERO;
     }
 }

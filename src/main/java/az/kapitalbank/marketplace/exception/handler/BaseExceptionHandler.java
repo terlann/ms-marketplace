@@ -58,7 +58,7 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(AtlasClientException.class)
     public ResponseEntity<ErrorResponseDto> atlasClientException(AtlasClientException ex) {
         log.error(EXCEPTION, ex);
-        var errorResponseDto = new ErrorResponseDto(Error.ATLAS_EXCEPTION);
+        var errorResponseDto = new ErrorResponseDto(Error.SERVICE_UNAVAILABLE);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
