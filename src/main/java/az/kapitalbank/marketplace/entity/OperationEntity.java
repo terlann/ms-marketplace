@@ -1,6 +1,7 @@
 package az.kapitalbank.marketplace.entity;
 
 import az.kapitalbank.marketplace.constant.DvsStatus;
+import az.kapitalbank.marketplace.constant.OperationStatus;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import java.math.BigDecimal;
@@ -66,6 +67,8 @@ public class OperationEntity extends BaseEntity {
     String umicoDecisionError;
     String sendTelesalesError;
     LocalDateTime deleteLoanAttemptDate;
+    @Enumerated(EnumType.STRING)
+    OperationStatus operationStatus;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false, updatable = false)

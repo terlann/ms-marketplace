@@ -3,6 +3,7 @@ package az.kapitalbank.marketplace.service;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
 import az.kapitalbank.marketplace.constant.DvsStatus;
 import az.kapitalbank.marketplace.constant.FraudResultStatus;
+import az.kapitalbank.marketplace.constant.OperationStatus;
 import az.kapitalbank.marketplace.constant.ProcessStatus;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.TaskDefinitionKey;
@@ -118,6 +119,7 @@ public class ProductProcessService {
         if (completeScoring.isEmpty()) {
             var deleteLoan = scoringService.deleteLoan(operationEntity);
             deleteLoan.ifPresent(operationEntity::setDeleteLoanAttemptDate);
+            operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_COMPLETE_SCORING);
             leadService.sendLead(operationEntity, null);
         } else {
             operationEntity.setDvsOrderStatus(DvsStatus.CONFIRMED);
@@ -165,6 +167,7 @@ public class ProductProcessService {
         } else {
             var deleteLoan = scoringService.deleteLoan(operationEntity);
             deleteLoan.ifPresent(operationEntity::setDeleteLoanAttemptDate);
+            operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_GET_PROCESS);
             leadService.sendLead(operationEntity, null);
             operationRepository.save(operationEntity);
         }
@@ -180,10 +183,12 @@ public class ProductProcessService {
             log.info("Start scoring result - No enough amount : selectedAmount - {},"
                     + " scoredAmount - {}", selectedAmount, scoredAmount);
             leadService.sendLead(operationEntity, null);
+            // TODO: 04.04.2022 db
         } else {
             var createScoring =
                     scoringService.createScoring(operationEntity.getId(), taskId, scoredAmount);
             if (createScoring.isEmpty()) {
+                operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_CREATE_SCORING);
                 leadService.sendLead(operationEntity, null);
             }
         }
@@ -208,6 +213,7 @@ public class ProductProcessService {
             sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
             operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.PREAPPROVED);
         } else {
+            operationEntity.setOperationStatus(OperationStatus.DVS_URL_FAIL);
             leadService.sendLead(operationEntity, null);
         }
         operationRepository.save(operationEntity);
@@ -229,10 +235,13 @@ public class ProductProcessService {
                     umicoService.sendApprovedDecision(operationEntity, customerEntity.getId(),
                             customerService.getLoanLimit(cardId.get()));
             sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
-            operationRepository.save(operationEntity);
             log.info("Customer was finished whole flow : trackId - {} , customerId - {}",
                     operationEntity.getId(), customerEntity.getId());
+        } else {
+            log.error("Card id is empty. BusinessKey: " + operationEntity.getBusinessKey());
+            operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_GET_CARDID);
         }
+        operationRepository.save(operationEntity);
     }
 
     private void noFraudProcess(OperationEntity operationEntity) {
@@ -240,6 +249,7 @@ public class ProductProcessService {
                 scoringService.startScoring(operationEntity.getId(), operationEntity.getPin(),
                         operationEntity.getMobileNumber());
         if (businessKey.isEmpty()) {
+            operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_START_SCORING);
             leadService.sendLead(operationEntity, null);
         } else {
             operationEntity.setBusinessKey(businessKey.get());
@@ -259,6 +269,8 @@ public class ProductProcessService {
         var deleteLoan = scoringService.deleteLoan(operationEntity);
         deleteLoan.ifPresent(operationEntity::setDeleteLoanAttemptDate);
         leadService.sendLead(operationEntity, null);
+        operationEntity.setOperationStatus(OperationStatus
+                .OPTIMUS_FAIL_BUSINESS_ERROR_OR_INCIDENT_HAPPENED);
         operationRepository.save(operationEntity);
     }
 }
