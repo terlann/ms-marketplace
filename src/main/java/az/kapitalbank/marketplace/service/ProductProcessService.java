@@ -182,8 +182,8 @@ public class ProductProcessService {
         if (scoredAmount.compareTo(selectedAmount) < 0) {
             log.info("Start scoring result - No enough amount : selectedAmount - {},"
                     + " scoredAmount - {}", selectedAmount, scoredAmount);
+            operationEntity.setOperationStatus(OperationStatus.OPTIMUS_NO_ENOUGH_AMOUNT);
             leadService.sendLead(operationEntity, null);
-            // TODO: 04.04.2022 db
         } else {
             var createScoring =
                     scoringService.createScoring(operationEntity.getId(), taskId, scoredAmount);
