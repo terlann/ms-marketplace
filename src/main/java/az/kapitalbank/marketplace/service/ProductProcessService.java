@@ -4,7 +4,7 @@ import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
 import az.kapitalbank.marketplace.constant.DvsStatus;
 import az.kapitalbank.marketplace.constant.FraudResultStatus;
 import az.kapitalbank.marketplace.constant.OperationStatus;
-import az.kapitalbank.marketplace.constant.ProcessStatus;
+import az.kapitalbank.marketplace.constant.RejectedBusinessError;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.TaskDefinitionKey;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
@@ -19,6 +19,7 @@ import az.kapitalbank.marketplace.repository.OperationRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
+import java.util.Optional;
 import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -79,8 +80,10 @@ public class ProductProcessService {
                 scoringCompletedProcess(operationEntity);
                 break;
             case BUSINESS_ERROR:
+                scoringBusinessErrorProcess(scoringResultEvent, operationEntity);
+                break;
             case INCIDENT_HAPPENED:
-                scoringErrorProcess(scoringResultEvent, operationEntity);
+                scoringIncidentProcess(scoringResultEvent, operationEntity);
                 break;
             default:
         }
@@ -245,7 +248,7 @@ public class ProductProcessService {
                     operationEntity.getId(), customerEntity.getId());
         } else {
             log.error("Card id is empty. BusinessKey: " + operationEntity.getBusinessKey());
-            operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_GET_CARDID);
+            operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_GET_CARD_ID);
         }
         operationRepository.save(operationEntity);
     }
@@ -263,20 +266,50 @@ public class ProductProcessService {
         operationRepository.save(operationEntity);
     }
 
-    private void scoringErrorProcess(ScoringResultEvent scoringResultEvent,
-                                     OperationEntity operationEntity) {
-        if (scoringResultEvent.getProcessStatus() == ProcessStatus.BUSINESS_ERROR) {
-            log.error("Scoring result : business error , response - {}",
-                    Arrays.toString((BusinessErrorData[]) scoringResultEvent.getData()));
-        } else if (scoringResultEvent.getProcessStatus() == ProcessStatus.INCIDENT_HAPPENED) {
-            log.error("Scoring result : incident happened , response - {}",
-                    scoringResultEvent.getData());
+    private void scoringBusinessErrorProcess(ScoringResultEvent scoringResultEvent,
+                                             OperationEntity operationEntity) {
+        var businessErrorData =
+                (BusinessErrorData[]) scoringResultEvent.getData();
+        log.error("Scoring result : business error , response - {}",
+                Arrays.toString(businessErrorData));
+        var rejectedBusinessError = checkRejectedBusinessErrors(businessErrorData);
+        if (rejectedBusinessError.isPresent()) {
+            var sendDecision = umicoService.sendRejectedDecision(operationEntity.getId());
+            sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
+            operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
+        } else {
+            var deleteLoan = scoringService.deleteLoan(operationEntity);
+            deleteLoan.ifPresent(operationEntity::setDeleteLoanAttemptDate);
+            leadService.sendLead(operationEntity, null);
+            operationEntity.setOperationStatus(OperationStatus
+                    .OPTIMUS_FAIL_BUSINESS_ERROR);
         }
+
+        operationRepository.save(operationEntity);
+    }
+
+    private void scoringIncidentProcess(ScoringResultEvent scoringResultEvent,
+                                        OperationEntity operationEntity) {
+        log.error("Scoring result : incident happened , response - {}",
+                scoringResultEvent.getData());
         var deleteLoan = scoringService.deleteLoan(operationEntity);
         deleteLoan.ifPresent(operationEntity::setDeleteLoanAttemptDate);
         leadService.sendLead(operationEntity, null);
         operationEntity.setOperationStatus(OperationStatus
-                .OPTIMUS_FAIL_BUSINESS_ERROR_OR_INCIDENT_HAPPENED);
+                .OPTIMUS_FAIL_INCIDENT_HAPPENED);
         operationRepository.save(operationEntity);
+    }
+
+    private Optional<String> checkRejectedBusinessErrors(BusinessErrorData[] businessErrors) {
+        for (var businessError : businessErrors) {
+            try {
+                var rejectedBusinessError =
+                        RejectedBusinessError.valueOf(businessError.getId());
+                return Optional.of(rejectedBusinessError.name());
+            } catch (IllegalArgumentException ignored) {
+                log.info("Unexcepted business error : error - {}", businessError.getId());
+            }
+        }
+        return Optional.empty();
     }
 }
