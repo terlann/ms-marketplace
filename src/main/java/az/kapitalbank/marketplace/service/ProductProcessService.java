@@ -176,7 +176,14 @@ public class ProductProcessService {
         log.info("Start scoring result : businessKey - {}", operationEntity.getBusinessKey());
         operationEntity.setTaskId(taskId);
         var selectedAmount = operationEntity.getTotalAmount().add(operationEntity.getCommission());
-        if (scoredAmount.compareTo(selectedAmount) < 0) {
+        if (scoredAmount.compareTo(BigDecimal.ZERO) == 0) {
+            log.info("Start scoring result - Scoring amount is zero");
+            var sendDecision = umicoService
+                    .sendRejectedDecision(operationEntity.getId());
+            sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
+            operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
+            operationRepository.save(operationEntity);
+        } else if (scoredAmount.compareTo(selectedAmount) < 0) {
             log.info("Start scoring result - No enough amount : selectedAmount - {},"
                     + " scoredAmount - {}", selectedAmount, scoredAmount);
             leadService.sendLead(operationEntity, null);
