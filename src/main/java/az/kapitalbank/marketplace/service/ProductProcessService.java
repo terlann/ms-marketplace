@@ -182,7 +182,6 @@ public class ProductProcessService {
                     .sendRejectedDecision(operationEntity.getId());
             sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
             operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
-            operationRepository.save(operationEntity);
         } else if (scoredAmount.compareTo(selectedAmount) < 0) {
             log.info("Start scoring result - No enough amount : selectedAmount - {},"
                     + " scoredAmount - {}", selectedAmount, scoredAmount);
