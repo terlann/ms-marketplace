@@ -324,8 +324,8 @@ public class ProductProcessService {
                 var rejectedBusinessError =
                         RejectedBusinessError.valueOf(businessError.getId());
                 return Optional.of(rejectedBusinessError.name());
-            } catch (IllegalArgumentException ignored) {
-                log.info("Unexcepted business error : error - {}", businessError.getId());
+            } catch (Exception ex) {
+                log.info("Unexcepted business error : error - {}", ex);
             }
         }
         return Optional.empty();

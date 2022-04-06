@@ -24,12 +24,14 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
 
 @Getter
 @Setter
 @Entity
+@ToString
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor

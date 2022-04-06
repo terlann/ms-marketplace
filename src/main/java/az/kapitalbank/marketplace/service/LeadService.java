@@ -50,6 +50,7 @@ public class LeadService {
         } catch (Exception e) {
             log.error("Send lead to telesales was failed :"
                     + " trackId - {}, exception - {}", trackId, e);
+            operationEntity.setSendTelesalesError(e.getMessage());
             return Optional.empty();
         }
     }
