@@ -4,6 +4,7 @@ import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteReq
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.ReversePurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.response.CardDetailResponse;
+import az.kapitalbank.marketplace.client.atlas.model.response.CardResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseCompleteResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.ReverseResponse;
@@ -41,6 +42,9 @@ public interface AtlasClient {
     SubscriptionResponse findAllByUid(@PathVariable String uid,
                                       @RequestParam String channel,
                                       @RequestParam String schema);
+
+    @GetMapping("/cards/pan/{pan}")
+    CardResponse findByPan(@PathVariable String pan);
 
     class FeignConfiguration {
         @Bean

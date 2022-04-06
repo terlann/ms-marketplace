@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
+import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -27,6 +28,8 @@ public class CreateOrderRequestDto {
     Integer loanTerm;
     @NotNull
     BigDecimal totalAmount;
-    List<OrderProductDeliveryInfo> deliveryInfo;
+    @NotEmpty
+    List<@Valid OrderProductDeliveryInfo> deliveryInfo;
+    @NotEmpty
     List<@Valid OrderProductItem> products;
 }

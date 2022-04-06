@@ -30,7 +30,7 @@ public enum Error {
     OTP_PHONE_BLOCKED("E116", "Phone was blocked"),
     OTP_SEND_LIMIT_EXCEEDED("E117", "Send otp limit exceed"),
     OTP_NOT_FOUND("E118", "Otp not found"),
-    OTP_EXCEPTION("E119", "Otp Exception"),
+    OTP_SERVICE_UNAVAILABLE("E119", "Otp service unavailable"),
     OTP_ATTEMPT_LIMIT_ONE("E120", "Invalid otp! remaining attempt: 1"),
     OTP_ATTEMPT_LIMIT_TWO("E121", "Invalid otp! remaining attempt: 2"),
     SUBSCRIPTION_NOT_FOUND("E122", "Mobile number not found"),

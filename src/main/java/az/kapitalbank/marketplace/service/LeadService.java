@@ -31,8 +31,8 @@ public class LeadService {
     TelesalesClient telesalesClient;
     TelesalesMapper telesalesMapper;
 
-    private Optional<String> sendLeadSrs(OperationEntity operationEntity,
-                                         List<FraudType> fraudTypes) {
+    private Optional<String> sendLeadTelesales(OperationEntity operationEntity,
+                                               List<FraudType> fraudTypes) {
         var trackId = operationEntity.getId();
         log.info("Send lead to telesales is started : trackId - {}", trackId);
         try {
@@ -44,12 +44,12 @@ public class LeadService {
             log.info("Send lead to telesales : request - {}", createTelesalesOrderRequest);
             var createTelesalesOrderResponse =
                     telesalesClient.sendLead(createTelesalesOrderRequest);
-            log.info("Send lead to telesales was finished successfully..."
-                    + " trackId -{}, Response - {}", trackId, createTelesalesOrderResponse);
+            log.info("Send lead to telesales was finished :"
+                    + " trackId - {}, response - {}", trackId, createTelesalesOrderResponse);
             return Optional.of(createTelesalesOrderResponse.getOperationId());
         } catch (Exception e) {
-            log.error("Send lead to telesales was finished unsuccessfully."
-                    + " trackId -{}, Exception - {}", trackId, e.getMessage());
+            log.error("Send lead to telesales was failed :"
+                    + " trackId - {}, exception - {}", trackId, e);
             return Optional.empty();
         }
     }
@@ -57,7 +57,7 @@ public class LeadService {
     private Optional<String> sendLeadLoan(OperationEntity operationEntity) {
         var trackId = operationEntity.getId();
         try {
-            log.info("Send lead to loan service is started : trackId - {}", trackId);
+            log.info("Send lead to loan is started : trackId - {}", trackId);
             LoanRequest loanRequest =
                     LoanRequest.builder()
                             .productType(ProductType.BIRKART)
@@ -68,22 +68,20 @@ public class LeadService {
                             .productAmount(operationEntity.getTotalAmount().add(operationEntity
                                     .getCommission()))
                             .build();
-            log.info("Send lead to loan service : request - {}", loanRequest);
+            log.info("Send lead to loan : request - {}", loanRequest);
             LoanResponse response = loanClient.sendLead(UMICO_SOURCE_CODE, loanRequest);
-            log.info("Send lead to loan service was finished : trackId -{},"
-                    + " Response - {}", trackId, response);
+            log.info("Send lead to loan was finished : trackId - {}, response - {}",
+                    trackId,
+                    response);
             return Optional.of(response.getData().getLeadId());
         } catch (Exception e) {
-            log.error("Send lead to loan service was failed : "
-                    + "trackId -{}, Exception - {}", trackId, e.getMessage());
-            log.error("Send lead to telesales was failed : trackId - {}, exception - {}",
-                    trackId, e);
+            log.error("Send lead to loan was failed : trackId - {}, exception - {}", trackId, e);
             return Optional.empty();
         }
     }
 
     public void sendLead(OperationEntity operationEntity, List<FraudType> fraudTypes) {
-        var telesalesOrderId = sendLeadSrs(operationEntity, fraudTypes);
+        var telesalesOrderId = sendLeadTelesales(operationEntity, fraudTypes);
         telesalesOrderId.ifPresent(operationEntity::setTelesalesOrderId);
         var loanId = sendLeadLoan(operationEntity);
         loanId.ifPresent(operationEntity::setLoanId);

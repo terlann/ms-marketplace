@@ -70,10 +70,10 @@ public class ScoringService {
         }
     }
 
-    public Optional<String> getCardId(String businessKey) {
+    public Optional<String> getCardId(String businessKey, String variableName) {
         log.info("Get card uid process is started : businessKey - {}", businessKey);
         try {
-            var cardId = optimusClient.getProcessVariable(businessKey, "uid").getUid();
+            var cardId = optimusClient.getProcessVariable(businessKey, variableName).getUid();
             log.info("Get card uid was finished : businessKey - {}, cardId - {}",
                     businessKey,
                     cardId);

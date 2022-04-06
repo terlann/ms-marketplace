@@ -1,6 +1,7 @@
 package az.kapitalbank.marketplace.dto;
 
 import java.math.BigDecimal;
+import javax.validation.constraints.NotEmpty;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,6 +15,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OrderProductDeliveryInfo {
+    @NotEmpty
     String orderNo;
     String deliveryMethod;
     String deliveryAddress;
