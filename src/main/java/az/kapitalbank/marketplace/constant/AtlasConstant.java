@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class AtlasConstant {
     public static final Integer AZN = 944;
+    public static final String PAN = "pan";
+    public static final String UID = "uid";
     public static final String TERMINAL_NAME = "R1020002";
     public static final String REVERSE_DESCRIPTION = "umico marketplace reverse operation";
 }

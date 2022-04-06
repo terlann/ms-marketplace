@@ -1,15 +1,13 @@
 package az.kapitalbank.marketplace.client.umico.exception;
 
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 
-@Getter
-@Setter
-@ToString
+@Data
+@EqualsAndHashCode(callSuper = true)
 public class UmicoClientException extends RuntimeException {
 
-    static final String MESSAGE = "Umico client exception.method_key - %s, Response - %s";
+    private static final String MESSAGE = "Umico client exception.method_key - %s, response - %s";
 
     public UmicoClientException(String methodKey, String response) {
         super(String.format(MESSAGE, methodKey, response));

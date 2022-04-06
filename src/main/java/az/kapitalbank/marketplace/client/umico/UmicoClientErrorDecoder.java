@@ -14,7 +14,7 @@ public class UmicoClientErrorDecoder implements ErrorDecoder {
     @SneakyThrows
     @Override
     public Exception decode(String methodKey, Response response) {
-        if (response.status() == 400 || response.status() == 404) {
+        if (isErrorStatus(response.status())) {
             var errorResponse =
                     new ObjectMapper().readValue(response.body().asInputStream(),
                             UmicoClientErrorResponse.class);
@@ -22,5 +22,10 @@ public class UmicoClientErrorDecoder implements ErrorDecoder {
         } else {
             throw new UmicoClientException(methodKey, response.body().toString());
         }
+    }
+
+    private boolean isErrorStatus(int httpStatus) {
+        var status = String.valueOf(httpStatus);
+        return status.startsWith("4") || status.startsWith("5");
     }
 }
