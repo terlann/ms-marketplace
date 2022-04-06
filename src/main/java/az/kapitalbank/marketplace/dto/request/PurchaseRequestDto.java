@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.UUID;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
@@ -25,5 +26,6 @@ public class PurchaseRequestDto {
     UUID trackId;
     @NotNull
     UUID customerId;
+    @NotEmpty
     List<@Valid DeliveryProductDto> deliveryOrders;
 }

@@ -1,5 +1,8 @@
 package az.kapitalbank.marketplace.service;
 
+import static az.kapitalbank.marketplace.constant.AtlasConstant.PAN;
+import static az.kapitalbank.marketplace.constant.AtlasConstant.UID;
+
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
 import az.kapitalbank.marketplace.constant.DvsStatus;
 import az.kapitalbank.marketplace.constant.FraudResultStatus;
@@ -230,27 +233,42 @@ public class ProductProcessService {
 
     private void scoringCompletedProcess(OperationEntity operationEntity) {
         log.info("Complete scoring result : businessKey - {}", operationEntity.getBusinessKey());
-        var cardId = scoringService.getCardId(operationEntity.getBusinessKey());
-        if (cardId.isPresent()) {
-            orderService.prePurchaseOrders(operationEntity, cardId.get());
-            log.info("Auto flow : orders purchase process was finished...");
-            operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
-            operationEntity.setScoringDate(LocalDateTime.now());
-            operationEntity.setScoringStatus(ScoringStatus.APPROVED);
-            var customerEntity = operationEntity.getCustomer();
-            customerEntity.setCardId(cardId.get());
-            customerEntity.setCompleteProcessDate(LocalDateTime.now());
-            var sendDecision =
-                    umicoService.sendApprovedDecision(operationEntity, customerEntity.getId(),
-                            customerService.getLoanLimit(cardId.get()));
-            sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
-            log.info("Customer was finished whole flow : trackId - {} , customerId - {}",
-                    operationEntity.getId(), customerEntity.getId());
-        } else {
+        Optional<String> cardId = getCardId(operationEntity.getBusinessKey());
+        if (cardId.isEmpty()) {
             log.error("Card id is empty. BusinessKey: " + operationEntity.getBusinessKey());
             operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_GET_CARD_ID);
+            operationRepository.save(operationEntity);
+            return;
         }
+        orderService.prePurchaseOrders(operationEntity, cardId.get());
+        log.info("Auto flow : orders purchase process was finished...");
+        operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
+        operationEntity.setScoringDate(LocalDateTime.now());
+        operationEntity.setScoringStatus(ScoringStatus.APPROVED);
+        var customerEntity = operationEntity.getCustomer();
+        customerEntity.setCardId(cardId.get());
+        customerEntity.setCompleteProcessDate(LocalDateTime.now());
+        var sendDecision =
+                umicoService.sendApprovedDecision(operationEntity, customerEntity.getId(),
+                        customerService.getLoanLimit(cardId.get()));
+        sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
         operationRepository.save(operationEntity);
+        log.info("Customer was finished whole flow : trackId - {} , customerId - {}",
+                operationEntity.getId(), customerEntity.getId());
+    }
+
+    private Optional<String> getCardId(String businessKey) {
+        Optional<String> cardId = Optional.empty();
+        var cardIdUid = scoringService.getCardId(businessKey, UID);
+        if (cardIdUid.isPresent()) {
+            cardId = cardIdUid;
+        } else {
+            var cardIdPan = scoringService.getCardId(businessKey, PAN);
+            if (cardIdPan.isPresent()) {
+                cardId = cardIdPan;
+            }
+        }
+        return cardId;
     }
 
     private void noFraudProcess(OperationEntity operationEntity) {

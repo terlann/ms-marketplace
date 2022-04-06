@@ -105,17 +105,23 @@ public class OrderService {
 
     private Optional<String> telesalesResultApproveProcess(TelesalesResultRequestDto request,
                                                            OperationEntity operationEntity) {
-        prePurchaseOrders(operationEntity, request.getUid());
+        String cardId;
+        if (request.getUid() != null) {
+            cardId = request.getUid();
+        } else {
+            cardId = atlasClient.findByPan(request.getPan()).getUid();
+        }
+        prePurchaseOrders(operationEntity, cardId);
         operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
         operationEntity.setScoringStatus(ScoringStatus.APPROVED);
         operationEntity.setScoringDate(LocalDateTime.now());
         operationEntity.setLoanContractStartDate(request.getLoanContractStartDate());
         operationEntity.setLoanContractEndDate(request.getLoanContractEndDate());
         var customerEntity = operationEntity.getCustomer();
-        customerEntity.setCardId(request.getUid());
+        customerEntity.setCardId(cardId);
         customerEntity.setCompleteProcessDate(LocalDateTime.now());
         return umicoService.sendApprovedDecision(operationEntity, customerEntity.getId(),
-                customerService.getLoanLimit(request.getUid()));
+                customerService.getLoanLimit(cardId));
     }
 
     @Transactional

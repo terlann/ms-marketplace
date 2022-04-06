@@ -198,7 +198,7 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
                 error = Error.INVALID_OTP_AND_PHONE_BLOCKED;
                 break;
             default:
-                error = Error.OTP_EXCEPTION;
+                error = Error.OTP_SERVICE_UNAVAILABLE;
         }
         var errorResponseDto = new ErrorResponseDto(error);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
