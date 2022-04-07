@@ -8,8 +8,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
-import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
-import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.Subscription;
 import az.kapitalbank.marketplace.client.atlas.model.response.SubscriptionResponse;
 import az.kapitalbank.marketplace.client.otp.OtpClient;
@@ -26,13 +24,11 @@ import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.repository.OperationRepository;
-import az.kapitalbank.marketplace.repository.OrderRepository;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.experimental.NonFinal;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -40,32 +36,25 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Value;
 
-@Disabled
 @ExtendWith(MockitoExtension.class)
 class OtpServiceTest {
+
     @Mock
     AtlasClient atlasClient;
-
     @Mock
     OtpClient otpClient;
-
     @Mock
     OperationRepository operationRepository;
-
     @Mock
-    OrderRepository orderRepository;
-
+    OrderService orderService;
     @InjectMocks
     OtpService otpService;
-
-
     @NonFinal
     @Value("${purchase.terminal-name}")
     String terminalName;
 
     @Test
     void send_Success() {
-        //GIVEN
         var trackId = UUID.fromString(OtpConstant.DEFINITION_ID.getValue());
         var request = SendOtpRequestDto.builder()
                 .trackId(trackId).build();
@@ -75,18 +64,15 @@ class OtpServiceTest {
         SendOtpResponse sendOtpResponse = SendOtpResponse.builder()
                 .message("success")
                 .build();
-        var customerEntity = CustomerEntity.builder()
-                .cardId(CARD_UID.getValue())
-                .build();
         OperationEntity operationEntity =
-                getOperationEntity(customerEntity);
+                getOperationEntity();
         SubscriptionResponse subscriptionResponse =
                 getSubscriptionResponse();
 
         when(operationRepository.findById(trackId)).thenReturn(Optional.of(operationEntity));
         when(atlasClient.findAllByUid(CARD_UID.getValue(), "", "")).thenReturn(
                 subscriptionResponse);
-        when(otpClient.send(sendOtpRequest)).thenReturn(sendOtpResponse);
+        when(otpClient.send(any(SendOtpRequest.class))).thenReturn(sendOtpResponse);
 
         var actual = otpService.send(request);
         var expected =
@@ -103,15 +89,6 @@ class OtpServiceTest {
                 .address("994553601019")
                 .build());
         return SubscriptionResponse.builder().subscriptions(subscriptions).build();
-    }
-
-
-    private OperationEntity getOperationEntity(CustomerEntity customerEntity) {
-        return OperationEntity.builder()
-                .pin("5JR9R1E")
-                .fullName("Qurbanov Terlan")
-                .customer(customerEntity)
-                .build();
     }
 
     private OperationEntity getOperationEntity(CustomerEntity customerEntity,
@@ -153,25 +130,19 @@ class OtpServiceTest {
         OperationEntity operationEntity = getOperationEntity();
         var subscriptionResponse = getSubscriptionResponse();
 
-        var purchaseResponse = PurchaseResponse.builder()
-                .id("83660ed4-9e42-11ec-b909-0242ac120002")
-                .approvalCode("789456")
-                .build();
         var otpVerifyResponse = VerifyOtpResponse.builder().build();
         when(operationRepository.findById(any()))
                 .thenReturn(Optional.of(operationEntity));
         when(atlasClient.findAllByUid(CARD_UID.getValue(), "", ""))
                 .thenReturn(subscriptionResponse);
-        when(atlasClient.purchase(any(PurchaseRequest.class))).thenReturn(purchaseResponse);
         when(otpClient.verify(any(VerifyOtpRequest.class))).thenReturn(otpVerifyResponse);
-
         var requestDto = VerifyOtpRequestDto.builder()
                 .otp("2222")
                 .trackId(trackId)
                 .build();
+
         otpService.verify(requestDto);
 
-        verify(atlasClient).purchase(any(PurchaseRequest.class));
-
+        verify(otpClient).verify(any(VerifyOtpRequest.class));
     }
 }

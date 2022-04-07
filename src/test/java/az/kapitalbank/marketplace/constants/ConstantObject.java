@@ -1,0 +1,48 @@
+package az.kapitalbank.marketplace.constants;
+
+import static az.kapitalbank.marketplace.constants.TestConstants.BUSINESS_KEY;
+import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
+import static az.kapitalbank.marketplace.constants.TestConstants.TASK_ID;
+import static az.kapitalbank.marketplace.constants.TestConstants.TRACK_ID;
+
+import az.kapitalbank.marketplace.entity.CustomerEntity;
+import az.kapitalbank.marketplace.entity.OperationEntity;
+import az.kapitalbank.marketplace.entity.OrderEntity;
+import az.kapitalbank.marketplace.entity.ProductEntity;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
+
+public class ConstantObject {
+
+    public static CustomerEntity getCustomerEntity() {
+        return CustomerEntity.builder()
+                .cardId(CARD_UID.getValue()).build();
+    }
+
+    public static OperationEntity getOperationEntity() {
+        return OperationEntity.builder()
+                .id(UUID.fromString(TRACK_ID.getValue()))
+                .orders(List.of(getOrderEntity()))
+                .commission(BigDecimal.valueOf(12))
+                .customer(getCustomerEntity())
+                .totalAmount(BigDecimal.ONE)
+                .dvsOrderId(12345L)
+                .taskId(TASK_ID.getValue())
+                .businessKey(BUSINESS_KEY.getValue())
+                .build();
+    }
+
+    public static OrderEntity getOrderEntity() {
+        return OrderEntity.builder()
+                .products(List.of(getProductEntity()))
+                .totalAmount(BigDecimal.ONE)
+                .commission(BigDecimal.ONE)
+                .build();
+    }
+
+    public static ProductEntity getProductEntity() {
+        return ProductEntity.builder().build();
+    }
+
+}

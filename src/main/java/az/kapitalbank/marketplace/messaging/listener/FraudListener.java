@@ -31,10 +31,8 @@ public class FraudListener {
                     log.info("check fraud result consumer. Message - {}", fraudCheckResultEvent);
                     productProcessService.fraudResultProcess(fraudCheckResultEvent);
                 } catch (Exception ex) {
-                    log.error(
-                            "Exception check fraud result consume.Message - {}, Exception - {}",
-                            message,
-                            ex);
+                    log.error("Exception check fraud result consume.Message - {}, Exception - {}",
+                            message, ex);
                 }
             }
         };
