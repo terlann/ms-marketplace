@@ -5,6 +5,9 @@ import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
 import static az.kapitalbank.marketplace.constants.TestConstants.TASK_ID;
 import static az.kapitalbank.marketplace.constants.TestConstants.TRACK_ID;
 
+import az.kapitalbank.marketplace.client.atlas.model.response.AccountResponse;
+import az.kapitalbank.marketplace.client.atlas.model.response.CardDetailResponse;
+import az.kapitalbank.marketplace.constant.AccountStatus;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
@@ -45,4 +48,16 @@ public class ConstantObject {
         return ProductEntity.builder().build();
     }
 
+    public static CardDetailResponse getCardDetailResponse() {
+        return CardDetailResponse.builder()
+                .accounts(List.of(getAccountResponse()))
+                .build();
+    }
+
+    public static AccountResponse getAccountResponse() {
+        return AccountResponse.builder()
+                .status(AccountStatus.OPEN_PRIMARY)
+                .availableBalance(BigDecimal.valueOf(10000L))
+                .overdraftLimit(BigDecimal.valueOf(10000L)).build();
+    }
 }

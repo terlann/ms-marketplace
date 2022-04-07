@@ -1,6 +1,7 @@
 package az.kapitalbank.marketplace.dto.request;
 
 import az.kapitalbank.marketplace.constant.ScoringStatus;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
@@ -29,4 +30,6 @@ public class TelesalesResultRequestDto {
     String uid;
     @NotBlank
     String pan;
+    @NotBlank
+    BigDecimal scoredAmount;
 }

@@ -10,7 +10,6 @@ import az.kapitalbank.marketplace.client.umico.UmicoClient;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionResponse;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
-import java.math.BigDecimal;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,7 +60,7 @@ class UmicoServiceTest {
                 .thenReturn(new UmicoDecisionResponse("status", 0));
 
         umicoService.sendApprovedDecision(getOperationEntity(),
-                UUID.fromString("7a18702d-e8dc-471c-8dd5-09c1a1c772b5"), new BigDecimal("0.00"));
+                UUID.fromString("7a18702d-e8dc-471c-8dd5-09c1a1c772b5"));
         verify(umicoClient).sendDecision(any(UmicoDecisionRequest.class), eq(null));
     }
 }

@@ -1,5 +1,6 @@
 package az.kapitalbank.marketplace.service;
 
+import static az.kapitalbank.marketplace.constants.ConstantObject.getCardDetailResponse;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getCustomerEntity;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntity;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOrderEntity;
@@ -22,6 +23,7 @@ import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseCompleteRe
 import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.ReverseResponse;
 import az.kapitalbank.marketplace.constant.OrderStatus;
+import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.dto.DeliveryProductDto;
@@ -141,6 +143,28 @@ class OrderServiceTest {
         var expected = CreateOrderResponse.of(UUID.fromString(TRACK_ID.getValue()));
         assertEquals(expected, actual);
         verify(orderMapper).toOrderEvent(request);
+    }
+
+    @Test
+    void createOrder_SecondOperation() {
+        CreateOrderRequestDto request =
+                getCreateOrderRequestDto(UUID.fromString("d2a9d8bc-9beb-11ec-b909-0242ac120002"));
+        var fraudCheckEvent = FraudCheckEvent.builder().build();
+
+        when(amountUtil.getCommission(BigDecimal.valueOf(50), 12))
+                .thenReturn(BigDecimal.valueOf(12));
+        when(operationMapper.toOperationEntity(request)).thenReturn(getOperationEntity());
+        when(orderMapper.toOrderEntity(request.getDeliveryInfo().get(0),
+                BigDecimal.valueOf(12))).thenReturn(getOrderEntity());
+        when(orderMapper.toProductEntity(request.getProducts().get(0))).thenReturn(
+                getProductEntity());
+        when(operationRepository.save(any(OperationEntity.class))).thenReturn(getOperationEntity());
+        when(customerRepository.findById(request.getCustomerInfo().getCustomerId())).thenReturn(
+                Optional.of(getCustomerEntity()));
+        when(atlasClient.findCardByUid(CARD_UID.getValue(), ResultType.ACCOUNT)).thenReturn(
+                getCardDetailResponse());
+        orderService.createOrder(request);
+        verify(operationMapper).toOperationEntity(request);
     }
 
     @Test

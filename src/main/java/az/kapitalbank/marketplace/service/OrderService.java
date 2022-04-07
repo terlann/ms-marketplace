@@ -2,6 +2,7 @@ package az.kapitalbank.marketplace.service;
 
 import static az.kapitalbank.marketplace.constant.AtlasConstant.REVERSE_DESCRIPTION;
 import static az.kapitalbank.marketplace.constant.CommonConstant.CUSTOMER_ID_LOG;
+import static az.kapitalbank.marketplace.constant.CommonConstant.ORDER_NO_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.TELESALES_ORDER_ID_LOG;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
@@ -117,11 +118,11 @@ public class OrderService {
         operationEntity.setScoringDate(LocalDateTime.now());
         operationEntity.setLoanContractStartDate(request.getLoanContractStartDate());
         operationEntity.setLoanContractEndDate(request.getLoanContractEndDate());
+        operationEntity.setScoredAmount(request.getScoredAmount());
         var customerEntity = operationEntity.getCustomer();
         customerEntity.setCardId(cardId);
         customerEntity.setCompleteProcessDate(LocalDateTime.now());
-        return umicoService.sendApprovedDecision(operationEntity, customerEntity.getId(),
-                customerService.getLoanLimit(cardId));
+        return umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
     }
 
     @Transactional
@@ -188,14 +189,13 @@ public class OrderService {
                 log.info("New customer was created. customerId" + customerEntity.getId());
             }
         } else {
-            customerEntity = customerRepository.findById(customerId).orElseThrow(
-                    () -> new CustomerNotFoundException(CUSTOMER_ID_LOG + customerId));
-            var isExistsCustomerByDecisionStatus = operationRepository
-                    .existsByCustomerAndUmicoDecisionStatusIn(customerEntity,
+            customerEntity = customerRepository.findById(customerId)
+                    .orElseThrow(() -> new CustomerNotFoundException(CUSTOMER_ID_LOG + customerId));
+            var isExistsCustomerByDecisionStatus =
+                    operationRepository.existsByCustomerAndUmicoDecisionStatusIn(customerEntity,
                             Set.of(UmicoDecisionStatus.PENDING, UmicoDecisionStatus.PREAPPROVED));
             if (isExistsCustomerByDecisionStatus) {
-                throw new CustomerNotCompletedProcessException(
-                        CUSTOMER_ID_LOG + customerId);
+                throw new CustomerNotCompletedProcessException(CUSTOMER_ID_LOG + customerId);
             }
             validateCustomerBalance(request, customerEntity.getCardId());
         }
@@ -229,11 +229,9 @@ public class OrderService {
         log.info("Purchase process is started : request - {}", request);
         var customerId = request.getCustomerId();
         var customerEntity = customerRepository.findById(customerId)
-                .orElseThrow(
-                        () -> new CustomerNotFoundException(CUSTOMER_ID_LOG + customerId));
+                .orElseThrow(() -> new CustomerNotFoundException(CUSTOMER_ID_LOG + customerId));
         var cardId = customerEntity.getCardId();
-        var orderNoList = request.getDeliveryOrders().stream()
-                .map(DeliveryProductDto::getOrderNo)
+        var orderNoList = request.getDeliveryOrders().stream().map(DeliveryProductDto::getOrderNo)
                 .collect(Collectors.toList());
         var orders = orderRepository.findByOrderNoIn(orderNoList);
         var purchaseResponseDtoList = new ArrayList<PurchaseResponseDto>();
@@ -247,8 +245,7 @@ public class OrderService {
             } else {
                 log.error("No Permission for complete. orderNo - {}, transactionStatus -{}",
                         order.getOrderNo(), order.getTransactionStatus());
-                purchaseResponseDto = PurchaseResponseDto.builder()
-                        .orderNo(order.getOrderNo())
+                purchaseResponseDto = PurchaseResponseDto.builder().orderNo(order.getOrderNo())
                         .status(OrderStatus.FAIL).build();
             }
             purchaseResponseDtoList.add(purchaseResponseDto);
@@ -263,8 +260,7 @@ public class OrderService {
         var rrn = GenerateUtil.rrn();
         var purchaseCompleteRequest = getPurchaseCompleteRequest(cardId, order, rrn);
         try {
-            var purchaseCompleteResponse = atlasClient
-                    .complete(purchaseCompleteRequest);
+            var purchaseCompleteResponse = atlasClient.complete(purchaseCompleteRequest);
             var transactionId = purchaseCompleteResponse.getId();
             order.setTransactionId(transactionId);
             order.setTransactionStatus(TransactionStatus.COMPLETE);
@@ -310,14 +306,9 @@ public class OrderService {
         var amount = order.getTotalAmount();
         var commission = order.getCommission();
         var totalPayment = commission.add(amount);
-        return PurchaseCompleteRequest.builder()
-                .id(Long.valueOf(order.getTransactionId()))
-                .uid(cardId)
-                .amount(totalPayment)
-                .approvalCode(order.getApprovalCode())
-                .rrn(rrn)
-                .installments(order.getOperation().getLoanTerm())
-                .build();
+        return PurchaseCompleteRequest.builder().id(Long.valueOf(order.getTransactionId()))
+                .uid(cardId).amount(totalPayment).approvalCode(order.getApprovalCode()).rrn(rrn)
+                .installments(order.getOperation().getLoanTerm()).build();
     }
 
     @Transactional
@@ -326,7 +317,7 @@ public class OrderService {
         var customerId = request.getCustomerId();
         var orderNo = request.getOrderNo();
         var orderEntity = orderRepository.findByOrderNo(orderNo)
-                .orElseThrow(() -> new OrderNotFoundException("orderNo - " + orderNo));
+                .orElseThrow(() -> new OrderNotFoundException(ORDER_NO_LOG + orderNo));
         var transactionStatus = orderEntity.getTransactionStatus();
         if (transactionStatus == TransactionStatus.PURCHASE
                 || transactionStatus == TransactionStatus.FAIL_IN_REVERSE
@@ -334,7 +325,7 @@ public class OrderService {
             var customerEntity = orderEntity.getOperation().getCustomer();
             if (!customerEntity.getId().equals(request.getCustomerId())) {
                 throw new OrderNotLinkedToCustomer(
-                        "orderNo - " + orderNo + ", customerId - " + customerId);
+                        ORDER_NO_LOG + orderNo + "," + CUSTOMER_ID_LOG + customerId);
             }
             var purchaseResponse = reverseOrder(orderEntity);
             log.info("Reverse process was finished : orderNo - {}, customerId - {}",
@@ -342,16 +333,14 @@ public class OrderService {
             return purchaseResponse;
         }
         throw new NoPermissionForTransaction(
-                "orderNo- " + orderEntity.getId() + " transactionStatus- "
-                        + orderEntity.getTransactionStatus());
+                ORDER_NO_LOG + orderEntity.getId() + " transactionStatus - " + transactionStatus);
     }
 
     private PurchaseResponseDto reverseOrder(OrderEntity orderEntity) {
         var purchaseResponse = new PurchaseResponseDto();
         try {
-            var reverseResponse =
-                    atlasClient.reverse(orderEntity.getTransactionId(),
-                            new ReversePurchaseRequest(REVERSE_DESCRIPTION));
+            var reverseResponse = atlasClient.reverse(orderEntity.getTransactionId(),
+                    new ReversePurchaseRequest(REVERSE_DESCRIPTION));
             orderEntity.setTransactionId(String.valueOf(reverseResponse.getId()));
             orderEntity.setTransactionStatus(TransactionStatus.REVERSE);
             purchaseResponse.setStatus(OrderStatus.SUCCESS);
@@ -359,13 +348,9 @@ public class OrderService {
             orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_REVERSE);
             orderEntity.setTransactionError(ex.getMessage());
             purchaseResponse.setStatus(OrderStatus.FAIL);
-            log.error("Atlas reverse process was failed : orderNo - {}",
-                    orderEntity.getOrderNo());
+            log.error("Atlas reverse process was failed : orderNo - {}", orderEntity.getOrderNo());
             String errorMessager = "Atlas Exception: UUID - %s  ,  code - %s, message - %s";
-            log.error(String.format(errorMessager,
-                    ex.getUuid(),
-                    ex.getCode(),
-                    ex.getMessage()));
+            log.error(String.format(errorMessager, ex.getUuid(), ex.getCode(), ex.getMessage()));
         }
         orderEntity.setTransactionDate(LocalDateTime.now());
         orderRepository.save(orderEntity);
@@ -395,10 +380,9 @@ public class OrderService {
 
     private void validatePurchaseAmountLimit(CreateOrderRequestDto request) {
         var purchaseAmount = getPurchaseAmount(request);
-        var minLimitAmount = BigDecimal.valueOf(50);
-        var maxLimitAmount = BigDecimal.valueOf(20000);
-        if (purchaseAmount.compareTo(minLimitAmount) < 0
-                || purchaseAmount.compareTo(maxLimitAmount) > 0) {
+        var minLimitDifference = purchaseAmount.compareTo(BigDecimal.valueOf(50));
+        var maxLimitDifference = purchaseAmount.compareTo(BigDecimal.valueOf(20000));
+        if (minLimitDifference < 0 || maxLimitDifference > 0) {
             throw new TotalAmountLimitException(purchaseAmount);
         }
     }
@@ -414,10 +398,8 @@ public class OrderService {
 
     private BigDecimal getAvailableBalance(String cardId) {
         var cardDetailResponse = atlasClient.findCardByUid(cardId, ResultType.ACCOUNT);
-        var primaryAccount = cardDetailResponse.getAccounts()
-                .stream()
-                .filter(x -> x.getStatus() == AccountStatus.OPEN_PRIMARY)
-                .findFirst();
+        var primaryAccount = cardDetailResponse.getAccounts().stream()
+                .filter(x -> x.getStatus() == AccountStatus.OPEN_PRIMARY).findFirst();
         if (primaryAccount.isEmpty()) {
             log.warn("Account not found in open primary status.cardId - {}", cardId);
             return BigDecimal.ZERO;
