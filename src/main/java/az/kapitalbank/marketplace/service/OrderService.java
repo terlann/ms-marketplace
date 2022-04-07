@@ -245,14 +245,16 @@ public class OrderService {
                     || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE) {
                 purchaseResponseDto = purchaseOrder(cardId, order);
             } else {
+                log.error("No Permission for complete. orderNo - {}, transactionStatus -{}",
+                        order.getOrderNo(), order.getTransactionStatus());
                 purchaseResponseDto = PurchaseResponseDto.builder()
                         .orderNo(order.getOrderNo())
                         .status(OrderStatus.FAIL).build();
             }
             purchaseResponseDtoList.add(purchaseResponseDto);
         }
-        log.info("Purchase process was finished : trackId - {}, customerId - {}",
-                request.getTrackId(), request.getCustomerId());
+        log.info("Purchase process was finished : trackId - {}, customerId - {}, response -{}",
+                request.getTrackId(), request.getCustomerId(), purchaseResponseDtoList);
         return purchaseResponseDtoList;
     }
 
