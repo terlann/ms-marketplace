@@ -7,4 +7,5 @@ import lombok.NoArgsConstructor;
 public final class CommonConstant {
     public static final String CUSTOMER_ID_LOG = "customerId - ";
     public static final String TELESALES_ORDER_ID_LOG = "telesalesOrderId - ";
+    public static final String ORDER_NO_LOG = "orderNo - ";
 }

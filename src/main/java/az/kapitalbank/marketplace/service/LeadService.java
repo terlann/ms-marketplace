@@ -84,8 +84,8 @@ public class LeadService {
     public void sendLead(OperationEntity operationEntity, List<FraudType> fraudTypes) {
         var telesalesOrderId = sendLeadTelesales(operationEntity, fraudTypes);
         telesalesOrderId.ifPresent(operationEntity::setTelesalesOrderId);
-        var loanId = sendLeadLoan(operationEntity);
-        loanId.ifPresent(operationEntity::setLoanId);
+        var leadId = sendLeadLoan(operationEntity);
+        leadId.ifPresent(operationEntity::setLeadId);
         var sendDecision = umicoService.sendPendingDecision(operationEntity.getId());
         sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
         operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.PENDING);

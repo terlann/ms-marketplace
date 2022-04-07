@@ -37,7 +37,7 @@ import lombok.experimental.SuperBuilder;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OperationEntity extends BaseEntity {
     String telesalesOrderId;
-    String loanId;
+    String leadId;
     BigDecimal totalAmount;
     BigDecimal commission;
     Integer loanTerm;
@@ -69,6 +69,7 @@ public class OperationEntity extends BaseEntity {
     LocalDateTime deleteLoanAttemptDate;
     @Enumerated(EnumType.STRING)
     OperationStatus operationStatus;
+    BigDecimal scoredAmount;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false, updatable = false)
