@@ -234,6 +234,32 @@ class OrderServiceTest {
     }
 
     @Test
+    void purchase_AlreadyPurchased() {
+        var purchaseRequestDto = PurchaseRequestDto.builder()
+                .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
+                .deliveryOrders(List.of(DeliveryProductDto.builder().orderNo("123").build()))
+                .build();
+        CustomerEntity customerEntity = CustomerEntity.builder().build();
+        OrderEntity orderEntity = OrderEntity.builder()
+                .transactionId("123245")
+                .transactionStatus(TransactionStatus.COMPLETE)
+                .totalAmount(BigDecimal.valueOf(50))
+                .commission(BigDecimal.valueOf(12))
+                .operation(OperationEntity.builder().loanTerm(12).build())
+                .build();
+        var orderNoList = List.of("123");
+        var purchaseCompleteResponse =
+                PurchaseCompleteResponse.builder().build();
+
+        when(customerRepository.findById(UUID.fromString(CUSTOMER_ID.getValue())))
+                .thenReturn(Optional.of(customerEntity));
+        when(orderRepository.findByOrderNoIn(orderNoList)).thenReturn(
+                List.of(orderEntity));
+        orderService.purchase(purchaseRequestDto);
+        verify(customerRepository).findById(UUID.fromString(CUSTOMER_ID.getValue()));
+    }
+
+    @Test
     void purchase_AtlasClientException() {
         var purchaseRequestDto = PurchaseRequestDto.builder()
                 .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
