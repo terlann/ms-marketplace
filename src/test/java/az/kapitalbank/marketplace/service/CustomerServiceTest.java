@@ -1,5 +1,6 @@
 package az.kapitalbank.marketplace.service;
 
+import static az.kapitalbank.marketplace.constants.ConstantObject.getCardDetailResponse;
 import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
@@ -123,7 +124,7 @@ class CustomerServiceTest {
         when(atlasClient.findCardByUid(CARD_UID.getValue(), ResultType.ACCOUNT)).thenReturn(
                 getCardDetailResponse());
         var actual = customerService.getLoanLimit(CARD_UID.getValue());
-        var expected = BigDecimal.TEN;
+        var expected = BigDecimal.valueOf(10000L);
         assertEquals(expected, actual);
     }
 
@@ -145,22 +146,10 @@ class CustomerServiceTest {
         assertEquals(expected, actual);
     }
 
-    CardDetailResponse getCardDetailResponse() {
-        return CardDetailResponse.builder()
-                .accounts(List.of(getAccountResponse()))
-                .build();
-    }
-
     CardDetailResponse getNoPrimaryAccountCardDetailResponse() {
         return CardDetailResponse.builder()
                 .accounts(List.of())
                 .build();
-    }
-
-    AccountResponse getAccountResponse() {
-        return AccountResponse.builder()
-                .status(AccountStatus.OPEN_PRIMARY)
-                .overdraftLimit(BigDecimal.TEN).build();
     }
 
 }

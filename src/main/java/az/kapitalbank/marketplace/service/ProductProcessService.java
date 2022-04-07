@@ -184,6 +184,7 @@ public class ProductProcessService {
                                         String taskId) {
         log.info("Start scoring result : businessKey - {}", operationEntity.getBusinessKey());
         operationEntity.setTaskId(taskId);
+        operationEntity.setScoredAmount(scoredAmount);
         var selectedAmount = operationEntity.getTotalAmount().add(operationEntity.getCommission());
         if (scoredAmount.compareTo(BigDecimal.ZERO) == 0) {
             log.info("Start scoring result - Scoring amount is zero");
@@ -249,8 +250,7 @@ public class ProductProcessService {
         customerEntity.setCardId(cardId.get());
         customerEntity.setCompleteProcessDate(LocalDateTime.now());
         var sendDecision =
-                umicoService.sendApprovedDecision(operationEntity, customerEntity.getId(),
-                        customerService.getLoanLimit(cardId.get()));
+                umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
         sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
         operationRepository.save(operationEntity);
         log.info("Customer was finished whole flow : trackId - {} , customerId - {}",
@@ -325,7 +325,7 @@ public class ProductProcessService {
                         RejectedBusinessError.valueOf(businessError.getId());
                 return Optional.of(rejectedBusinessError.name());
             } catch (Exception ex) {
-                log.info("Unexcepted business error : error - {}", ex);
+                log.info("Unexcepted business error - {}", ex);
             }
         }
         return Optional.empty();
