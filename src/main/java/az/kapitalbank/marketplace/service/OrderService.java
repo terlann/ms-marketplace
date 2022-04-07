@@ -239,15 +239,22 @@ public class OrderService {
         var purchaseResponseDtoList = new ArrayList<PurchaseResponseDto>();
         for (var order : orders) {
             var transactionStatus = order.getTransactionStatus();
+            PurchaseResponseDto purchaseResponseDto;
             if (transactionStatus == TransactionStatus.PURCHASE
                     || transactionStatus == TransactionStatus.FAIL_IN_REVERSE
                     || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE) {
-                var purchaseResponseDto = purchaseOrder(cardId, order);
-                purchaseResponseDtoList.add(purchaseResponseDto);
+                purchaseResponseDto = purchaseOrder(cardId, order);
+            } else {
+                log.error("No Permission for complete. orderNo - {}, transactionStatus -{}",
+                        order.getOrderNo(), order.getTransactionStatus());
+                purchaseResponseDto = PurchaseResponseDto.builder()
+                        .orderNo(order.getOrderNo())
+                        .status(OrderStatus.FAIL).build();
             }
+            purchaseResponseDtoList.add(purchaseResponseDto);
         }
-        log.info("Purchase process was finished : trackId - {}, customerId - {}",
-                request.getTrackId(), request.getCustomerId());
+        log.info("Purchase process was finished : trackId - {}, customerId - {}, response -{}",
+                request.getTrackId(), request.getCustomerId(), purchaseResponseDtoList);
         return purchaseResponseDtoList;
     }
 
