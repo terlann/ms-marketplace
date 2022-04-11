@@ -12,7 +12,8 @@ public enum Error {
 
     BAD_REQUEST("E100", "Request is not valid (Field is null or not valid) : %s"),
     ORDER_NOT_FOUND("E101", "Order not found"),
-    NO_MATCH_LOAN_AMOUNT("E102", "Loan amount is not equal total order amount"),
+    NO_MATCH_LOAN_AMOUNT_BY_ORDERS("E102", "Loan amount is not equal total order amount"),
+    NO_MATCH_ORDER_AMOUNT_BY_PRODUCTS("E102", "Order amount is not equal total products amount"),
     LOAN_TERM_NOT_FOUND("E103", "No such loan term"),
     PURCHASE_AMOUNT_LIMIT("E104",
             "Purchase amount must be between 50 and 20000 in first transaction"),

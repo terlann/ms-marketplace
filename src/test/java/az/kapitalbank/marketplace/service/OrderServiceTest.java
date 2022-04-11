@@ -342,6 +342,7 @@ class OrderServiceTest {
                         .build()))
                 .products(List.of(OrderProductItem.builder()
                         .orderNo("123")
+                        .productAmount(BigDecimal.valueOf(50))
                         .build()))
                 .build();
     }
