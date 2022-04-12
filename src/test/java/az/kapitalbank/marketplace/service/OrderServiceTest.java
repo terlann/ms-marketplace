@@ -11,6 +11,7 @@ import static az.kapitalbank.marketplace.constants.TestConstants.TELESALES_ORDER
 import static az.kapitalbank.marketplace.constants.TestConstants.TRACK_ID;
 import static az.kapitalbank.marketplace.constants.TestConstants.UMICO_USER_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,6 +41,7 @@ import az.kapitalbank.marketplace.dto.response.PurchaseResponseDto;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
+import az.kapitalbank.marketplace.exception.NoMatchOrderAmountByProductException;
 import az.kapitalbank.marketplace.mapper.CustomerMapper;
 import az.kapitalbank.marketplace.mapper.OperationMapper;
 import az.kapitalbank.marketplace.mapper.OrderMapper;
@@ -165,6 +167,14 @@ class OrderServiceTest {
                 getCardDetailResponse());
         orderService.createOrder(request);
         verify(operationMapper).toOperationEntity(request);
+    }
+
+    @Test
+    void createOrder_NoMatchOrderAmountByProductException() {
+        CreateOrderRequestDto request =
+                getCreateOrderRequestDtoFailInProductAmount(null);
+        assertThrows(NoMatchOrderAmountByProductException.class,
+                () -> orderService.createOrder(request));
     }
 
     @Test
@@ -343,6 +353,27 @@ class OrderServiceTest {
                 .products(List.of(OrderProductItem.builder()
                         .orderNo("123")
                         .productAmount(BigDecimal.valueOf(50))
+                        .build()))
+                .build();
+    }
+
+    private CreateOrderRequestDto getCreateOrderRequestDtoFailInProductAmount(UUID customerId) {
+        return CreateOrderRequestDto.builder()
+                .totalAmount(BigDecimal.valueOf(50))
+                .loanTerm(12)
+                .customerInfo(CustomerInfo.builder()
+                        .customerId(customerId)
+                        .umicoUserId(UMICO_USER_ID.getValue())
+                        .additionalPhoneNumber1("9941112233")
+                        .additionalPhoneNumber2("9941112234")
+                        .build())
+                .deliveryInfo(List.of(OrderProductDeliveryInfo.builder()
+                        .totalAmount(BigDecimal.valueOf(50))
+                        .orderNo("123")
+                        .build()))
+                .products(List.of(OrderProductItem.builder()
+                        .orderNo("123")
+                        .productAmount(BigDecimal.valueOf(49))
                         .build()))
                 .build();
     }
