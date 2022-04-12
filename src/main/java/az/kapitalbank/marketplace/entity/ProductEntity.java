@@ -1,6 +1,7 @@
 package az.kapitalbank.marketplace.entity;
 
 import java.math.BigDecimal;
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.JoinColumn;
@@ -23,11 +24,13 @@ import lombok.experimental.SuperBuilder;
 @Table(name = "KB_MARKETPLACE_PRODUCT")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ProductEntity extends BaseEntity {
+    @Column(unique = true)
     String productId;
     BigDecimal productAmount;
     String productName;
     String itemType;
     String partnerCmsId;
+    Boolean deliveryStatus;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false, updatable = false)

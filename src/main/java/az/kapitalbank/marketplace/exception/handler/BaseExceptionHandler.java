@@ -16,6 +16,7 @@ import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotLinkedToCustomer;
 import az.kapitalbank.marketplace.exception.PersonNotFoundException;
+import az.kapitalbank.marketplace.exception.ProductNotLinkedToOrder;
 import az.kapitalbank.marketplace.exception.SubscriptionNotFoundException;
 import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
 import az.kapitalbank.marketplace.exception.UmicoUserNotFoundException;
@@ -165,6 +166,14 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
             OrderNotLinkedToCustomer ex) {
         log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.ORDER_NOT_LINKED_TO_CUSTOMER);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(ProductNotLinkedToOrder.class)
+    public ResponseEntity<ErrorResponseDto> productNotLinkedToOrderException(
+            ProductNotLinkedToOrder ex) {
+        log.error(EXCEPTION, ex);
+        var errorResponseDto = new ErrorResponseDto(Error.PRODUCT_NOT_LINKED_TO_ORDER);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
