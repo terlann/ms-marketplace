@@ -319,6 +319,9 @@ public class ProductProcessService {
     }
 
     private Optional<String> checkRejectedBusinessErrors(BusinessErrorData[] businessErrors) {
+        if (businessErrors == null) {
+            return Optional.empty();
+        }
         for (var businessError : businessErrors) {
             try {
                 var rejectedBusinessError =
