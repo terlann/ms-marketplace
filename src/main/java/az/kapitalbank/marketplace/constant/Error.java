@@ -34,7 +34,8 @@ public enum Error {
     OTP_ATTEMPT_LIMIT_ONE("E120", "Invalid otp! remaining attempt: 1"),
     OTP_ATTEMPT_LIMIT_TWO("E121", "Invalid otp! remaining attempt: 2"),
     SUBSCRIPTION_NOT_FOUND("E122", "Mobile number not found"),
-    INVALID_OTP_AND_PHONE_BLOCKED("E123", "Invalid otp. mobile number was blocked");
+    INVALID_OTP_AND_PHONE_BLOCKED("E123", "Invalid otp. mobile number was blocked"),
+    PRODUCT_NOT_LINKED_TO_ORDER("E124","Product is not linked to order");
 
     String code;
     String message;

@@ -8,7 +8,6 @@ import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
 import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
 import az.kapitalbank.marketplace.dto.response.PurchaseResponseDto;
 import az.kapitalbank.marketplace.service.OrderService;
-import java.util.List;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import lombok.AccessLevel;
@@ -51,9 +50,9 @@ public class OrderController {
     }
 
     @PostMapping("/purchase")
-    public ResponseEntity<List<PurchaseResponseDto>> purchase(
-            @Valid @RequestBody PurchaseRequestDto request) {
-        return ResponseEntity.ok(service.purchase(request));
+    public ResponseEntity<Void> purchase(@Valid @RequestBody PurchaseRequestDto request) {
+        service.purchase(request);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @PostMapping("/reverse")

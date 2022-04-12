@@ -22,4 +22,10 @@ public class AmountUtil {
                 .multiply(percent)
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
     }
+
+    public BigDecimal getCommissionByPercent(BigDecimal amount, BigDecimal loanPercent) {
+        return amount
+                .multiply(loanPercent)
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+    }
 }

@@ -45,7 +45,10 @@ public class ConstantObject {
     }
 
     public static ProductEntity getProductEntity() {
-        return ProductEntity.builder().build();
+        return ProductEntity.builder()
+                .productId("p1")
+                .productAmount(BigDecimal.ONE)
+                .build();
     }
 
     public static CardDetailResponse getCardDetailResponse() {

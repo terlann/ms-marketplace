@@ -16,7 +16,6 @@ import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
-import az.kapitalbank.marketplace.dto.DeliveryProductDto;
 import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
 import az.kapitalbank.marketplace.dto.request.PurchaseRequestDto;
@@ -38,6 +37,7 @@ import az.kapitalbank.marketplace.exception.OperationAlreadyScoredException;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotLinkedToCustomer;
+import az.kapitalbank.marketplace.exception.ProductNotLinkedToOrder;
 import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
 import az.kapitalbank.marketplace.exception.UniqueAdditionalNumberException;
 import az.kapitalbank.marketplace.mapper.CustomerMapper;
@@ -225,59 +225,83 @@ public class OrderService {
     }
 
     @Transactional
-    public List<PurchaseResponseDto> purchase(PurchaseRequestDto request) {
+    public void purchase(PurchaseRequestDto request) {
         log.info("Purchase process is started : request - {}", request);
-        var customerId = request.getCustomerId();
-        var customerEntity = customerRepository.findById(customerId)
-                .orElseThrow(() -> new CustomerNotFoundException(CUSTOMER_ID_LOG + customerId));
-        var cardId = customerEntity.getCardId();
-        var orderNoList = request.getDeliveryOrders().stream().map(DeliveryProductDto::getOrderNo)
-                .collect(Collectors.toList());
-        var orders = orderRepository.findByOrderNoIn(orderNoList);
-        var purchaseResponseDtoList = new ArrayList<PurchaseResponseDto>();
-        for (var order : orders) {
-            var transactionStatus = order.getTransactionStatus();
-            PurchaseResponseDto purchaseResponseDto;
-            if (transactionStatus == TransactionStatus.PURCHASE
-                    || transactionStatus == TransactionStatus.FAIL_IN_REVERSE
-                    || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE) {
-                purchaseResponseDto = purchaseOrder(cardId, order);
-            } else {
-                log.error("No Permission for complete. orderNo - {}, transactionStatus -{}",
-                        order.getOrderNo(), order.getTransactionStatus());
-                purchaseResponseDto = PurchaseResponseDto.builder().orderNo(order.getOrderNo())
-                        .status(OrderStatus.FAIL).build();
+        var orderEntity = orderRepository.findByOrderNo(request.getOrderNo())
+                .orElseThrow(() -> new OrderNotFoundException("orderNo - " + request.getOrderNo()));
+        var transactionStatus = orderEntity.getTransactionStatus();
+        var productEntities = orderEntity.getProducts();
+        verifyProductIdIsLinkedToOrderNo(request, productEntities);
+        if (transactionStatus == TransactionStatus.PURCHASE
+                || transactionStatus == TransactionStatus.FAIL_IN_REVERSE
+                || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE) {
+            var deliveryAmount = getDeliveryAmount(request, productEntities);
+            if (deliveryAmount.compareTo(BigDecimal.ZERO) > 0) {
+                purchaseOrder(orderEntity, deliveryAmount);
             }
-            purchaseResponseDtoList.add(purchaseResponseDto);
+
+        } else {
+            log.error("No Permission for complete. orderNo - {}, transactionStatus -{}",
+                    orderEntity.getOrderNo(), orderEntity.getTransactionStatus());
+            throw new NoPermissionForTransaction(
+                    ORDER_NO_LOG + orderEntity.getId() + " transactionStatus - "
+                            + transactionStatus);
         }
-        log.info("Purchase process was finished : trackId - {}, customerId - {}, response -{}",
-                request.getTrackId(), request.getCustomerId(), purchaseResponseDtoList);
-        return purchaseResponseDtoList;
+        log.info("Purchase process was finished : trackId - {}, customerId - {}",
+                request.getTrackId(), request.getCustomerId());
     }
 
-    private PurchaseResponseDto purchaseOrder(String cardId, OrderEntity order) {
-        var purchaseResponseDto = new PurchaseResponseDto();
+    private void verifyProductIdIsLinkedToOrderNo(PurchaseRequestDto request,
+                                                  List<ProductEntity> productEntities) {
+        var orderProductIdList =
+                productEntities.stream().map(ProductEntity::getProductId)
+                        .collect(Collectors.toList());
+        for (var deliveryProduct : request.getDeliveryProducts()) {
+            if (!orderProductIdList.contains(deliveryProduct.getProductId())) {
+                throw new ProductNotLinkedToOrder(deliveryProduct.getProductId(),
+                        request.getOrderNo());
+            }
+        }
+    }
+
+    private BigDecimal getDeliveryAmount(PurchaseRequestDto request,
+                                         List<ProductEntity> productEntities) {
+        var deliveryAmount = BigDecimal.ZERO;
+        for (var productEntity : productEntities) {
+            for (var deliveryProduct : request.getDeliveryProducts()) {
+                if (productEntity.getProductId().equals(deliveryProduct.getProductId())) {
+                    deliveryAmount = deliveryAmount.add(productEntity.getProductAmount());
+                    productEntity.setDeliveryStatus(true);
+                } else {
+                    productEntity.setDeliveryStatus(false);
+                }
+            }
+        }
+        log.info("Delivery amount is : {}", deliveryAmount);
+        return deliveryAmount;
+    }
+
+    private void purchaseOrder(OrderEntity order, BigDecimal deliveryAmount) {
+        var cardId = order.getOperation().getCustomer().getCardId();
         var rrn = GenerateUtil.rrn();
-        var purchaseCompleteRequest = getPurchaseCompleteRequest(cardId, order, rrn);
+        var purchaseCompleteRequest =
+                getPurchaseCompleteRequest(cardId, order, rrn, deliveryAmount);
         try {
             var purchaseCompleteResponse = atlasClient.complete(purchaseCompleteRequest);
             var transactionId = purchaseCompleteResponse.getId();
             order.setTransactionId(transactionId);
             order.setTransactionStatus(TransactionStatus.COMPLETE);
-            purchaseResponseDto.setStatus(OrderStatus.SUCCESS);
         } catch (AtlasClientException ex) {
             order.setTransactionStatus(TransactionStatus.FAIL_IN_COMPLETE);
             order.setTransactionError(ex.getMessage());
-            purchaseResponseDto.setStatus(OrderStatus.FAIL);
             log.error("Atlas complete process was failed. orderNo - {}", order.getOrderNo());
-            String errorMessager = "Atlas Exception: UUID - %s  ,  code - %s, message - %s";
-            log.error(String.format(errorMessager, ex.getUuid(), ex.getCode(), ex.getMessage()));
+            String errorMessage = "Atlas Exception: UUID - %s , code - %s, message - %s";
+            log.error(
+                    String.format(errorMessage, ex.getUuid(), ex.getCode(), ex.getMessage()));
         }
         order.setRrn(rrn);
         order.setTransactionDate(LocalDateTime.now());
         orderRepository.save(order);
-        purchaseResponseDto.setOrderNo(order.getOrderNo());
-        return purchaseResponseDto;
     }
 
     public void prePurchaseOrders(OperationEntity operationEntity, String cardId) {
@@ -301,14 +325,20 @@ public class OrderService {
         log.info(" Orders purchase process was finished...");
     }
 
-    private PurchaseCompleteRequest getPurchaseCompleteRequest(String cardId, OrderEntity order,
-                                                               String rrn) {
-        var amount = order.getTotalAmount();
-        var commission = order.getCommission();
-        var totalPayment = commission.add(amount);
-        return PurchaseCompleteRequest.builder().id(Long.valueOf(order.getTransactionId()))
-                .uid(cardId).amount(totalPayment).approvalCode(order.getApprovalCode()).rrn(rrn)
-                .installments(order.getOperation().getLoanTerm()).build();
+    private PurchaseCompleteRequest getPurchaseCompleteRequest(String cardId, OrderEntity
+            order, String rrn, BigDecimal deliveryAmount) {
+        // TODO: 11.04.2022 pull old branch and add percent
+        var commission = amountUtil.getCommissionByPercent(deliveryAmount, BigDecimal.ONE);
+        var totalPayment = commission.add(deliveryAmount);
+        return PurchaseCompleteRequest.builder()
+                .id(Long.valueOf(order.getTransactionId()))
+                .uid(cardId)
+                .amount(totalPayment)
+                .approvalCode(order.getApprovalCode())
+                .rrn(rrn)
+                .installments(order.getOperation().getLoanTerm())
+                .build();
+
     }
 
     @Transactional
@@ -333,7 +363,8 @@ public class OrderService {
             return purchaseResponse;
         }
         throw new NoPermissionForTransaction(
-                ORDER_NO_LOG + orderEntity.getId() + " transactionStatus - " + transactionStatus);
+                ORDER_NO_LOG + orderEntity.getId() + " transactionStatus - "
+                        + transactionStatus);
     }
 
     private PurchaseResponseDto reverseOrder(OrderEntity orderEntity) {
@@ -348,9 +379,11 @@ public class OrderService {
             orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_REVERSE);
             orderEntity.setTransactionError(ex.getMessage());
             purchaseResponse.setStatus(OrderStatus.FAIL);
-            log.error("Atlas reverse process was failed : orderNo - {}", orderEntity.getOrderNo());
+            log.error("Atlas reverse process was failed : orderNo - {}",
+                    orderEntity.getOrderNo());
             String errorMessager = "Atlas Exception: UUID - %s  ,  code - %s, message - %s";
-            log.error(String.format(errorMessager, ex.getUuid(), ex.getCode(), ex.getMessage()));
+            log.error(
+                    String.format(errorMessager, ex.getUuid(), ex.getCode(), ex.getMessage()));
         }
         orderEntity.setTransactionDate(LocalDateTime.now());
         orderRepository.save(orderEntity);
