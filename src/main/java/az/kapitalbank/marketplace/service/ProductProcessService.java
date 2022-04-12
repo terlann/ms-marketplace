@@ -50,7 +50,8 @@ public class ProductProcessService {
                                        UUID trackId) {
         var fraudResultStatus = fraudCheckResultEvent.getFraudResultStatus();
         if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_TELESALES) {
-            log.warn("Fraud case was found in this operation, send to Telesales : trackId - {}", trackId);
+            log.warn("Fraud case was found in this operation, send to Telesales : trackId - {}",
+                    trackId);
             leadService.sendLead(operationEntity, fraudCheckResultEvent.getTypes());
             operationRepository.save(operationEntity);
             return;
