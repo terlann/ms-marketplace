@@ -74,7 +74,6 @@ public class ProductProcessService {
         var operationOptional = operationRepository.findById(trackId);
         if (operationOptional.isPresent()) {
             var operationEntity = operationOptional.get();
-            fraudResultSuspicious(fraudCheckResultEvent, operationEntity, trackId);
             if (fraudResultStatus == FraudResultStatus.BLACKLIST) {
                 log.warn("This operation was found in blacklist : trackId - {}", trackId);
                 var sendDecision = umicoService.sendRejectedDecision(trackId);
@@ -83,6 +82,7 @@ public class ProductProcessService {
                 operationRepository.save(operationEntity);
                 return;
             }
+            fraudResultSuspicious(fraudCheckResultEvent, operationEntity, trackId);
             noFraudProcess(operationEntity);
         }
     }
