@@ -53,6 +53,7 @@ public class OperationEntity extends BaseEntity {
     String additionalPhoneNumber1;
     String additionalPhoneNumber2;
     String taskId;
+    BigDecimal loanPercent;
     String businessKey;
     LocalDateTime scoringDate;
     @Enumerated(EnumType.STRING)

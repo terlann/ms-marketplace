@@ -17,6 +17,7 @@ import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
+import az.kapitalbank.marketplace.dto.OrderProductItem;
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
 import az.kapitalbank.marketplace.dto.request.PurchaseRequestDto;
 import az.kapitalbank.marketplace.dto.request.ReverseRequestDto;
@@ -31,7 +32,8 @@ import az.kapitalbank.marketplace.entity.ProductEntity;
 import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
 import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
 import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
-import az.kapitalbank.marketplace.exception.NoMatchLoanAmountException;
+import az.kapitalbank.marketplace.exception.NoMatchLoanAmountByOrderException;
+import az.kapitalbank.marketplace.exception.NoMatchOrderAmountByProductException;
 import az.kapitalbank.marketplace.exception.NoPermissionForTransaction;
 import az.kapitalbank.marketplace.exception.OperationAlreadyScoredException;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
@@ -77,7 +79,6 @@ public class OrderService {
     CustomerMapper customerMapper;
     OrderRepository orderRepository;
     OperationMapper operationMapper;
-    CustomerService customerService;
     CustomerRepository customerRepository;
     FraudCheckSender customerOrderProducer;
     OperationRepository operationRepository;
@@ -167,6 +168,7 @@ public class OrderService {
             orderEntities.add(orderEntity);
             orderEntity.setProducts(productEntities);
         }
+        operationEntity.setLoanPercent(amountUtil.getCommissionPercent(request.getLoanTerm()));
         operationEntity.setCommission(operationCommission);
         operationEntity.setOrders(orderEntities);
         operationEntity = operationRepository.save(operationEntity);
@@ -401,12 +403,23 @@ public class OrderService {
 
     private void validateTotalOrderAmount(CreateOrderRequestDto createOrderRequestDto) {
         log.info("Validate total order amount is started...");
-        var selectedTotalOrderAmount = createOrderRequestDto.getTotalAmount();
+        for (var order : createOrderRequestDto.getDeliveryInfo()) {
+            var productsTotalAmount = createOrderRequestDto.getProducts().stream()
+                    .filter(orderProductItem -> orderProductItem.getOrderNo()
+                            .equals(order.getOrderNo())).map(
+                            OrderProductItem::getProductAmount)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            if (order.getTotalAmount().compareTo(productsTotalAmount) != 0) {
+                throw new NoMatchOrderAmountByProductException(order.getTotalAmount(),
+                        productsTotalAmount);
+            }
+        }
+        var operationTotalAmount = createOrderRequestDto.getTotalAmount();
         var calculatedTotalOrderAmount = createOrderRequestDto.getDeliveryInfo().stream()
                 .map(OrderProductDeliveryInfo::getTotalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        if (calculatedTotalOrderAmount.compareTo(selectedTotalOrderAmount) != 0) {
-            throw new NoMatchLoanAmountException(selectedTotalOrderAmount,
+        if (calculatedTotalOrderAmount.compareTo(operationTotalAmount) != 0) {
+            throw new NoMatchLoanAmountByOrderException(operationTotalAmount,
                     calculatedTotalOrderAmount);
         }
     }
