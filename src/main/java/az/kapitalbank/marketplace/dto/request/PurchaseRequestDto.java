@@ -1,7 +1,7 @@
 package az.kapitalbank.marketplace.dto.request;
 
 import az.kapitalbank.marketplace.dto.DeliveryProductDto;
-import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
@@ -23,9 +23,11 @@ public class PurchaseRequestDto {
     @NotBlank
     String umicoUserId;
     @NotNull
-    UUID trackId;
-    @NotNull
     UUID customerId;
+    @NotNull
+    UUID trackId;
     @NotEmpty
-    List<@Valid DeliveryProductDto> deliveryOrders;
+    String orderNo;
+    @NotEmpty
+    Set<@Valid DeliveryProductDto> deliveryProducts;
 }

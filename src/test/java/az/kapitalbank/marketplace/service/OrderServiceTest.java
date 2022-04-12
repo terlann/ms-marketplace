@@ -11,6 +11,7 @@ import static az.kapitalbank.marketplace.constants.TestConstants.TELESALES_ORDER
 import static az.kapitalbank.marketplace.constants.TestConstants.TRACK_ID;
 import static az.kapitalbank.marketplace.constants.TestConstants.UMICO_USER_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,6 +41,8 @@ import az.kapitalbank.marketplace.dto.response.PurchaseResponseDto;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
+import az.kapitalbank.marketplace.exception.NoMatchOrderAmountByProductException;
+import az.kapitalbank.marketplace.exception.NoPermissionForTransaction;
 import az.kapitalbank.marketplace.mapper.CustomerMapper;
 import az.kapitalbank.marketplace.mapper.OperationMapper;
 import az.kapitalbank.marketplace.mapper.OrderMapper;
@@ -52,6 +55,7 @@ import az.kapitalbank.marketplace.util.AmountUtil;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -168,6 +172,14 @@ class OrderServiceTest {
     }
 
     @Test
+    void createOrder_NoMatchOrderAmountByProductException() {
+        CreateOrderRequestDto request =
+                getCreateOrderRequestDtoFailInProductAmount(null);
+        assertThrows(NoMatchOrderAmountByProductException.class,
+                () -> orderService.createOrder(request));
+    }
+
+    @Test
     void reverse_Success() {
         var reverseRequestDto = ReverseRequestDto.builder()
                 .orderNo("12345")
@@ -229,66 +241,56 @@ class OrderServiceTest {
 
     @Test
     void purchase_Success() {
-        var purchaseRequestDto = PurchaseRequestDto.builder()
-                .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
-                .deliveryOrders(List.of(DeliveryProductDto.builder().orderNo("123").build()))
-                .build();
-        CustomerEntity customerEntity = CustomerEntity.builder().build();
         OrderEntity orderEntity = OrderEntity.builder()
                 .transactionId("123245")
                 .transactionStatus(TransactionStatus.PURCHASE)
                 .totalAmount(BigDecimal.valueOf(50))
                 .commission(BigDecimal.valueOf(12))
                 .operation(OperationEntity.builder().loanTerm(12).build())
+                .products(List.of(getProductEntity()))
+                .operation(OperationEntity.builder()
+                        .customer(CustomerEntity.builder().cardId(CARD_UID.getValue()).build())
+                        .build())
                 .build();
-        var orderNoList = List.of("123");
         var purchaseCompleteResponse =
                 PurchaseCompleteResponse.builder().build();
-
-        when(customerRepository.findById(UUID.fromString(CUSTOMER_ID.getValue())))
-                .thenReturn(Optional.of(customerEntity));
-        when(orderRepository.findByOrderNoIn(orderNoList)).thenReturn(
-                List.of(orderEntity));
+        when(orderRepository.findByOrderNo("123")).thenReturn(Optional.of(orderEntity));
+        when(amountUtil.getCommissionByPercent(BigDecimal.ONE, null)).thenReturn(
+                BigDecimal.ONE);
         when(atlasClient.complete(any())).thenReturn(purchaseCompleteResponse);
-        var actual = orderService.purchase(purchaseRequestDto);
-        var expected = List.of(PurchaseResponseDto.builder()
-                .status(OrderStatus.SUCCESS).build());
-
-        assertEquals(expected, actual);
+        var request = PurchaseRequestDto.builder()
+                .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
+                .orderNo("123")
+                .deliveryProducts(Set.of(DeliveryProductDto.builder().productId("p1").build()))
+                .build();
+        orderService.purchase(request);
+        verify(orderRepository).findByOrderNo("123");
     }
 
     @Test
     void purchase_AlreadyPurchased() {
-        var purchaseRequestDto = PurchaseRequestDto.builder()
-                .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
-                .deliveryOrders(List.of(DeliveryProductDto.builder().orderNo("123").build()))
-                .build();
-        CustomerEntity customerEntity = CustomerEntity.builder().build();
         OrderEntity orderEntity = OrderEntity.builder()
                 .transactionId("123245")
                 .transactionStatus(TransactionStatus.COMPLETE)
                 .totalAmount(BigDecimal.valueOf(50))
                 .commission(BigDecimal.valueOf(12))
                 .operation(OperationEntity.builder().loanTerm(12).build())
+                .products(List.of(getProductEntity()))
+                .operation(OperationEntity.builder()
+                        .customer(CustomerEntity.builder().cardId(CARD_UID.getValue()).build())
+                        .build())
                 .build();
-        var orderNoList = List.of("123");
-        var purchaseCompleteResponse =
-                PurchaseCompleteResponse.builder().build();
-
-        when(customerRepository.findById(UUID.fromString(CUSTOMER_ID.getValue())))
-                .thenReturn(Optional.of(customerEntity));
-        when(orderRepository.findByOrderNoIn(orderNoList)).thenReturn(
-                List.of(orderEntity));
-        orderService.purchase(purchaseRequestDto);
-        verify(customerRepository).findById(UUID.fromString(CUSTOMER_ID.getValue()));
+        when(orderRepository.findByOrderNo("123")).thenReturn(Optional.of(orderEntity));
+        var request = PurchaseRequestDto.builder()
+                .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
+                .orderNo("123")
+                .deliveryProducts(Set.of(DeliveryProductDto.builder().productId("p1").build()))
+                .build();
+        assertThrows(NoPermissionForTransaction.class, () -> orderService.purchase(request));
+        verify(orderRepository).findByOrderNo("123");
     }
 
-    @Test
     void purchase_AtlasClientException() {
-        var purchaseRequestDto = PurchaseRequestDto.builder()
-                .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
-                .deliveryOrders(List.of(DeliveryProductDto.builder().orderNo("123").build()))
-                .build();
         CustomerEntity customerEntity = CustomerEntity.builder().build();
         OrderEntity orderEntity = OrderEntity.builder()
                 .transactionId("123245")
@@ -306,11 +308,12 @@ class OrderServiceTest {
         when(orderRepository.findByOrderNoIn(orderNoList)).thenReturn(
                 List.of(orderEntity));
         when(atlasClient.complete(any())).thenThrow(new AtlasClientException(null, null, null));
-        var actual = orderService.purchase(purchaseRequestDto);
-        var expected = List.of(PurchaseResponseDto.builder()
-                .status(OrderStatus.FAIL).build());
-
-        assertEquals(expected, actual);
+        var request = PurchaseRequestDto.builder()
+                .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
+                .orderNo("123")
+                .deliveryProducts(Set.of(DeliveryProductDto.builder().build()))
+                .build();
+        orderService.purchase(request);
     }
 
     @Test
@@ -342,6 +345,28 @@ class OrderServiceTest {
                         .build()))
                 .products(List.of(OrderProductItem.builder()
                         .orderNo("123")
+                        .productAmount(BigDecimal.valueOf(50))
+                        .build()))
+                .build();
+    }
+
+    private CreateOrderRequestDto getCreateOrderRequestDtoFailInProductAmount(UUID customerId) {
+        return CreateOrderRequestDto.builder()
+                .totalAmount(BigDecimal.valueOf(50))
+                .loanTerm(12)
+                .customerInfo(CustomerInfo.builder()
+                        .customerId(customerId)
+                        .umicoUserId(UMICO_USER_ID.getValue())
+                        .additionalPhoneNumber1("9941112233")
+                        .additionalPhoneNumber2("9941112234")
+                        .build())
+                .deliveryInfo(List.of(OrderProductDeliveryInfo.builder()
+                        .totalAmount(BigDecimal.valueOf(50))
+                        .orderNo("123")
+                        .build()))
+                .products(List.of(OrderProductItem.builder()
+                        .orderNo("123")
+                        .productAmount(BigDecimal.valueOf(49))
                         .build()))
                 .build();
     }

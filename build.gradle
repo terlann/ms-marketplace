@@ -105,6 +105,7 @@ sonarqube {
                         "**/az/kapitalbank/marketplace/controller/**," +
                         "**/az/kapitalbank/marketplace/dto/**," +
                         "**/az/kapitalbank/marketplace/entity/**," +
+                        "**/az/kapitalbank/marketplace/exception/**," +
                         "**/az/kapitalbank/marketplace/mapper/**," +
                         "**/az/kapitalbank/marketplace/messaging/**," +
                         "**/az/kapitalbank/marketplace/repository/**," +

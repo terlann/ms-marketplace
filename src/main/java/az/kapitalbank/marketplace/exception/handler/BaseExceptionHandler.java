@@ -8,13 +8,15 @@ import az.kapitalbank.marketplace.dto.ErrorResponseDto;
 import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
 import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
 import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
-import az.kapitalbank.marketplace.exception.NoMatchLoanAmountException;
+import az.kapitalbank.marketplace.exception.NoMatchLoanAmountByOrderException;
+import az.kapitalbank.marketplace.exception.NoMatchOrderAmountByProductException;
 import az.kapitalbank.marketplace.exception.NoPermissionForTransaction;
 import az.kapitalbank.marketplace.exception.OperationAlreadyScoredException;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotLinkedToCustomer;
 import az.kapitalbank.marketplace.exception.PersonNotFoundException;
+import az.kapitalbank.marketplace.exception.ProductNotLinkedToOrder;
 import az.kapitalbank.marketplace.exception.SubscriptionNotFoundException;
 import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
 import az.kapitalbank.marketplace.exception.UmicoUserNotFoundException;
@@ -76,10 +78,19 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponseDto);
     }
 
-    @ExceptionHandler(NoMatchLoanAmountException.class)
-    public ResponseEntity<ErrorResponseDto> loanAmountIncorrect(NoMatchLoanAmountException ex) {
+    @ExceptionHandler(NoMatchLoanAmountByOrderException.class)
+    public ResponseEntity<ErrorResponseDto> ordersTotalAmountIncorrect(
+            NoMatchLoanAmountByOrderException ex) {
         log.error(EXCEPTION, ex);
-        var errorResponseDto = new ErrorResponseDto(Error.NO_MATCH_LOAN_AMOUNT);
+        var errorResponseDto = new ErrorResponseDto(Error.NO_MATCH_LOAN_AMOUNT_BY_ORDERS);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(NoMatchOrderAmountByProductException.class)
+    public ResponseEntity<ErrorResponseDto> productsTotalAmountIncorrect(
+            NoMatchOrderAmountByProductException ex) {
+        log.error(EXCEPTION, ex);
+        var errorResponseDto = new ErrorResponseDto(Error.NO_MATCH_ORDER_AMOUNT_BY_PRODUCTS);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
@@ -155,6 +166,14 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
             OrderNotLinkedToCustomer ex) {
         log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.ORDER_NOT_LINKED_TO_CUSTOMER);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(ProductNotLinkedToOrder.class)
+    public ResponseEntity<ErrorResponseDto> productNotLinkedToOrderException(
+            ProductNotLinkedToOrder ex) {
+        log.error(EXCEPTION, ex);
+        var errorResponseDto = new ErrorResponseDto(Error.PRODUCT_NOT_LINKED_TO_ORDER);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 

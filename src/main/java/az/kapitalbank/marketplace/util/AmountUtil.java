@@ -14,12 +14,22 @@ public class AmountUtil {
     private final CommissionProperties commissionProperties;
 
     public BigDecimal getCommission(BigDecimal amount, int loanTerm) {
+        return amount
+                .multiply(getCommissionPercent(loanTerm))
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+    }
+
+    public BigDecimal getCommissionPercent(int loanTerm) {
         var percent = commissionProperties.getValues().get(loanTerm);
         if (percent == null) {
             throw new UnknownLoanTerm(loanTerm);
         }
+        return percent;
+    }
+
+    public BigDecimal getCommissionByPercent(BigDecimal amount, BigDecimal loanPercent) {
         return amount
-                .multiply(percent)
+                .multiply(loanPercent)
                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
     }
 }

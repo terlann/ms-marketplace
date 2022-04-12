@@ -1,8 +1,7 @@
 package az.kapitalbank.marketplace.dto;
 
-import java.math.BigDecimal;
+import java.util.Objects;
 import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,11 +16,24 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class DeliveryProductDto {
     @NotEmpty
-    String orderNo;
-    @NotEmpty
     String productId;
     @NotEmpty
     String itemType;
-    @NotNull
-    BigDecimal orderAmount;
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
+        DeliveryProductDto that = (DeliveryProductDto) obj;
+        return productId.equals(that.productId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(productId);
+    }
 }
