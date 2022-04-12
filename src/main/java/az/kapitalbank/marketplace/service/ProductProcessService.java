@@ -48,16 +48,15 @@ public class ProductProcessService {
     private void fraudResultSuspicious(FraudCheckResultEvent fraudCheckResultEvent,
                                        OperationEntity operationEntity,
                                        UUID trackId) {
-        log.info("Fraud result process is stared for reject : message - {}", fraudCheckResultEvent);
         var fraudResultStatus = fraudCheckResultEvent.getFraudResultStatus();
         if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_TELESALES) {
-            log.warn("Fraud case was found in this operation : trackId - {}", trackId);
+            log.warn("Fraud case was found in this operation, send to Telesales : trackId - {}", trackId);
             leadService.sendLead(operationEntity, fraudCheckResultEvent.getTypes());
             operationRepository.save(operationEntity);
             return;
         }
         if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_UMICO) {
-            log.warn("This operation rejected : trackId - {}", trackId);
+            log.warn("This operation rejected, send to Umico : trackId - {}", trackId);
             var sendDecision = umicoService.sendRejectedDecision(trackId);
             sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
             operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
