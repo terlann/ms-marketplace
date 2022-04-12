@@ -226,7 +226,7 @@ public class OrderService {
         return orderResponseDto;
     }
 
-    @Transactional
+    @Transactional(dontRollbackOn = AtlasClientException.class)
     public void purchase(PurchaseRequestDto request) {
         log.info("Purchase process is started : request - {}", request);
         var orderEntity = orderRepository.findByOrderNo(request.getOrderNo())
@@ -241,7 +241,6 @@ public class OrderService {
             if (deliveryAmount.compareTo(BigDecimal.ZERO) > 0) {
                 purchaseOrder(orderEntity, deliveryAmount);
             }
-
         } else {
             log.error("No Permission for complete. orderNo - {}, transactionStatus -{}",
                     orderEntity.getOrderNo(), orderEntity.getTransactionStatus());
@@ -284,6 +283,7 @@ public class OrderService {
     }
 
     private void purchaseOrder(OrderEntity order, BigDecimal deliveryAmount) {
+        AtlasClientException exception = null;
         var cardId = order.getOperation().getCustomer().getCardId();
         var rrn = GenerateUtil.rrn();
         var purchaseCompleteRequest =
@@ -294,16 +294,17 @@ public class OrderService {
             order.setTransactionId(transactionId);
             order.setTransactionStatus(TransactionStatus.COMPLETE);
         } catch (AtlasClientException ex) {
+            exception = ex;
             order.setTransactionStatus(TransactionStatus.FAIL_IN_COMPLETE);
             order.setTransactionError(ex.getMessage());
             log.error("Atlas complete process was failed. orderNo - {}", order.getOrderNo());
-            String errorMessage = "Atlas Exception: UUID - %s , code - %s, message - %s";
-            log.error(
-                    String.format(errorMessage, ex.getUuid(), ex.getCode(), ex.getMessage()));
         }
         order.setRrn(rrn);
         order.setTransactionDate(LocalDateTime.now());
         orderRepository.save(order);
+        if (exception != null) {
+            throw exception;
+        }
     }
 
     public void prePurchaseOrders(OperationEntity operationEntity, String cardId) {
@@ -329,8 +330,8 @@ public class OrderService {
 
     private PurchaseCompleteRequest getPurchaseCompleteRequest(String cardId, OrderEntity
             order, String rrn, BigDecimal deliveryAmount) {
-        // TODO: 11.04.2022 pull old branch and add percent
-        var commission = amountUtil.getCommissionByPercent(deliveryAmount, BigDecimal.ONE);
+        var percent = order.getOperation().getLoanPercent();
+        var commission = amountUtil.getCommissionByPercent(deliveryAmount, percent);
         var totalPayment = commission.add(deliveryAmount);
         return PurchaseCompleteRequest.builder()
                 .id(Long.valueOf(order.getTransactionId()))

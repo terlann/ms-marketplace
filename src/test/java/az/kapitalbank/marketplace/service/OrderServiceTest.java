@@ -41,8 +41,8 @@ import az.kapitalbank.marketplace.dto.response.PurchaseResponseDto;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
-import az.kapitalbank.marketplace.exception.NoPermissionForTransaction;
 import az.kapitalbank.marketplace.exception.NoMatchOrderAmountByProductException;
+import az.kapitalbank.marketplace.exception.NoPermissionForTransaction;
 import az.kapitalbank.marketplace.mapper.CustomerMapper;
 import az.kapitalbank.marketplace.mapper.OperationMapper;
 import az.kapitalbank.marketplace.mapper.OrderMapper;
@@ -255,7 +255,7 @@ class OrderServiceTest {
         var purchaseCompleteResponse =
                 PurchaseCompleteResponse.builder().build();
         when(orderRepository.findByOrderNo("123")).thenReturn(Optional.of(orderEntity));
-        when(amountUtil.getCommissionByPercent(BigDecimal.ONE, BigDecimal.ONE)).thenReturn(
+        when(amountUtil.getCommissionByPercent(BigDecimal.ONE, null)).thenReturn(
                 BigDecimal.ONE);
         when(atlasClient.complete(any())).thenReturn(purchaseCompleteResponse);
         var request = PurchaseRequestDto.builder()
