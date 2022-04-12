@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.UUID;
 import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -44,6 +45,26 @@ public class ProductProcessService {
     VerificationService verificationService;
     OperationRepository operationRepository;
 
+    private void fraudResultSuspicious(FraudCheckResultEvent fraudCheckResultEvent,
+                                       OperationEntity operationEntity,
+                                       UUID trackId) {
+        var fraudResultStatus = fraudCheckResultEvent.getFraudResultStatus();
+        if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_TELESALES) {
+            log.warn("Fraud case was found in this operation, send to Telesales : trackId - {}", trackId);
+            leadService.sendLead(operationEntity, fraudCheckResultEvent.getTypes());
+            operationRepository.save(operationEntity);
+            return;
+        }
+        if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_UMICO) {
+            log.warn("This operation rejected, send to Umico : trackId - {}", trackId);
+            var sendDecision = umicoService.sendRejectedDecision(trackId);
+            sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
+            operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
+            operationRepository.save(operationEntity);
+            return;
+        }
+    }
+
     @Transactional
     public void fraudResultProcess(FraudCheckResultEvent fraudCheckResultEvent) {
         log.info("Fraud result process is stared : message - {}", fraudCheckResultEvent);
@@ -60,12 +81,7 @@ public class ProductProcessService {
                 operationRepository.save(operationEntity);
                 return;
             }
-            if (fraudResultStatus == FraudResultStatus.SUSPICIOUS) {
-                log.warn("Fraud case was found in this operation : trackId - {}", trackId);
-                leadService.sendLead(operationEntity, fraudCheckResultEvent.getTypes());
-                operationRepository.save(operationEntity);
-                return;
-            }
+            fraudResultSuspicious(fraudCheckResultEvent, operationEntity, trackId);
             noFraudProcess(operationEntity);
         }
     }
@@ -119,8 +135,7 @@ public class ProductProcessService {
     private void onVerificationConfirmed(OperationEntity operationEntity) {
         log.info("Verification status result confirmed : trackId - {}", operationEntity.getId());
         var completeScoring = scoringService.completeScoring(operationEntity.getTaskId(),
-                operationEntity.getBusinessKey(),
-                operationEntity.getAdditionalPhoneNumber1(),
+                operationEntity.getBusinessKey(), operationEntity.getAdditionalPhoneNumber1(),
                 operationEntity.getAdditionalPhoneNumber2());
         if (completeScoring.isEmpty()) {
             var deleteLoan = scoringService.deleteLoan(operationEntity);
@@ -188,8 +203,7 @@ public class ProductProcessService {
         var selectedAmount = operationEntity.getTotalAmount().add(operationEntity.getCommission());
         if (scoredAmount.compareTo(BigDecimal.ZERO) == 0) {
             log.info("Start scoring result - Scoring amount is zero");
-            var sendDecision = umicoService
-                    .sendRejectedDecision(operationEntity.getId());
+            var sendDecision = umicoService.sendRejectedDecision(operationEntity.getId());
             sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
             operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
         } else if (scoredAmount.compareTo(selectedAmount) < 0) {
@@ -286,8 +300,7 @@ public class ProductProcessService {
 
     private void scoringBusinessErrorProcess(ScoringResultEvent scoringResultEvent,
                                              OperationEntity operationEntity) {
-        var businessErrorData =
-                (BusinessErrorData[]) scoringResultEvent.getData();
+        var businessErrorData = (BusinessErrorData[]) scoringResultEvent.getData();
         log.error("Scoring result : business error , response - {}",
                 Arrays.toString(businessErrorData));
         var rejectedBusinessError = checkRejectedBusinessErrors(businessErrorData);
@@ -299,8 +312,7 @@ public class ProductProcessService {
             var deleteLoan = scoringService.deleteLoan(operationEntity);
             deleteLoan.ifPresent(operationEntity::setDeleteLoanAttemptDate);
             leadService.sendLead(operationEntity, null);
-            operationEntity.setOperationStatus(OperationStatus
-                    .OPTIMUS_FAIL_BUSINESS_ERROR);
+            operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_BUSINESS_ERROR);
         }
 
         operationRepository.save(operationEntity);
@@ -313,8 +325,7 @@ public class ProductProcessService {
         var deleteLoan = scoringService.deleteLoan(operationEntity);
         deleteLoan.ifPresent(operationEntity::setDeleteLoanAttemptDate);
         leadService.sendLead(operationEntity, null);
-        operationEntity.setOperationStatus(OperationStatus
-                .OPTIMUS_FAIL_INCIDENT_HAPPENED);
+        operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_INCIDENT_HAPPENED);
         operationRepository.save(operationEntity);
     }
 
@@ -324,8 +335,7 @@ public class ProductProcessService {
         }
         for (var businessError : businessErrors) {
             try {
-                var rejectedBusinessError =
-                        RejectedBusinessError.valueOf(businessError.getId());
+                var rejectedBusinessError = RejectedBusinessError.valueOf(businessError.getId());
                 return Optional.of(rejectedBusinessError.name());
             } catch (Exception ex) {
                 log.info("Unexcepted business error - {}", ex);

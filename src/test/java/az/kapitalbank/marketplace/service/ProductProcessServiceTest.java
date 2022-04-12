@@ -67,7 +67,7 @@ class ProductProcessServiceTest {
     void fraudResultProcess_Suspicious() {
         var request = FraudCheckResultEvent.builder()
                 .trackId(UUID.fromString(TRACK_ID.getValue()))
-                .fraudResultStatus(FraudResultStatus.SUSPICIOUS)
+                .fraudResultStatus(FraudResultStatus.SUSPICIOUS_TELESALES)
                 .build();
         when(operationRepository.findById(request.getTrackId())).thenReturn(
                 Optional.of(getOperationEntity()));
