@@ -12,7 +12,7 @@ public enum Error {
 
     BAD_REQUEST("E100", "Request is not valid (Field is null or not valid) : %s"),
     ORDER_NOT_FOUND("E101", "Order not found"),
-    NO_MATCH_LOAN_AMOUNT("E102", "Loan amount is not equal total order amount"),
+    NO_MATCH_LOAN_AMOUNT_BY_ORDERS("E102", "Loan amount is not equal total order amount"),
     LOAN_TERM_NOT_FOUND("E103", "No such loan term"),
     PURCHASE_AMOUNT_LIMIT("E104",
             "Purchase amount must be between 50 and 20000 in first transaction"),
@@ -34,7 +34,8 @@ public enum Error {
     OTP_ATTEMPT_LIMIT_ONE("E120", "Invalid otp! remaining attempt: 1"),
     OTP_ATTEMPT_LIMIT_TWO("E121", "Invalid otp! remaining attempt: 2"),
     SUBSCRIPTION_NOT_FOUND("E122", "Mobile number not found"),
-    INVALID_OTP_AND_PHONE_BLOCKED("E123", "Invalid otp. mobile number was blocked");
+    INVALID_OTP_AND_PHONE_BLOCKED("E123", "Invalid otp. mobile number was blocked"),
+    NO_MATCH_ORDER_AMOUNT_BY_PRODUCTS("E124", "Order amount is not equal total products amount");
 
     String code;
     String message;
