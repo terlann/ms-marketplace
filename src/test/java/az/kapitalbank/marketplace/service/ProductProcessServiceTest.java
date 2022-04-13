@@ -64,10 +64,22 @@ class ProductProcessServiceTest {
     }
 
     @Test
-    void fraudResultProcess_Suspicious() {
+    void fraudResultProcess_SuspiciousSendTelesales() {
         var request = FraudCheckResultEvent.builder()
                 .trackId(UUID.fromString(TRACK_ID.getValue()))
                 .fraudResultStatus(FraudResultStatus.SUSPICIOUS_TELESALES)
+                .build();
+        when(operationRepository.findById(request.getTrackId())).thenReturn(
+                Optional.of(getOperationEntity()));
+        productProcessService.fraudResultProcess(request);
+        verify(operationRepository).findById(request.getTrackId());
+    }
+
+    @Test
+    void fraudResultProcess_SuspiciousSendUmico() {
+        var request = FraudCheckResultEvent.builder()
+                .trackId(UUID.fromString(TRACK_ID.getValue()))
+                .fraudResultStatus(FraudResultStatus.SUSPICIOUS_UMICO)
                 .build();
         when(operationRepository.findById(request.getTrackId())).thenReturn(
                 Optional.of(getOperationEntity()));
