@@ -107,12 +107,7 @@ public class OrderService {
 
     private Optional<String> telesalesResultApproveProcess(TelesalesResultRequestDto request,
                                                            OperationEntity operationEntity) {
-        String cardId;
-        if (request.getUid() != null) {
-            cardId = request.getUid();
-        } else {
-            cardId = atlasClient.findByPan(request.getPan()).getUid();
-        }
+        var cardId = request.getUid();
         prePurchaseOrders(operationEntity, cardId);
         operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
         operationEntity.setScoringStatus(ScoringStatus.APPROVED);
