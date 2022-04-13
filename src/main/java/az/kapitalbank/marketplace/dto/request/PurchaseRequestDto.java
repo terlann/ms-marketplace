@@ -26,7 +26,7 @@ public class PurchaseRequestDto {
     UUID customerId;
     @NotNull
     UUID trackId;
-    @NotEmpty
+    @NotBlank
     String orderNo;
     @NotEmpty
     Set<@Valid DeliveryProductDto> deliveryProducts;
