@@ -28,8 +28,7 @@ public class TelesalesResultRequestDto {
     LocalDate loanContractEndDate;
     @NotBlank
     String uid;
-    @NotBlank
     String pan;
-    @NotBlank
+    @NotNull
     BigDecimal scoredAmount;
 }

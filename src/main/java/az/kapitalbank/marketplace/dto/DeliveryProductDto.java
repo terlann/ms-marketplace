@@ -1,7 +1,7 @@
 package az.kapitalbank.marketplace.dto;
 
 import java.util.Objects;
-import javax.validation.constraints.NotEmpty;
+import javax.validation.constraints.NotBlank;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,9 +15,9 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class DeliveryProductDto {
-    @NotEmpty
+    @NotBlank
     String productId;
-    @NotEmpty
+    @NotBlank
     String itemType;
 
     @Override
