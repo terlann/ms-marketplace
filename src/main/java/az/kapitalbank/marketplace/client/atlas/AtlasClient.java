@@ -2,12 +2,12 @@ package az.kapitalbank.marketplace.client.atlas;
 
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
-import az.kapitalbank.marketplace.client.atlas.model.request.ReversePurchaseRequest;
+import az.kapitalbank.marketplace.client.atlas.model.request.RefundRequest;
 import az.kapitalbank.marketplace.client.atlas.model.response.CardDetailResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.CardResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseCompleteResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseResponse;
-import az.kapitalbank.marketplace.client.atlas.model.response.ReverseResponse;
+import az.kapitalbank.marketplace.client.atlas.model.response.RefundResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.SubscriptionResponse;
 import az.kapitalbank.marketplace.constant.ResultType;
 import feign.Logger;
@@ -31,8 +31,8 @@ public interface AtlasClient {
     @PutMapping("/transfers/complete")
     PurchaseCompleteResponse complete(@RequestBody PurchaseCompleteRequest request);
 
-    @PutMapping("/transfers/{id}/reverse")
-    ReverseResponse reverse(@PathVariable String id, @RequestBody ReversePurchaseRequest request);
+    @PutMapping("/card-transfers/{id}/refund")
+    RefundResponse refund(@PathVariable String id, @RequestBody RefundRequest request);
 
     @GetMapping("/cards/uid/{uid}")
     CardDetailResponse findCardByUid(@PathVariable String uid,
