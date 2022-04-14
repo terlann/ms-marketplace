@@ -31,7 +31,7 @@ public interface AtlasClient {
     @PutMapping("/transfers/complete")
     PurchaseCompleteResponse complete(@RequestBody PurchaseCompleteRequest request);
 
-    @PutMapping("/card-transfers/{id}/refund")
+    @PutMapping("/transfers/{id}/refund")
     RefundResponse refund(@PathVariable String id, @RequestBody RefundRequest request);
 
     @GetMapping("/cards/uid/{uid}")

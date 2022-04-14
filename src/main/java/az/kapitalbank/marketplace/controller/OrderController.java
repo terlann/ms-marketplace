@@ -56,7 +56,7 @@ public class OrderController {
 
     @PostMapping("/refund")
     public ResponseEntity<Void> refund(
-            @RequestBody RefundRequestDto request) {
+            @Valid @RequestBody RefundRequestDto request) {
         service.refund(request);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
