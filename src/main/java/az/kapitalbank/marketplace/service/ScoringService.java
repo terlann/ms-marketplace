@@ -108,6 +108,12 @@ public class ScoringService {
     public Optional<ProcessResponse> getProcess(String businessKey) {
         log.info("Get process is started : businessKey - {}", businessKey);
         try {
+            Thread.sleep(3000);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            log.error("Interrupted exception in getProcess: ex - ", ex);
+        }
+        try {
             ProcessResponse processResponse = optimusClient.getProcess(businessKey);
             log.info("Get process was finished :  businessKey - {}, response - {}", businessKey,
                     processResponse);
