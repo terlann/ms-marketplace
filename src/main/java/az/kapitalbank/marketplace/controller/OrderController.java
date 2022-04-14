@@ -36,8 +36,7 @@ public class OrderController {
 
     @PostMapping("/check/{telesales-order-id}")
     public ResponseEntity<CheckOrderResponseDto> checkOrder(
-            @NotBlank @PathVariable("telesales-order-id")
-                    String telesalesOrderId) {
+            @NotBlank @PathVariable("telesales-order-id") String telesalesOrderId) {
         return ResponseEntity.ok(service.checkOrder(telesalesOrderId));
     }
 
@@ -55,8 +54,7 @@ public class OrderController {
     }
 
     @PostMapping("/refund")
-    public ResponseEntity<Void> refund(
-            @Valid @RequestBody RefundRequestDto request) {
+    public ResponseEntity<Void> refund(@Valid @RequestBody RefundRequestDto request) {
         service.refund(request);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
