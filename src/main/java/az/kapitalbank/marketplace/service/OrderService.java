@@ -226,7 +226,7 @@ public class OrderService {
         var transactionStatus = orderEntity.getTransactionStatus();
         var productEntities = orderEntity.getProducts();
         verifyProductIdIsLinkedToOrderNo(request, productEntities);
-        if (transactionStatus == TransactionStatus.PURCHASE
+        if (transactionStatus == TransactionStatus.PRE_PURCHASE
                 || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE) {
             var deliveryAmount = getDeliveryAmount(request, productEntities);
             if (deliveryAmount.compareTo(BigDecimal.ZERO) > 0) {
@@ -306,9 +306,9 @@ public class OrderService {
                 var purchaseResponse = atlasClient.purchase(purchaseRequest);
                 orderEntity.setTransactionId(purchaseResponse.getId());
                 orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
-                orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
+                orderEntity.setTransactionStatus(TransactionStatus.PRE_PURCHASE);
             } catch (AtlasClientException e) {
-                orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_PURCHASE);
+                orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_PRE_PURCHASE);
                 orderEntity.setTransactionError(e.getMessage());
             }
             orderEntity.setRrn(rrn);
@@ -334,9 +334,8 @@ public class OrderService {
                 .build();
     }
 
-    private PurchaseCompleteRequest getPurchaseCompleteRequest(OrderEntity order) {
+    private PurchaseCompleteRequest getPurchaseCompleteRequest(OrderEntity order, String cardId) {
         var rrn = GenerateUtil.rrn();
-        var cardId = order.getOperation().getCustomer().getCardId();
         var commission = order.getCommission();
         var totalPayment = commission.add(order.getTotalAmount());
         return PurchaseCompleteRequest.builder()
@@ -349,24 +348,24 @@ public class OrderService {
                 .build();
     }
 
-    @Transactional
+    @Transactional(dontRollbackOn = AtlasClientException.class)
     public void refund(RefundRequestDto request) {
         log.info("Refund process is started : request - {}", request);
         var orderNo = request.getOrderNo();
         var orderEntity = orderRepository.findByOrderNo(orderNo)
                 .orElseThrow(() -> new OrderNotFoundException(ORDER_NO_LOG + orderNo));
-        var amountWithCommission = orderEntity.getTotalAmount().add(orderEntity.getCommission());
         var transactionStatus = orderEntity.getTransactionStatus();
-        if (transactionStatus == TransactionStatus.PURCHASE
+        if (transactionStatus == TransactionStatus.PRE_PURCHASE
                 || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE) {
             var customerEntity = orderEntity.getOperation().getCustomer();
             if (!customerEntity.getId().equals(request.getCustomerId())) {
                 throw new OrderNotLinkedToCustomer(
                         ORDER_NO_LOG + orderNo + "," + CUSTOMER_ID_LOG + customerEntity.getId());
             }
-            var purchaseCompleteRequest = getPurchaseCompleteRequest(orderEntity);
+            var purchaseCompleteRequest =
+                    getPurchaseCompleteRequest(orderEntity, customerEntity.getCardId());
             purchaseOrder(orderEntity, purchaseCompleteRequest);
-            refundAmount(orderEntity, amountWithCommission);
+            refundAmount(orderEntity);
             log.info("Refund process was finished : orderNo - {}, customerId - {}",
                     request.getOrderNo(), request.getCustomerId());
         } else {
@@ -376,10 +375,11 @@ public class OrderService {
         }
     }
 
-    private void refundAmount(OrderEntity orderEntity,
-                              BigDecimal amountWithCommission) {
+    private void refundAmount(OrderEntity orderEntity) {
         AtlasClientException exception = null;
         var rrn = GenerateUtil.rrn();
+        var amountWithCommission =
+                orderEntity.getTotalAmount().add(orderEntity.getCommission());
         try {
             var refundResponse = atlasClient.refund(orderEntity.getTransactionId(),
                     new RefundRequest(amountWithCommission, rrn));
