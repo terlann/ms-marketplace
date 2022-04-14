@@ -312,7 +312,9 @@ public class ProductProcessService {
                 var rejectedBusinessError = RejectedBusinessError.valueOf(businessError.getId());
                 return Optional.of(rejectedBusinessError.name());
             } catch (Exception ex) {
-                log.info("Unexcepted business error - {}", ex);
+                log.info(
+                        "Optimus business error not found in rejected business error business - {}",
+                        businessError);
             }
         }
         return Optional.empty();

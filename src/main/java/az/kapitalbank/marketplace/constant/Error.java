@@ -25,7 +25,7 @@ public enum Error {
     OPERATION_ALREADY_SCORED("E111", "Operation had already scored"),
     UNIQUE_PHONE_NUMBER("E112", "Additional numbers must be different"),
     ORDER_NOT_LINKED_TO_CUSTOMER("E113", "Order is not linked to customer"),
-    NO_PERMISSION("E114", "No permission reverse/purchase"),
+    NO_PERMISSION("E114", "No permission refund/purchase"),
     SERVICE_UNAVAILABLE("E115", "Service temporarily unavailable"),
     OTP_PHONE_BLOCKED("E116", "Phone was blocked"),
     OTP_SEND_LIMIT_EXCEEDED("E117", "Send otp limit exceed"),
@@ -36,7 +36,7 @@ public enum Error {
     SUBSCRIPTION_NOT_FOUND("E122", "Mobile number not found"),
     INVALID_OTP_AND_PHONE_BLOCKED("E123", "Invalid otp. mobile number was blocked"),
     NO_MATCH_ORDER_AMOUNT_BY_PRODUCTS("E124", "Order amount is not equal total products amount"),
-    PRODUCT_NOT_LINKED_TO_ORDER("E125","Product is not linked to order");
+    PRODUCT_NOT_LINKED_TO_ORDER("E125", "Product is not linked to order");
 
     String code;
     String message;
