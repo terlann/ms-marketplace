@@ -1,6 +1,5 @@
 package az.kapitalbank.marketplace.service;
 
-import static az.kapitalbank.marketplace.constant.AtlasConstant.REVERSE_DESCRIPTION;
 import static az.kapitalbank.marketplace.constant.CommonConstant.CUSTOMER_ID_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.ORDER_NO_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.TELESALES_ORDER_ID_LOG;
@@ -9,9 +8,8 @@ import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
-import az.kapitalbank.marketplace.client.atlas.model.request.ReversePurchaseRequest;
+import az.kapitalbank.marketplace.client.atlas.model.request.RefundRequest;
 import az.kapitalbank.marketplace.constant.AccountStatus;
-import az.kapitalbank.marketplace.constant.OrderStatus;
 import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
@@ -20,11 +18,10 @@ import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
 import az.kapitalbank.marketplace.dto.OrderProductItem;
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
 import az.kapitalbank.marketplace.dto.request.PurchaseRequestDto;
-import az.kapitalbank.marketplace.dto.request.ReverseRequestDto;
+import az.kapitalbank.marketplace.dto.request.RefundRequestDto;
 import az.kapitalbank.marketplace.dto.request.TelesalesResultRequestDto;
 import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
 import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
-import az.kapitalbank.marketplace.dto.response.PurchaseResponseDto;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
@@ -229,12 +226,13 @@ public class OrderService {
         var transactionStatus = orderEntity.getTransactionStatus();
         var productEntities = orderEntity.getProducts();
         verifyProductIdIsLinkedToOrderNo(request, productEntities);
-        if (transactionStatus == TransactionStatus.PURCHASE
-                || transactionStatus == TransactionStatus.FAIL_IN_REVERSE
+        if (transactionStatus == TransactionStatus.PRE_PURCHASE
                 || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE) {
             var deliveryAmount = getDeliveryAmount(request, productEntities);
             if (deliveryAmount.compareTo(BigDecimal.ZERO) > 0) {
-                purchaseOrder(orderEntity, deliveryAmount);
+                var purchaseCompleteRequest =
+                        getPurchaseCompleteRequest(orderEntity, deliveryAmount);
+                purchaseOrder(orderEntity, purchaseCompleteRequest);
             }
         } else {
             log.error("No Permission for complete. orderNo - {}, transactionStatus -{}",
@@ -277,12 +275,8 @@ public class OrderService {
         return deliveryAmount;
     }
 
-    private void purchaseOrder(OrderEntity order, BigDecimal deliveryAmount) {
+    private void purchaseOrder(OrderEntity order, PurchaseCompleteRequest purchaseCompleteRequest) {
         AtlasClientException exception = null;
-        var cardId = order.getOperation().getCustomer().getCardId();
-        var rrn = GenerateUtil.rrn();
-        var purchaseCompleteRequest =
-                getPurchaseCompleteRequest(cardId, order, rrn, deliveryAmount);
         try {
             var purchaseCompleteResponse = atlasClient.complete(purchaseCompleteRequest);
             var transactionId = purchaseCompleteResponse.getId();
@@ -294,7 +288,7 @@ public class OrderService {
             order.setTransactionError(ex.getMessage());
             log.error("Atlas complete process was failed. orderNo - {}", order.getOrderNo());
         }
-        order.setRrn(rrn);
+        order.setRrn(purchaseCompleteRequest.getRrn());
         order.setTransactionDate(LocalDateTime.now());
         orderRepository.save(order);
         if (exception != null) {
@@ -312,9 +306,9 @@ public class OrderService {
                 var purchaseResponse = atlasClient.purchase(purchaseRequest);
                 orderEntity.setTransactionId(purchaseResponse.getId());
                 orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
-                orderEntity.setTransactionStatus(TransactionStatus.PURCHASE);
+                orderEntity.setTransactionStatus(TransactionStatus.PRE_PURCHASE);
             } catch (AtlasClientException e) {
-                orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_PURCHASE);
+                orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_PRE_PURCHASE);
                 orderEntity.setTransactionError(e.getMessage());
             }
             orderEntity.setRrn(rrn);
@@ -323,8 +317,10 @@ public class OrderService {
         log.info(" Orders purchase process was finished...");
     }
 
-    private PurchaseCompleteRequest getPurchaseCompleteRequest(String cardId, OrderEntity
-            order, String rrn, BigDecimal deliveryAmount) {
+    private PurchaseCompleteRequest getPurchaseCompleteRequest(OrderEntity order,
+                                                               BigDecimal deliveryAmount) {
+        var rrn = GenerateUtil.rrn();
+        var cardId = order.getOperation().getCustomer().getCardId();
         var percent = order.getOperation().getLoanPercent();
         var commission = amountUtil.getCommissionByPercent(deliveryAmount, percent);
         var totalPayment = commission.add(deliveryAmount);
@@ -336,57 +332,72 @@ public class OrderService {
                 .rrn(rrn)
                 .installments(order.getOperation().getLoanTerm())
                 .build();
-
     }
 
-    @Transactional
-    public PurchaseResponseDto reverse(ReverseRequestDto request) {
-        log.info("Reverse process is started : request - {}", request);
-        var customerId = request.getCustomerId();
+    private PurchaseCompleteRequest getPurchaseCompleteRequest(OrderEntity order, String cardId) {
+        var rrn = GenerateUtil.rrn();
+        var commission = order.getCommission();
+        var totalPayment = commission.add(order.getTotalAmount());
+        return PurchaseCompleteRequest.builder()
+                .id(Long.valueOf(order.getTransactionId()))
+                .uid(cardId)
+                .amount(totalPayment)
+                .approvalCode(order.getApprovalCode())
+                .rrn(rrn)
+                .installments(order.getOperation().getLoanTerm())
+                .build();
+    }
+
+    @Transactional(dontRollbackOn = AtlasClientException.class)
+    public void refund(RefundRequestDto request) {
+        log.info("Refund process is started : request - {}", request);
         var orderNo = request.getOrderNo();
         var orderEntity = orderRepository.findByOrderNo(orderNo)
                 .orElseThrow(() -> new OrderNotFoundException(ORDER_NO_LOG + orderNo));
         var transactionStatus = orderEntity.getTransactionStatus();
-        if (transactionStatus == TransactionStatus.PURCHASE
-                || transactionStatus == TransactionStatus.FAIL_IN_REVERSE
+        if (transactionStatus == TransactionStatus.PRE_PURCHASE
                 || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE) {
             var customerEntity = orderEntity.getOperation().getCustomer();
             if (!customerEntity.getId().equals(request.getCustomerId())) {
                 throw new OrderNotLinkedToCustomer(
-                        ORDER_NO_LOG + orderNo + "," + CUSTOMER_ID_LOG + customerId);
+                        ORDER_NO_LOG + orderNo + "," + CUSTOMER_ID_LOG + customerEntity.getId());
             }
-            var purchaseResponse = reverseOrder(orderEntity);
-            log.info("Reverse process was finished : orderNo - {}, customerId - {}",
+            var purchaseCompleteRequest =
+                    getPurchaseCompleteRequest(orderEntity, customerEntity.getCardId());
+            purchaseOrder(orderEntity, purchaseCompleteRequest);
+            refundAmount(orderEntity);
+            log.info("Refund process was finished : orderNo - {}, customerId - {}",
                     request.getOrderNo(), request.getCustomerId());
-            return purchaseResponse;
+        } else {
+            throw new NoPermissionForTransaction(
+                    ORDER_NO_LOG + orderEntity.getId() + " transactionStatus - "
+                            + transactionStatus);
         }
-        throw new NoPermissionForTransaction(
-                ORDER_NO_LOG + orderEntity.getId() + " transactionStatus - "
-                        + transactionStatus);
     }
 
-    private PurchaseResponseDto reverseOrder(OrderEntity orderEntity) {
-        var purchaseResponse = new PurchaseResponseDto();
+    private void refundAmount(OrderEntity orderEntity) {
+        AtlasClientException exception = null;
+        var rrn = GenerateUtil.rrn();
+        var amountWithCommission =
+                orderEntity.getTotalAmount().add(orderEntity.getCommission());
         try {
-            var reverseResponse = atlasClient.reverse(orderEntity.getTransactionId(),
-                    new ReversePurchaseRequest(REVERSE_DESCRIPTION));
-            orderEntity.setTransactionId(String.valueOf(reverseResponse.getId()));
-            orderEntity.setTransactionStatus(TransactionStatus.REVERSE);
-            purchaseResponse.setStatus(OrderStatus.SUCCESS);
+            var refundResponse = atlasClient.refund(orderEntity.getTransactionId(),
+                    new RefundRequest(amountWithCommission, rrn));
+            orderEntity.setTransactionId(refundResponse.getId());
+            orderEntity.setTransactionStatus(TransactionStatus.REFUND);
         } catch (AtlasClientException ex) {
-            orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_REVERSE);
+            exception = ex;
+            orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_REFUND);
             orderEntity.setTransactionError(ex.getMessage());
-            purchaseResponse.setStatus(OrderStatus.FAIL);
-            log.error("Atlas reverse process was failed : orderNo - {}",
+            log.error("Atlas refund process was failed : orderNo - {}",
                     orderEntity.getOrderNo());
-            String errorMessager = "Atlas Exception: UUID - %s  ,  code - %s, message - %s";
-            log.error(
-                    String.format(errorMessager, ex.getUuid(), ex.getCode(), ex.getMessage()));
         }
+        orderEntity.setRrn(rrn);
         orderEntity.setTransactionDate(LocalDateTime.now());
         orderRepository.save(orderEntity);
-        purchaseResponse.setOrderNo(orderEntity.getOrderNo());
-        return purchaseResponse;
+        if (exception != null) {
+            throw exception;
+        }
     }
 
     private void validateCustomerBalance(CreateOrderRequestDto request, String cardId) {

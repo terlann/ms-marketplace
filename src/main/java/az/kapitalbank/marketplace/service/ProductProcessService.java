@@ -22,7 +22,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.UUID;
 import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -44,26 +43,6 @@ public class ProductProcessService {
     VerificationService verificationService;
     OperationRepository operationRepository;
 
-    private void fraudResultSuspicious(FraudCheckResultEvent fraudCheckResultEvent,
-                                       OperationEntity operationEntity,
-                                       UUID trackId) {
-        var fraudResultStatus = fraudCheckResultEvent.getFraudResultStatus();
-        if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_TELESALES) {
-            log.warn("Fraud case was found in this operation, send to Telesales : trackId - {}",
-                    trackId);
-            leadService.sendLead(operationEntity, fraudCheckResultEvent.getTypes());
-            operationRepository.save(operationEntity);
-            return;
-        }
-        if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_UMICO) {
-            log.warn("This operation rejected, send to Umico : trackId - {}", trackId);
-            var sendDecision = umicoService.sendRejectedDecision(trackId);
-            sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
-            operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
-            operationRepository.save(operationEntity);
-        }
-    }
-
     @Transactional
     public void fraudResultProcess(FraudCheckResultEvent fraudCheckResultEvent) {
         log.info("Fraud result process is stared : message - {}", fraudCheckResultEvent);
@@ -78,10 +57,20 @@ public class ProductProcessService {
                 sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
                 operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.DECLINED_BY_BLACKLIST);
                 operationRepository.save(operationEntity);
-                return;
+            } else if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_TELESALES) {
+                log.warn("Fraud case was found in this operation, send to Telesales : trackId - {}",
+                        trackId);
+                leadService.sendLead(operationEntity, fraudCheckResultEvent.getTypes());
+                operationRepository.save(operationEntity);
+            } else if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_UMICO) {
+                log.warn("This operation rejected, send to Umico : trackId - {}", trackId);
+                var sendDecision = umicoService.sendRejectedDecision(trackId);
+                sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
+                operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
+                operationRepository.save(operationEntity);
+            } else {
+                noFraudProcess(operationEntity);
             }
-            fraudResultSuspicious(fraudCheckResultEvent, operationEntity, trackId);
-            noFraudProcess(operationEntity);
         }
     }
 
@@ -323,7 +312,9 @@ public class ProductProcessService {
                 var rejectedBusinessError = RejectedBusinessError.valueOf(businessError.getId());
                 return Optional.of(rejectedBusinessError.name());
             } catch (Exception ex) {
-                log.info("Unexcepted business error - {}", ex);
+                log.info(
+                        "Optimus business error not found in rejected business error business - {}",
+                        businessError);
             }
         }
         return Optional.empty();

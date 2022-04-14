@@ -1,7 +1,7 @@
 package az.kapitalbank.marketplace.dto.request;
 
 import java.util.UUID;
-import javax.validation.constraints.NotNull;
+import javax.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,7 +11,9 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SendOtpRequestDto {
-    @NotNull
-    private UUID trackId;
+public class RefundRequestDto {
+    private String umicoUserId;
+    private UUID customerId;
+    @NotBlank
+    private String orderNo;
 }

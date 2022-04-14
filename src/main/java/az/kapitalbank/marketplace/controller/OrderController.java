@@ -2,11 +2,10 @@ package az.kapitalbank.marketplace.controller;
 
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
 import az.kapitalbank.marketplace.dto.request.PurchaseRequestDto;
-import az.kapitalbank.marketplace.dto.request.ReverseRequestDto;
+import az.kapitalbank.marketplace.dto.request.RefundRequestDto;
 import az.kapitalbank.marketplace.dto.request.TelesalesResultRequestDto;
 import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
 import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
-import az.kapitalbank.marketplace.dto.response.PurchaseResponseDto;
 import az.kapitalbank.marketplace.service.OrderService;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
@@ -37,8 +36,7 @@ public class OrderController {
 
     @PostMapping("/check/{telesales-order-id}")
     public ResponseEntity<CheckOrderResponseDto> checkOrder(
-            @NotBlank @PathVariable("telesales-order-id")
-                    String telesalesOrderId) {
+            @NotBlank @PathVariable("telesales-order-id") String telesalesOrderId) {
         return ResponseEntity.ok(service.checkOrder(telesalesOrderId));
     }
 
@@ -55,9 +53,9 @@ public class OrderController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    @PostMapping("/reverse")
-    public ResponseEntity<PurchaseResponseDto> reverse(
-            @Valid @RequestBody ReverseRequestDto request) {
-        return ResponseEntity.ok(service.reverse(request));
+    @PostMapping("/refund")
+    public ResponseEntity<Void> refund(@Valid @RequestBody RefundRequestDto request) {
+        service.refund(request);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }
