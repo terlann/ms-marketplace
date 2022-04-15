@@ -66,6 +66,7 @@ public class OperationEntity extends BaseEntity {
     @Enumerated(EnumType.STRING)
     UmicoDecisionStatus umicoDecisionStatus;
     String umicoDecisionError;
+    String umicoPurchaseResultError;
     String sendTelesalesError;
     LocalDateTime deleteLoanAttemptDate;
     @Enumerated(EnumType.STRING)

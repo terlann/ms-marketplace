@@ -16,7 +16,7 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class PurchaseRequest {
+public class PrePurchaseRequest {
     BigDecimal amount;
     String pan;
     String rrn;

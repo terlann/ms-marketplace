@@ -12,12 +12,14 @@ import lombok.experimental.FieldDefaults;
 @Data
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class PurchaseCompleteRequest {
-    BigDecimal amount;
+public class CompletePrePurchaseRequest {
     Long id;
     String pan;
     String rrn;
     String uid;
+    BigDecimal fee;
+    BigDecimal amount;
+    String description;
     String approvalCode;
     Integer installments;
     @Builder.Default

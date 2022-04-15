@@ -68,7 +68,7 @@ public class CustomerService {
         var availableBalance = primaryAccount.get().getAvailableBalance();
         return BalanceResponseDto.builder()
                 .loanUtilized(loanLimit.subtract(availableBalance))
-                .availableBalance(availableBalance)
+                .availableBalance(availableBalance.subtract(customerEntity.getLastTempAmount()))
                 .loanLimit(loanLimit)
                 .cardExpiryDate(cardDetailResponse.getExpiryDate())
                 .build();

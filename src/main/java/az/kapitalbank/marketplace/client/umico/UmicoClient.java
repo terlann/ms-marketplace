@@ -1,5 +1,6 @@
 package az.kapitalbank.marketplace.client.umico;
 
+import az.kapitalbank.marketplace.client.umico.model.PrePurchaseResultRequest;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionResponse;
 import feign.Logger;
@@ -18,6 +19,10 @@ public interface UmicoClient {
     @PostMapping("/application_offers")
     UmicoDecisionResponse sendDecision(@RequestBody UmicoDecisionRequest request,
                                        @RequestHeader("ApiKey") String apiKey);
+
+    @PostMapping("/repeat_result")
+    void sendPrePurchaseResult(@RequestBody PrePurchaseResultRequest request,
+                               @RequestHeader("ApiKey") String apiKey);
 
     class FeignConfiguration {
         @Bean
