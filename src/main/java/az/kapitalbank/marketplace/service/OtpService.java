@@ -31,8 +31,9 @@ public class OtpService {
 
     OtpClient otpClient;
     AtlasClient atlasClient;
-    OperationRepository operationRepository;
+    UmicoService umicoService;
     OrderService orderService;
+    OperationRepository operationRepository;
 
     @Transactional
     public SendOtpResponseDto send(SendOtpRequestDto request) {
@@ -57,16 +58,19 @@ public class OtpService {
         var trackId = request.getTrackId();
         var operationEntity = operationRepository.findById(trackId)
                 .orElseThrow(() -> new OperationNotFoundException("trackId: " + trackId));
-        var customerEntity = operationEntity.getCustomer();
-        String cardLinkedMobileNumber = getCardLinkedMobileNumber(customerEntity.getCardId());
+        var cardId = operationEntity.getCustomer().getCardId();
+        String cardLinkedMobileNumber = getCardLinkedMobileNumber(cardId);
         var otpVerifyRequest =
                 VerifyOtpRequest.builder().otp(request.getOtp()).phoneNumber(cardLinkedMobileNumber)
                         .build();
         log.info("Verify otp : request - {}", otpVerifyRequest);
         var verifyOtpResponse = otpClient.verify(otpVerifyRequest);
         log.info("Verify otp process was finished : response - {}", verifyOtpResponse);
-        var cardId = customerEntity.getCardId();
-        orderService.prePurchaseOrders(operationEntity, cardId);
+
+        var isPrePurchasedOrders = orderService.prePurchaseOrders(operationEntity, cardId);
+        if (isPrePurchasedOrders) {
+            umicoService.sendPrePurchaseResult(trackId);
+        }
         operationRepository.save(operationEntity);
     }
 

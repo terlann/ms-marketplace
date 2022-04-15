@@ -2,6 +2,7 @@ package az.kapitalbank.marketplace.service;
 
 import az.kapitalbank.marketplace.client.umico.UmicoClient;
 import az.kapitalbank.marketplace.client.umico.exception.UmicoClientException;
+import az.kapitalbank.marketplace.client.umico.model.PrePurchaseResultRequest;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.entity.OperationEntity;
@@ -25,6 +26,20 @@ public class UmicoService {
     @Value("${umico.api-key}")
     String apiKey;
     UmicoClient umicoClient;
+
+    public Optional<String> sendPrePurchaseResult(UUID trackId) {
+        log.info("Send pre purchase result to umico is started : trackId - {} ", trackId);
+        try {
+            umicoClient.sendPrePurchaseResult(new PrePurchaseResultRequest(trackId), apiKey);
+            log.info("Send pre purchase result to umico was finished : trackId - {} ", trackId);
+            return Optional.empty();
+        } catch (UmicoClientException e) {
+            log.error("Send pre purchase result to umico was failed : "
+                            + "trackId - {} , UmicoClientException - {}",
+                    trackId, e);
+            return Optional.of(e.getMessage());
+        }
+    }
 
     public Optional<String> sendPendingDecision(UUID trackId) {
         var umicoDecisionRequest =

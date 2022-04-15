@@ -1,13 +1,16 @@
 package az.kapitalbank.marketplace.service;
 
+import static az.kapitalbank.marketplace.constant.AtlasConstant.COMPLETE_PRE_PURCHASE_DESCRIPTION;
+import static az.kapitalbank.marketplace.constant.AtlasConstant.COMPLETE_PRE_PURCHASE_FOR_REFUND_DESCRIPTION;
+import static az.kapitalbank.marketplace.constant.AtlasConstant.PRE_PURCHASE_DESCRIPTION;
 import static az.kapitalbank.marketplace.constant.CommonConstant.CUSTOMER_ID_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.ORDER_NO_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.TELESALES_ORDER_ID_LOG;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
-import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteRequest;
-import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
+import az.kapitalbank.marketplace.client.atlas.model.request.CompletePrePurchaseRequest;
+import az.kapitalbank.marketplace.client.atlas.model.request.PrePurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.RefundRequest;
 import az.kapitalbank.marketplace.constant.AccountStatus;
 import az.kapitalbank.marketplace.constant.ResultType;
@@ -220,28 +223,29 @@ public class OrderService {
 
     @Transactional(dontRollbackOn = AtlasClientException.class)
     public void purchase(PurchaseRequestDto request) {
-        log.info("Purchase process is started : request - {}", request);
+        log.info("Complete pre purchase process is started : request - {}", request);
         var orderEntity = orderRepository.findByOrderNo(request.getOrderNo())
                 .orElseThrow(() -> new OrderNotFoundException("orderNo - " + request.getOrderNo()));
         var transactionStatus = orderEntity.getTransactionStatus();
         var productEntities = orderEntity.getProducts();
         verifyProductIdIsLinkedToOrderNo(request, productEntities);
         if (transactionStatus == TransactionStatus.PRE_PURCHASE
-                || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE) {
+                || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE_PRE_PURCHASE) {
             var deliveryAmount = getDeliveryAmount(request, productEntities);
             if (deliveryAmount.compareTo(BigDecimal.ZERO) > 0) {
                 var purchaseCompleteRequest =
-                        getPurchaseCompleteRequest(orderEntity, deliveryAmount);
-                purchaseOrder(orderEntity, purchaseCompleteRequest);
+                        getCompletePrePurchaseRequest(orderEntity, deliveryAmount);
+                completePrePurchaseOrder(orderEntity, purchaseCompleteRequest);
             }
         } else {
-            log.error("No Permission for complete. orderNo - {}, transactionStatus -{}",
+            log.error(
+                    "No Permission for complete pre purchase. orderNo - {}, transactionStatus -{}",
                     orderEntity.getOrderNo(), orderEntity.getTransactionStatus());
             throw new NoPermissionForTransaction(
                     ORDER_NO_LOG + orderEntity.getId() + " transactionStatus - "
                             + transactionStatus);
         }
-        log.info("Purchase process was finished : trackId - {}, customerId - {}",
+        log.info("Complete pre purchase process was finished : trackId - {}, customerId - {}",
                 request.getTrackId(), request.getCustomerId());
     }
 
@@ -275,20 +279,23 @@ public class OrderService {
         return deliveryAmount;
     }
 
-    private void purchaseOrder(OrderEntity order, PurchaseCompleteRequest purchaseCompleteRequest) {
+    private void completePrePurchaseOrder(OrderEntity order,
+                                          CompletePrePurchaseRequest completePrePurchaseRequest) {
         AtlasClientException exception = null;
         try {
-            var purchaseCompleteResponse = atlasClient.complete(purchaseCompleteRequest);
+            var purchaseCompleteResponse =
+                    atlasClient.completePrePurchase(completePrePurchaseRequest);
             var transactionId = purchaseCompleteResponse.getId();
             order.setTransactionId(transactionId);
-            order.setTransactionStatus(TransactionStatus.COMPLETE);
+            order.setTransactionStatus(TransactionStatus.COMPLETE_PRE_PURCHASE);
         } catch (AtlasClientException ex) {
             exception = ex;
-            order.setTransactionStatus(TransactionStatus.FAIL_IN_COMPLETE);
+            order.setTransactionStatus(TransactionStatus.FAIL_IN_COMPLETE_PRE_PURCHASE);
             order.setTransactionError(ex.getMessage());
-            log.error("Atlas complete process was failed. orderNo - {}", order.getOrderNo());
+            log.error("Atlas complete pre purchase process was failed. orderNo - {}",
+                    order.getOrderNo());
         }
-        order.setRrn(purchaseCompleteRequest.getRrn());
+        order.setRrn(completePrePurchaseRequest.getRrn());
         order.setTransactionDate(LocalDateTime.now());
         orderRepository.save(order);
         if (exception != null) {
@@ -296,55 +303,67 @@ public class OrderService {
         }
     }
 
-    public void prePurchaseOrders(OperationEntity operationEntity, String cardId) {
+    public boolean prePurchaseOrders(OperationEntity operationEntity, String cardId) {
+        BigDecimal lastTempAmount = BigDecimal.ZERO;
+        boolean isPrePurchasedOrders = true;
         for (var orderEntity : operationEntity.getOrders()) {
+            var totalOrderAmount = orderEntity.getTotalAmount().add(orderEntity.getCommission());
             var rrn = GenerateUtil.rrn();
-            var purchaseRequest = PurchaseRequest.builder().rrn(rrn)
-                    .amount(orderEntity.getTotalAmount().add(orderEntity.getCommission()))
-                    .description("fee=" + orderEntity.getCommission()).uid(cardId).build();
+            var prePurchaseRequest = PrePurchaseRequest.builder().rrn(rrn)
+                    .amount(totalOrderAmount)
+                    .description(PRE_PURCHASE_DESCRIPTION + orderEntity.getOrderNo())
+                    .uid(cardId).build();
             try {
-                var purchaseResponse = atlasClient.purchase(purchaseRequest);
+                var purchaseResponse = atlasClient.prePurchase(prePurchaseRequest);
                 orderEntity.setTransactionId(purchaseResponse.getId());
                 orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
                 orderEntity.setTransactionStatus(TransactionStatus.PRE_PURCHASE);
             } catch (AtlasClientException e) {
+                isPrePurchasedOrders = false;
+                lastTempAmount = lastTempAmount.add(totalOrderAmount);
                 orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_PRE_PURCHASE);
                 orderEntity.setTransactionError(e.getMessage());
             }
             orderEntity.setRrn(rrn);
             orderEntity.setTransactionDate(LocalDateTime.now());
         }
+        var customerEntity = operationEntity.getCustomer();
+        customerEntity.setLastTempAmount(customerEntity.getLastTempAmount().add(lastTempAmount));
         log.info(" Orders purchase process was finished...");
+        return isPrePurchasedOrders;
     }
 
-    private PurchaseCompleteRequest getPurchaseCompleteRequest(OrderEntity order,
-                                                               BigDecimal deliveryAmount) {
+    private CompletePrePurchaseRequest getCompletePrePurchaseRequest(OrderEntity order,
+                                                                     BigDecimal deliveryAmount) {
         var rrn = GenerateUtil.rrn();
         var cardId = order.getOperation().getCustomer().getCardId();
         var percent = order.getOperation().getLoanPercent();
         var commission = amountUtil.getCommissionByPercent(deliveryAmount, percent);
         var totalPayment = commission.add(deliveryAmount);
-        return PurchaseCompleteRequest.builder()
+        return CompletePrePurchaseRequest.builder()
                 .id(Long.valueOf(order.getTransactionId()))
                 .uid(cardId)
                 .amount(totalPayment)
                 .approvalCode(order.getApprovalCode())
                 .rrn(rrn)
+                .fee(commission)
+                .description(COMPLETE_PRE_PURCHASE_DESCRIPTION + order.getOrderNo())
                 .installments(order.getOperation().getLoanTerm())
                 .build();
     }
 
-    private PurchaseCompleteRequest getPurchaseCompleteRequest(OrderEntity order, String cardId) {
+    private CompletePrePurchaseRequest getCompletePrePurchaseRequest(OrderEntity order,
+                                                                     String cardId) {
         var rrn = GenerateUtil.rrn();
         var commission = order.getCommission();
         var totalPayment = commission.add(order.getTotalAmount());
-        return PurchaseCompleteRequest.builder()
+        return CompletePrePurchaseRequest.builder()
                 .id(Long.valueOf(order.getTransactionId()))
                 .uid(cardId)
                 .amount(totalPayment)
                 .approvalCode(order.getApprovalCode())
                 .rrn(rrn)
-                .installments(order.getOperation().getLoanTerm())
+                .description(COMPLETE_PRE_PURCHASE_FOR_REFUND_DESCRIPTION + order.getOrderNo())
                 .build();
     }
 
@@ -356,15 +375,15 @@ public class OrderService {
                 .orElseThrow(() -> new OrderNotFoundException(ORDER_NO_LOG + orderNo));
         var transactionStatus = orderEntity.getTransactionStatus();
         if (transactionStatus == TransactionStatus.PRE_PURCHASE
-                || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE) {
+                || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE_PRE_PURCHASE) {
             var customerEntity = orderEntity.getOperation().getCustomer();
             if (!customerEntity.getId().equals(request.getCustomerId())) {
                 throw new OrderNotLinkedToCustomer(
                         ORDER_NO_LOG + orderNo + "," + CUSTOMER_ID_LOG + customerEntity.getId());
             }
             var purchaseCompleteRequest =
-                    getPurchaseCompleteRequest(orderEntity, customerEntity.getCardId());
-            purchaseOrder(orderEntity, purchaseCompleteRequest);
+                    getCompletePrePurchaseRequest(orderEntity, customerEntity.getCardId());
+            completePrePurchaseOrder(orderEntity, purchaseCompleteRequest);
             refundAmount(orderEntity);
             log.info("Refund process was finished : orderNo - {}, customerId - {}",
                     request.getOrderNo(), request.getCustomerId());

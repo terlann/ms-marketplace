@@ -1,12 +1,11 @@
 package az.kapitalbank.marketplace.client.atlas;
 
-import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteRequest;
-import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
+import az.kapitalbank.marketplace.client.atlas.model.request.CompletePrePurchaseRequest;
+import az.kapitalbank.marketplace.client.atlas.model.request.PrePurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.RefundRequest;
 import az.kapitalbank.marketplace.client.atlas.model.response.CardDetailResponse;
-import az.kapitalbank.marketplace.client.atlas.model.response.CardResponse;
-import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseCompleteResponse;
-import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseResponse;
+import az.kapitalbank.marketplace.client.atlas.model.response.CompletePrePurchaseResponse;
+import az.kapitalbank.marketplace.client.atlas.model.response.PrePurchaseResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.RefundResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.SubscriptionResponse;
 import az.kapitalbank.marketplace.constant.ResultType;
@@ -26,10 +25,11 @@ import org.springframework.web.bind.annotation.RequestParam;
 public interface AtlasClient {
 
     @PostMapping("/transfers/purchase")
-    PurchaseResponse purchase(@RequestBody PurchaseRequest request);
+    PrePurchaseResponse prePurchase(@RequestBody PrePurchaseRequest request);
 
     @PutMapping("/transfers/complete")
-    PurchaseCompleteResponse complete(@RequestBody PurchaseCompleteRequest request);
+    CompletePrePurchaseResponse completePrePurchase(
+            @RequestBody CompletePrePurchaseRequest request);
 
     @PutMapping("/transfers/{id}/refund")
     RefundResponse refund(@PathVariable String id, @RequestBody RefundRequest request);
@@ -42,9 +42,6 @@ public interface AtlasClient {
     SubscriptionResponse findAllByUid(@PathVariable String uid,
                                       @RequestParam String channel,
                                       @RequestParam String schema);
-
-    @GetMapping("/cards/pan/{pan}")
-    CardResponse findByPan(@PathVariable String pan);
 
     class FeignConfiguration {
         @Bean

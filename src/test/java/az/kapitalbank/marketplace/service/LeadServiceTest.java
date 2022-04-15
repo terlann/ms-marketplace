@@ -27,13 +27,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class LeadServiceTest {
 
     @Mock
-    private LoanClient loanClient;
+    LoanClient loanClient;
     @Mock
-    private UmicoService umicoService;
+    UmicoService umicoService;
     @Mock
-    private TelesalesClient mockTelesalesClient;
+    TelesalesClient telesalesClient;
     @Mock
-    private TelesalesMapper telesalesMapper;
+    TelesalesMapper telesalesMapper;
     @InjectMocks
     private LeadService leadService;
 
@@ -44,7 +44,7 @@ class LeadServiceTest {
         var createTelesalesOrderResponse = CreateTelesalesOrderResponse.builder().build();
         when(telesalesMapper.toTelesalesOrder(any(OperationEntity.class),
                 eq(List.of(FraudType.PIN)))).thenReturn(createTelesalesOrderRequest);
-        when(mockTelesalesClient.sendLead(any(CreateTelesalesOrderRequest.class)))
+        when(telesalesClient.sendLead(any(CreateTelesalesOrderRequest.class)))
                 .thenReturn(createTelesalesOrderResponse);
 
         leadService.sendLead(getOperationEntity(), List.of(FraudType.PIN));
@@ -60,7 +60,7 @@ class LeadServiceTest {
 
         when(telesalesMapper.toTelesalesOrder(any(OperationEntity.class),
                 eq(List.of(FraudType.PIN)))).thenReturn(createTelesalesOrderRequest);
-        when(mockTelesalesClient.sendLead(any(CreateTelesalesOrderRequest.class))).thenReturn(
+        when(telesalesClient.sendLead(any(CreateTelesalesOrderRequest.class))).thenReturn(
                 createTelesalesOrderResponse);
         when(loanClient.sendLead(eq("0007"), any(LoanRequest.class)))
                 .thenReturn(loanResponse);
