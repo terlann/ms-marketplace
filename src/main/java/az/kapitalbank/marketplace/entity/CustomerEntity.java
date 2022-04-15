@@ -29,7 +29,8 @@ public class CustomerEntity extends BaseEntity {
     String umicoUserId;
     boolean isAgreement;
     String cardId;
-    BigDecimal lastTempAmount;
+    @Builder.Default
+    BigDecimal lastTempAmount = BigDecimal.ZERO;
     LocalDateTime completeProcessDate;
 
     @Builder.Default

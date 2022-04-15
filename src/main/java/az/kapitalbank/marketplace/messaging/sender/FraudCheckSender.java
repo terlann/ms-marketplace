@@ -1,7 +1,6 @@
 package az.kapitalbank.marketplace.messaging.sender;
 
 import az.kapitalbank.marketplace.messaging.event.FraudCheckEvent;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.LinkedList;
 import java.util.function.Supplier;
 import lombok.AccessLevel;
@@ -17,31 +16,21 @@ import org.springframework.stereotype.Component;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class FraudCheckSender {
 
-    final ObjectMapper objectMapper;
-
-    LinkedList<FraudCheckEvent> fraudCheckEventLinkedList = new LinkedList<>();
+    final LinkedList<FraudCheckEvent> fraudCheckEvents = new LinkedList<>();
 
     public void sendMessage(FraudCheckEvent fraudCheckEvent) {
-        if (fraudCheckEventLinkedList == null) {
-            fraudCheckEventLinkedList = new LinkedList<>();
-        }
-        fraudCheckEventLinkedList.push(fraudCheckEvent);
+        fraudCheckEvents.push(fraudCheckEvent);
     }
 
     @Bean
-    public Supplier<String> checkFraud() {
+    public Supplier<FraudCheckEvent> checkFraud() {
         log.info("Fraud check is produced to topic...");
         return () -> {
-            if (fraudCheckEventLinkedList.peek() != null) {
-                try {
-                    var jsonMessage =
-                            objectMapper.writeValueAsString(fraudCheckEventLinkedList.peek());
-                    log.info("Fraud check was produced. Message - {}", jsonMessage);
-                    fraudCheckEventLinkedList.poll();
-                    return jsonMessage;
-                } catch (Exception ex) {
-                    log.info("Fraud check producer. Exception - {}", ex);
-                }
+            if (fraudCheckEvents.peek() != null) {
+                var message = fraudCheckEvents.peek();
+                log.info("Fraud check was produced. Message - {}", message);
+                fraudCheckEvents.poll();
+                return message;
             }
             return null;
         };

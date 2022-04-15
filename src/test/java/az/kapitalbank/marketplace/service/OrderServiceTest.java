@@ -19,11 +19,11 @@ import static org.mockito.Mockito.when;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
-import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteRequest;
-import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
+import az.kapitalbank.marketplace.client.atlas.model.request.CompletePrePurchaseRequest;
+import az.kapitalbank.marketplace.client.atlas.model.request.PrePurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.RefundRequest;
-import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseCompleteResponse;
-import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseResponse;
+import az.kapitalbank.marketplace.client.atlas.model.response.CompletePrePurchaseResponse;
+import az.kapitalbank.marketplace.client.atlas.model.response.PrePurchaseResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.RefundResponse;
 import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
@@ -114,12 +114,12 @@ class OrderServiceTest {
                 .scoringStatus(ScoringStatus.APPROVED)
                 .uid(CARD_UID.getValue())
                 .build();
-        var purchaseResponse = PurchaseResponse.builder().build();
+        var purchaseResponse = PrePurchaseResponse.builder().build();
         when(operationRepository.findByTelesalesOrderId(TELESALES_ORDER_ID.getValue())).thenReturn(
                 Optional.of(getOperationEntity()));
-        when(atlasClient.purchase(any(PurchaseRequest.class))).thenReturn(purchaseResponse);
+        when(atlasClient.prePurchase(any(PrePurchaseRequest.class))).thenReturn(purchaseResponse);
         orderService.telesalesResult(request);
-        verify(atlasClient).purchase(any(PurchaseRequest.class));
+        verify(atlasClient).prePurchase(any(PrePurchaseRequest.class));
     }
 
     @Test
@@ -200,8 +200,8 @@ class OrderServiceTest {
 
         when(orderRepository.findByOrderNo(refundRequestDto.getOrderNo()))
                 .thenReturn(Optional.of(orderEntity));
-        when(atlasClient.complete(any(PurchaseCompleteRequest.class))).thenReturn(
-                PurchaseCompleteResponse.builder().build());
+        when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class))).thenReturn(
+                CompletePrePurchaseResponse.builder().build());
         when(atlasClient.refund(eq(null), any(RefundRequest.class)))
                 .thenReturn(refundResponse);
 
@@ -228,8 +228,8 @@ class OrderServiceTest {
                 .build();
         when(orderRepository.findByOrderNo(refundRequestDto.getOrderNo()))
                 .thenReturn(Optional.of(orderEntity));
-        when(atlasClient.complete(any(PurchaseCompleteRequest.class))).thenReturn(
-                PurchaseCompleteResponse.builder().build());
+        when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class))).thenReturn(
+                CompletePrePurchaseResponse.builder().build());
         when(atlasClient.refund(eq(null), any(RefundRequest.class)))
                 .thenThrow(new AtlasClientException(null, null, null));
 
@@ -250,11 +250,11 @@ class OrderServiceTest {
                         .build())
                 .build();
         var purchaseCompleteResponse =
-                PurchaseCompleteResponse.builder().build();
+                CompletePrePurchaseResponse.builder().build();
         when(orderRepository.findByOrderNo("123")).thenReturn(Optional.of(orderEntity));
         when(amountUtil.getCommissionByPercent(BigDecimal.ONE, null)).thenReturn(
                 BigDecimal.ONE);
-        when(atlasClient.complete(any())).thenReturn(purchaseCompleteResponse);
+        when(atlasClient.completePrePurchase(any())).thenReturn(purchaseCompleteResponse);
         var request = PurchaseRequestDto.builder()
                 .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
                 .orderNo("123")
@@ -268,7 +268,7 @@ class OrderServiceTest {
     void purchase_AlreadyPurchased() {
         OrderEntity orderEntity = OrderEntity.builder()
                 .transactionId("123245")
-                .transactionStatus(TransactionStatus.COMPLETE)
+                .transactionStatus(TransactionStatus.COMPLETE_PRE_PURCHASE)
                 .totalAmount(BigDecimal.valueOf(50))
                 .commission(BigDecimal.valueOf(12))
                 .operation(OperationEntity.builder().loanTerm(12).build())
@@ -301,7 +301,8 @@ class OrderServiceTest {
 
         when(orderRepository.findByOrderNo("123")).thenReturn(Optional.of(orderEntity));
         when(amountUtil.getCommissionByPercent(BigDecimal.ONE, null)).thenReturn(BigDecimal.ONE);
-        when(atlasClient.complete(any())).thenThrow(new AtlasClientException(null, null, null));
+        when(atlasClient.completePrePurchase(any())).thenThrow(
+                new AtlasClientException(null, null, null));
         var request = PurchaseRequestDto.builder()
                 .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
                 .orderNo("123")
