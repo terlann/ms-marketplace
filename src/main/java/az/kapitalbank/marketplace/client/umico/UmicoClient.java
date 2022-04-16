@@ -20,7 +20,7 @@ public interface UmicoClient {
     UmicoDecisionResponse sendDecision(@RequestBody UmicoDecisionRequest request,
                                        @RequestHeader("ApiKey") String apiKey);
 
-    @PostMapping("/repeat_result")
+    @PostMapping("/application/repeat_result")
     void sendPrePurchaseResult(@RequestBody PrePurchaseResultRequest request,
                                @RequestHeader("ApiKey") String apiKey);
 
