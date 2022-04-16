@@ -21,7 +21,7 @@ public interface UmicoClient {
                                        @RequestHeader("ApiKey") String apiKey);
 
     @PostMapping("/application/repeat_result")
-        void sendPrePurchaseResult(@RequestBody PrePurchaseResultRequest request,
+    void sendPrePurchaseResult(@RequestBody PrePurchaseResultRequest request,
                                @RequestHeader("ApiKey") String apiKey);
 
     class FeignConfiguration {
