@@ -31,7 +31,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class ProductProcessServiceTest {
+class LoanFormalizationServiceTest {
 
     @Mock
     UmicoService umicoService;
@@ -48,7 +48,7 @@ class ProductProcessServiceTest {
     @Mock
     OperationRepository operationRepository;
     @InjectMocks
-    private ProductProcessService productProcessService;
+    private LoanFormalizationService loanFormalizationService;
 
     @Test
     void fraudResultProcess_BlackList() {
@@ -59,7 +59,7 @@ class ProductProcessServiceTest {
         when(operationRepository.findById(request.getTrackId())).thenReturn(
                 Optional.of(getOperationEntity()));
         when(umicoService.sendRejectedDecision(request.getTrackId())).thenReturn(Optional.empty());
-        productProcessService.fraudResultProcess(request);
+        loanFormalizationService.fraudResultProcess(request);
         verify(operationRepository).findById(request.getTrackId());
     }
 
@@ -71,7 +71,7 @@ class ProductProcessServiceTest {
                 .build();
         when(operationRepository.findById(request.getTrackId())).thenReturn(
                 Optional.of(getOperationEntity()));
-        productProcessService.fraudResultProcess(request);
+        loanFormalizationService.fraudResultProcess(request);
         verify(operationRepository).findById(request.getTrackId());
     }
 
@@ -83,7 +83,7 @@ class ProductProcessServiceTest {
                 .build();
         when(operationRepository.findById(request.getTrackId())).thenReturn(
                 Optional.of(getOperationEntity()));
-        productProcessService.fraudResultProcess(request);
+        loanFormalizationService.fraudResultProcess(request);
         verify(operationRepository).findById(request.getTrackId());
     }
 
@@ -97,7 +97,7 @@ class ProductProcessServiceTest {
         when(scoringService.startScoring(getOperationEntity().getId(),
                 getOperationEntity().getPin(),
                 getOperationEntity().getMobileNumber())).thenReturn(Optional.empty());
-        productProcessService.fraudResultProcess(request);
+        loanFormalizationService.fraudResultProcess(request);
         verify(operationRepository).findById(request.getTrackId());
     }
 
@@ -111,7 +111,7 @@ class ProductProcessServiceTest {
         when(scoringService.startScoring(getOperationEntity().getId(),
                 getOperationEntity().getPin(),
                 getOperationEntity().getMobileNumber())).thenReturn(Optional.of("asdf"));
-        productProcessService.fraudResultProcess(request);
+        loanFormalizationService.fraudResultProcess(request);
         verify(operationRepository).findById(request.getTrackId());
     }
 
@@ -144,7 +144,7 @@ class ProductProcessServiceTest {
         when(verificationService.getDvsUrl(getOperationEntity().getId(),
                 getOperationEntity().getDvsOrderId())).thenReturn(Optional.of("Https//dvs.com"));
 
-        productProcessService.scoringResultProcess(request);
+        loanFormalizationService.scoringResultProcess(request);
 
         verify(operationRepository).findByBusinessKey(request.getBusinessKey());
     }
@@ -176,7 +176,7 @@ class ProductProcessServiceTest {
                 Optional.of(getOperationEntity()));
         when(scoringService.getProcess(getOperationEntity().getBusinessKey())).thenReturn(
                 Optional.of(processResponse));
-        productProcessService.scoringResultProcess(request);
+        loanFormalizationService.scoringResultProcess(request);
         verify(operationRepository).findByBusinessKey(request.getBusinessKey());
     }
 
@@ -203,7 +203,7 @@ class ProductProcessServiceTest {
                 Optional.of(getOperationEntity()));
         when(scoringService.getProcess(getOperationEntity().getBusinessKey())).thenReturn(
                 Optional.of(processResponse));
-        productProcessService.scoringResultProcess(request);
+        loanFormalizationService.scoringResultProcess(request);
         verify(operationRepository).findByBusinessKey(request.getBusinessKey());
     }
 
@@ -219,7 +219,7 @@ class ProductProcessServiceTest {
                 Optional.of(getOperationEntity()));
         when(scoringService.getCardId(getOperationEntity().getBusinessKey(), "uid")).thenReturn(
                 Optional.of(CARD_UID.getValue()));
-        productProcessService.scoringResultProcess(request);
+        loanFormalizationService.scoringResultProcess(request);
         verify(operationRepository).findByBusinessKey(request.getBusinessKey());
     }
 
@@ -235,7 +235,7 @@ class ProductProcessServiceTest {
                 Optional.of(getOperationEntity()));
         when(scoringService.getCardId(getOperationEntity().getBusinessKey(), "uid")).thenReturn(
                 Optional.empty());
-        productProcessService.scoringResultProcess(request);
+        loanFormalizationService.scoringResultProcess(request);
         verify(operationRepository).findByBusinessKey(request.getBusinessKey());
     }
 
@@ -250,7 +250,7 @@ class ProductProcessServiceTest {
         when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
                 Optional.of(getOperationEntity()));
 
-        productProcessService.scoringResultProcess(request);
+        loanFormalizationService.scoringResultProcess(request);
         verify(operationRepository).findByBusinessKey(request.getBusinessKey());
     }
 
@@ -265,7 +265,7 @@ class ProductProcessServiceTest {
         when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
                 Optional.of(getOperationEntity()));
 
-        productProcessService.scoringResultProcess(request);
+        loanFormalizationService.scoringResultProcess(request);
         verify(operationRepository).findByBusinessKey(request.getBusinessKey());
     }
 
@@ -277,7 +277,7 @@ class ProductProcessServiceTest {
         when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
                 Optional.of(getOperationEntity()));
 
-        productProcessService.scoringResultProcess(request);
+        loanFormalizationService.scoringResultProcess(request);
         verify(operationRepository).findByBusinessKey(request.getBusinessKey());
     }
 
@@ -305,7 +305,7 @@ class ProductProcessServiceTest {
         when(operationRepository.findById(request.getTrackId())).thenReturn(
                 Optional.of(getOperationEntity()));
 
-        productProcessService.verificationResultProcess(request);
+        loanFormalizationService.verificationResultProcess(request);
         verify(operationRepository).findById(request.getTrackId());
     }
 }
