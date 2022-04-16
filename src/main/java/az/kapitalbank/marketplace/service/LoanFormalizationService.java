@@ -126,8 +126,6 @@ public class LoanFormalizationService {
                 operationEntity.getBusinessKey(), operationEntity.getAdditionalPhoneNumber1(),
                 operationEntity.getAdditionalPhoneNumber2());
         if (completeScoring.isEmpty()) {
-            var deleteLoan = scoringService.deleteLoan(operationEntity);
-            deleteLoan.ifPresent(operationEntity::setDeleteLoanAttemptDate);
             operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_COMPLETE_SCORING);
             leadService.sendLead(operationEntity, null);
         } else {
@@ -138,8 +136,6 @@ public class LoanFormalizationService {
 
     private void onVerificationRejected(OperationEntity operationEntity) {
         log.info("Verification status result rejected : trackId - {}", operationEntity.getId());
-        var deleteLoan = scoringService.deleteLoan(operationEntity);
-        deleteLoan.ifPresent(operationEntity::setDeleteLoanAttemptDate);
         var sendDecision = umicoService.sendRejectedDecision(operationEntity.getId());
         sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
         operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
@@ -174,8 +170,6 @@ public class LoanFormalizationService {
                 userTaskSignDocumentsProcess(operationEntity, processResponse.get(), taskId);
             }
         } else {
-            var deleteLoan = scoringService.deleteLoan(operationEntity);
-            deleteLoan.ifPresent(operationEntity::setDeleteLoanAttemptDate);
             operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_GET_PROCESS);
             leadService.sendLead(operationEntity, null);
             operationRepository.save(operationEntity);
@@ -283,8 +277,6 @@ public class LoanFormalizationService {
             sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
             operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
         } else {
-            var deleteLoan = scoringService.deleteLoan(operationEntity);
-            deleteLoan.ifPresent(operationEntity::setDeleteLoanAttemptDate);
             leadService.sendLead(operationEntity, null);
             operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_BUSINESS_ERROR);
         }
@@ -296,8 +288,6 @@ public class LoanFormalizationService {
                                         OperationEntity operationEntity) {
         log.error("Scoring result : incident happened , response - {}",
                 scoringResultEvent.getData());
-        var deleteLoan = scoringService.deleteLoan(operationEntity);
-        deleteLoan.ifPresent(operationEntity::setDeleteLoanAttemptDate);
         leadService.sendLead(operationEntity, null);
         operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_INCIDENT_HAPPENED);
         operationRepository.save(operationEntity);
