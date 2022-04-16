@@ -1,7 +1,7 @@
 package az.kapitalbank.marketplace.messaging.listener;
 
 import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
-import az.kapitalbank.marketplace.service.ProductProcessService;
+import az.kapitalbank.marketplace.service.LoanFormalizationService;
 import java.util.Objects;
 import java.util.function.Consumer;
 import lombok.AccessLevel;
@@ -17,14 +17,14 @@ import org.springframework.stereotype.Component;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class FraudListener {
 
-    ProductProcessService productProcessService;
+    LoanFormalizationService loanFormalizationService;
 
     @Bean
     public Consumer<FraudCheckResultEvent> checkFraudResult() {
         return message -> {
             if (Objects.nonNull(message)) {
                 log.info("check fraud result consumer. Message - {}", message);
-                productProcessService.fraudResultProcess(message);
+                loanFormalizationService.fraudResultProcess(message);
             }
         };
     }

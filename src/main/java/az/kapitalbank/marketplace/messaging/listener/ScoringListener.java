@@ -1,7 +1,7 @@
 package az.kapitalbank.marketplace.messaging.listener;
 
 import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
-import az.kapitalbank.marketplace.service.ProductProcessService;
+import az.kapitalbank.marketplace.service.LoanFormalizationService;
 import java.util.Objects;
 import java.util.function.Consumer;
 import lombok.AccessLevel;
@@ -17,14 +17,14 @@ import org.springframework.stereotype.Component;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ScoringListener {
 
-    ProductProcessService productProcessService;
+    LoanFormalizationService loanFormalizationService;
 
     @Bean
     public Consumer<ScoringResultEvent> scoringResult() {
         return message -> {
             if (Objects.nonNull(message)) {
                 log.info("scoring result consumer. Message - {}", message);
-                productProcessService.scoringResultProcess(message);
+                loanFormalizationService.scoringResultProcess(message);
             }
         };
     }

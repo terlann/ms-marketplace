@@ -108,7 +108,10 @@ public class OrderService {
     private Optional<String> telesalesResultApproveProcess(TelesalesResultRequestDto request,
                                                            OperationEntity operationEntity) {
         var cardId = request.getUid();
-        prePurchaseOrders(operationEntity, cardId);
+        var isPrePurchasedOrders = prePurchaseOrders(operationEntity, cardId);
+        if (isPrePurchasedOrders) {
+            umicoService.sendPrePurchaseResult(operationEntity.getId());
+        }
         operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
         operationEntity.setScoringStatus(ScoringStatus.APPROVED);
         operationEntity.setScoringDate(LocalDateTime.now());
@@ -306,13 +309,14 @@ public class OrderService {
     public boolean prePurchaseOrders(OperationEntity operationEntity, String cardId) {
         BigDecimal lastTempAmount = BigDecimal.ZERO;
         boolean isPrePurchasedOrders = true;
-        for (var orderEntity : operationEntity.getOrders()) {
+        var orders = operationEntity.getOrders();
+        validateOrdersForPrePurchase(orders, operationEntity.getId());
+        for (var orderEntity : orders) {
             var totalOrderAmount = orderEntity.getTotalAmount().add(orderEntity.getCommission());
             var rrn = GenerateUtil.rrn();
-            var prePurchaseRequest = PrePurchaseRequest.builder().rrn(rrn)
-                    .amount(totalOrderAmount)
-                    .description(PRE_PURCHASE_DESCRIPTION + orderEntity.getOrderNo())
-                    .uid(cardId).build();
+            var prePurchaseRequest = PrePurchaseRequest.builder()
+                    .rrn(rrn).amount(totalOrderAmount).uid(cardId)
+                    .description(PRE_PURCHASE_DESCRIPTION + orderEntity.getOrderNo()).build();
             try {
                 var purchaseResponse = atlasClient.prePurchase(prePurchaseRequest);
                 orderEntity.setTransactionId(purchaseResponse.getId());
@@ -329,8 +333,19 @@ public class OrderService {
         }
         var customerEntity = operationEntity.getCustomer();
         customerEntity.setLastTempAmount(customerEntity.getLastTempAmount().add(lastTempAmount));
-        log.info(" Orders purchase process was finished...");
+        log.info(" Orders pre purchase process was finished...");
         return isPrePurchasedOrders;
+    }
+
+    private void validateOrdersForPrePurchase(List<OrderEntity> orders, UUID trackId) {
+        var isPrePurchasable = orders.stream()
+                .allMatch(order -> order.getTransactionStatus() == null
+                        || order.getTransactionStatus()
+                        == TransactionStatus.FAIL_IN_PRE_PURCHASE);
+        if (!isPrePurchasable) {
+            log.error("No Permission for pre purchase. trackId - {}", trackId);
+            throw new NoPermissionForTransaction("trackId - " + trackId);
+        }
     }
 
     private CompletePrePurchaseRequest getCompletePrePurchaseRequest(OrderEntity order,
