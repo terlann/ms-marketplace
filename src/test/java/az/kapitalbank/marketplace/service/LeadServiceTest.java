@@ -91,7 +91,7 @@ class LeadServiceTest {
 
         var createTelesalesOrderRequest = CreateTelesalesOrderRequest.builder().build();
         var createTelesalesOrderResponse = CreateTelesalesOrderResponse.builder()
-                .response(new CreateTelesalesOrderResponse.Response("", "Internal Server Error"))
+                .response(new CreateTelesalesOrderResponse.Response("5",""))
                 .build();
         when(telesalesMapper.toTelesalesOrder(any(OperationEntity.class),
                 eq(List.of(FraudType.PIN)))).thenReturn(createTelesalesOrderRequest);

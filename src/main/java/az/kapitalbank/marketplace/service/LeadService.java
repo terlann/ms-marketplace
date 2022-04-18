@@ -45,8 +45,8 @@ public class LeadService {
             var createTelesalesOrderResponse =
                     telesalesClient.sendLead(createTelesalesOrderRequest);
             var response = createTelesalesOrderResponse.getResponse().getMessage();
-            if ((response.equals("Request not readable"))
-                    || (response.equals("Internal Server Error"))) {
+            var code=createTelesalesOrderResponse.getResponse().getCode();
+            if (!code.equals("0")) {
                 log.error("Send lead to telesales was failed , error - Request not readable :"
                         + " trackId - {}, exception - {}", trackId, response);
                 operationEntity.setSendTelesalesError(response);
