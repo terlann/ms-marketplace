@@ -105,6 +105,7 @@ class ScoringServiceTest {
         verify(optimusClient).scoringComplete(eq(TASK_ID.getValue()),
                 any(CompleteScoringRequest.class));
     }
+
     @Test
     void deleteLoan_Success() {
         scoringService.deleteLoan(getOperationEntity());

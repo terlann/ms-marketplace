@@ -31,7 +31,8 @@ public class LeadService {
     TelesalesClient telesalesClient;
     TelesalesMapper telesalesMapper;
 
-    private Optional<String> sendLeadTelesales(OperationEntity operationEntity, List<FraudType> fraudTypes) {
+    private Optional<String> sendLeadTelesales(OperationEntity operationEntity,
+                                               List<FraudType> fraudTypes) {
         var trackId = operationEntity.getId();
         log.info("Send lead to telesales is started : trackId - {}", trackId);
         try {
