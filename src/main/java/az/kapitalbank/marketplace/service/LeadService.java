@@ -44,12 +44,12 @@ public class LeadService {
             log.info("Send lead to telesales : request - {}", createTelesalesOrderRequest);
             var createTelesalesOrderResponse =
                     telesalesClient.sendLead(createTelesalesOrderRequest);
-            var response = createTelesalesOrderResponse.getResponse().getMessage();
-            var code = createTelesalesOrderResponse.getResponse().getCode();
-            if (!code.equals("0")) {
-                log.error("Send lead to telesales was failed , error - Request not readable :"
-                        + " trackId - {}, exception - {}", trackId, response);
-                operationEntity.setSendTelesalesError(response);
+            var responseMessage = createTelesalesOrderResponse.getResponse().getMessage();
+            var responseCode = createTelesalesOrderResponse.getResponse().getCode();
+            if (!responseCode.equals("0")) {
+                log.error("Send lead to telesales was failed : trackId - {}, exception - {}",
+                        trackId, responseMessage);
+                operationEntity.setSendTelesalesError(responseMessage);
                 return Optional.empty();
             }
             log.info("Send lead to telesales was finished :" + " trackId - {}, response - {}",
