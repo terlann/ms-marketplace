@@ -68,4 +68,36 @@ class LeadServiceTest {
         leadService.sendLead(getOperationEntity(), List.of(FraudType.PIN));
         verify(loanClient).sendLead(eq("0007"), any(LoanRequest.class));
     }
+
+    @Test
+    void sendLead_Exception() {
+
+        var createTelesalesOrderRequest = CreateTelesalesOrderRequest.builder().build();
+        var createTelesalesOrderResponse = CreateTelesalesOrderResponse.builder()
+                .response(new CreateTelesalesOrderResponse.Response("", "Request not readable"))
+                .build();
+        when(telesalesMapper.toTelesalesOrder(any(OperationEntity.class),
+                eq(List.of(FraudType.PIN)))).thenReturn(createTelesalesOrderRequest);
+        when(telesalesClient.sendLead(any(CreateTelesalesOrderRequest.class)))
+                .thenReturn(createTelesalesOrderResponse);
+
+        leadService.sendLead(getOperationEntity(), List.of(FraudType.PIN));
+        verify(telesalesMapper).toTelesalesOrder(any(OperationEntity.class),
+                eq(List.of(FraudType.PIN)));
+
+//        var createTelesalesOrderRequest = CreateTelesalesOrderRequest.builder()
+//                .addressName("test")
+//                .cardPan("1234567894512")
+//                .loanAmount(BigDecimal.valueOf(55))
+//                .build();
+//        var createTelesalesOrderResponse = CreateTelesalesOrderResponse.builder()
+//                .response(new CreateTelesalesOrderResponse.Response("","Request not readable"))
+//                .build();
+//
+//        when(telesalesClient.sendLead(createTelesalesOrderRequest)).thenReturn(createTelesalesOrderResponse);
+//
+//        leadService.sendLead(getOperationEntity(), List.of(FraudType.PIN));
+//
+//        verify(telesalesClient).sendLead(createTelesalesOrderRequest);
+    }
 }

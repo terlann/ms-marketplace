@@ -333,7 +333,7 @@ public class OrderService {
         }
         var customerEntity = operationEntity.getCustomer();
         customerEntity.setLastTempAmount(customerEntity.getLastTempAmount().add(lastTempAmount));
-        log.info(" Orders pre purchase process was finished...");
+        log.info(" Orders pre purchase process was finished... Status : {}", isPrePurchasedOrders);
         return isPrePurchasedOrders;
     }
 
