@@ -1,5 +1,6 @@
 package az.kapitalbank.marketplace.service;
 
+import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntity;
 import static az.kapitalbank.marketplace.constants.TestConstants.BUSINESS_KEY;
 import static az.kapitalbank.marketplace.constants.TestConstants.MOBILE_NUMBER;
 import static az.kapitalbank.marketplace.constants.TestConstants.PIN;
@@ -103,5 +104,11 @@ class ScoringServiceTest {
         scoringService.completeScoring(TASK_ID.getValue(), BUSINESS_KEY.getValue(), "a1", "a2");
         verify(optimusClient).scoringComplete(eq(TASK_ID.getValue()),
                 any(CompleteScoringRequest.class));
+    }
+
+    @Test
+    void deleteLoan_Success() {
+        scoringService.deleteLoan(getOperationEntity());
+        verify(optimusClient).deleteLoan(getOperationEntity().getBusinessKey());
     }
 }
