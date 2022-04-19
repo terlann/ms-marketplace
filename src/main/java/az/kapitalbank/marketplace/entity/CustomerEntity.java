@@ -1,7 +1,6 @@
 package az.kapitalbank.marketplace.entity;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import javax.persistence.CascadeType;
@@ -31,7 +30,6 @@ public class CustomerEntity extends BaseEntity {
     String cardId;
     @Builder.Default
     BigDecimal lastTempAmount = BigDecimal.ZERO;
-    LocalDateTime completeProcessDate;
 
     @Builder.Default
     @OneToMany(mappedBy = "customer", cascade = CascadeType.ALL, orphanRemoval = true)

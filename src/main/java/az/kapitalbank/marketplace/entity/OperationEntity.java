@@ -1,6 +1,7 @@
 package az.kapitalbank.marketplace.entity;
 
 import az.kapitalbank.marketplace.constant.DvsStatus;
+import az.kapitalbank.marketplace.constant.OperationRejectReason;
 import az.kapitalbank.marketplace.constant.OperationStatus;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
@@ -65,9 +66,10 @@ public class OperationEntity extends BaseEntity {
     DvsStatus dvsOrderStatus;
     @Enumerated(EnumType.STRING)
     UmicoDecisionStatus umicoDecisionStatus;
-    String umicoDecisionError;
-    String umicoPurchaseResultError;
-    String sendTelesalesError;
+    @Enumerated(EnumType.STRING)
+    OperationRejectReason operationRejectReason;
+    String umicoPrePurchaseResult;
+    Boolean sendLeadTelesales;
     LocalDateTime deleteLoanAttemptDate;
     @Enumerated(EnumType.STRING)
     OperationStatus operationStatus;

@@ -66,11 +66,7 @@ public class OtpService {
         log.info("Verify otp : request - {}", otpVerifyRequest);
         var verifyOtpResponse = otpClient.verify(otpVerifyRequest);
         log.info("Verify otp process was finished : response - {}", verifyOtpResponse);
-
-        var isPrePurchasedOrders = orderService.prePurchaseOrders(operationEntity, cardId);
-        if (isPrePurchasedOrders) {
-            umicoService.sendPrePurchaseResult(trackId);
-        }
+        //TODO send to kafka
         operationRepository.save(operationEntity);
     }
 

@@ -5,6 +5,7 @@ import static az.kapitalbank.marketplace.constant.AtlasConstant.UID;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
 import az.kapitalbank.marketplace.constant.DvsStatus;
 import az.kapitalbank.marketplace.constant.FraudResultStatus;
+import az.kapitalbank.marketplace.constant.OperationRejectReason;
 import az.kapitalbank.marketplace.constant.OperationStatus;
 import az.kapitalbank.marketplace.constant.RejectedBusinessError;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
@@ -53,9 +54,10 @@ public class LoanFormalizationService {
             var operationEntity = operationOptional.get();
             if (fraudResultStatus == FraudResultStatus.BLACKLIST) {
                 log.warn("This operation was found in blacklist : trackId - {}", trackId);
-                var sendDecision = umicoService.sendRejectedDecision(trackId);
-                sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
-                operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.DECLINED_BY_BLACKLIST);
+                var umicoDecisionStatus = umicoService.sendRejectedDecision(trackId);
+                operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+                operationEntity.setOperationRejectReason(
+                        OperationRejectReason.BLACKLIST);
                 operationRepository.save(operationEntity);
             } else if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_TELESALES) {
                 log.warn("Fraud case was found in this operation, send to Telesales : trackId - {}",
@@ -64,9 +66,9 @@ public class LoanFormalizationService {
                 operationRepository.save(operationEntity);
             } else if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_UMICO) {
                 log.warn("This operation rejected, send to Umico : trackId - {}", trackId);
-                var sendDecision = umicoService.sendRejectedDecision(trackId);
-                sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
-                operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
+                var umicoDecisionStatus = umicoService.sendRejectedDecision(trackId);
+                operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+                operationEntity.setOperationRejectReason(OperationRejectReason.FRAUD);
                 operationRepository.save(operationEntity);
             } else {
                 noFraudProcess(operationEntity);
@@ -136,18 +138,17 @@ public class LoanFormalizationService {
 
     private void onVerificationRejected(OperationEntity operationEntity) {
         log.info("Verification status result rejected : trackId - {}", operationEntity.getId());
-        var sendDecision = umicoService.sendRejectedDecision(operationEntity.getId());
-        sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
-        operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
+        var umicoDecisionStatus = umicoService.sendRejectedDecision(operationEntity.getId());
+        operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+        operationEntity.setOperationRejectReason(OperationRejectReason.DVS);
         operationEntity.setDvsOrderStatus(DvsStatus.REJECTED);
         operationRepository.save(operationEntity);
     }
 
     private void onVerificationPending(OperationEntity operationEntity) {
         log.info("Verification status result pending : trackId - {}", operationEntity.getId());
-        var sendDecision = umicoService.sendPendingDecision(operationEntity.getId());
-        sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
-        operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.PENDING);
+        var umicoDecisionStatus = umicoService.sendPendingDecision(operationEntity.getId());
+        operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
         operationEntity.setDvsOrderStatus(DvsStatus.PENDING);
         operationRepository.save(operationEntity);
     }
@@ -185,9 +186,8 @@ public class LoanFormalizationService {
         var selectedAmount = operationEntity.getTotalAmount().add(operationEntity.getCommission());
         if (scoredAmount.compareTo(BigDecimal.ZERO) == 0) {
             log.info("Start scoring result - Scoring amount is zero");
-            var sendDecision = umicoService.sendRejectedDecision(operationEntity.getId());
-            sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
-            operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
+            var umicoDecisionStatus = umicoService.sendRejectedDecision(operationEntity.getId());
+            operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
         } else if (scoredAmount.compareTo(selectedAmount) < 0) {
             log.info("Start scoring result - No enough amount : selectedAmount - {},"
                     + " scoredAmount - {}", selectedAmount, scoredAmount);
@@ -217,10 +217,9 @@ public class LoanFormalizationService {
         var trackId = operationEntity.getId();
         var dvsUrl = verificationService.getDvsUrl(trackId, dvsId);
         if (dvsUrl.isPresent()) {
-            var sendDecision = umicoService.sendPreApprovedDecision(trackId, dvsUrl.get(),
+            var umicoDecisionStatus = umicoService.sendPreApprovedDecision(trackId, dvsUrl.get(),
                     UmicoDecisionStatus.PREAPPROVED);
-            sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
-            operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.PREAPPROVED);
+            operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
         } else {
             operationEntity.setOperationStatus(OperationStatus.DVS_URL_FAIL);
             leadService.sendLead(operationEntity, null);
@@ -244,10 +243,9 @@ public class LoanFormalizationService {
         operationEntity.setScoringStatus(ScoringStatus.APPROVED);
         var customerEntity = operationEntity.getCustomer();
         customerEntity.setCardId(cardId.get());
-        customerEntity.setCompleteProcessDate(LocalDateTime.now());
-        var sendDecision =
+        var umicoDecisionStatus =
                 umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
-        sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
+        operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
         operationRepository.save(operationEntity);
         log.info("Customer was finished whole flow : trackId - {} , customerId - {}",
                 operationEntity.getId(), customerEntity.getId());
@@ -273,9 +271,9 @@ public class LoanFormalizationService {
                 Arrays.toString(businessErrorData));
         var rejectedBusinessError = checkRejectedBusinessErrors(businessErrorData);
         if (rejectedBusinessError.isPresent()) {
-            var sendDecision = umicoService.sendRejectedDecision(operationEntity.getId());
-            sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
-            operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
+            var umicoDecisionStatus = umicoService.sendRejectedDecision(operationEntity.getId());
+            operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+            operationEntity.setOperationRejectReason(OperationRejectReason.BUSINESS_ERROR);
         } else {
             leadService.sendLead(operationEntity, null);
             operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_BUSINESS_ERROR);
