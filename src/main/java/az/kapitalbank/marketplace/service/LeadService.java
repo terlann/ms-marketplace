@@ -35,17 +35,24 @@ public class LeadService {
         var trackId = operationEntity.getId();
         log.info("Send lead to telesales is started : trackId - {}", trackId);
         try {
-            var createTelesalesOrderRequest = telesalesMapper
-                    .toTelesalesOrder(operationEntity, fraudTypes);
-            var amountWithCommission = operationEntity.getTotalAmount().add(operationEntity
-                    .getCommission());
+            var createTelesalesOrderRequest =
+                    telesalesMapper.toTelesalesOrder(operationEntity, fraudTypes);
+            var amountWithCommission =
+                    operationEntity.getTotalAmount().add(operationEntity.getCommission());
             createTelesalesOrderRequest.setLoanAmount(amountWithCommission);
             log.info("Send lead to telesales : request - {}", createTelesalesOrderRequest);
             var createTelesalesOrderResponse =
                     telesalesClient.sendLead(createTelesalesOrderRequest);
-            log.info("Send lead to telesales was finished :"
-                    + " trackId - {}, response - {}", trackId, createTelesalesOrderResponse);
-            operationEntity.setSendLeadTelesales(true);
+            var responseMessage = createTelesalesOrderResponse.getResponse().getMessage();
+            var responseCode = createTelesalesOrderResponse.getResponse().getCode();
+            if (!responseCode.equals("0")) {
+                log.error("Send lead to telesales was failed : trackId - {}, exception - {}",
+                        trackId, responseMessage);
+                operationEntity.setSendLeadTelesales(true);
+                return Optional.empty();
+            }
+            log.info("Send lead to telesales was finished :" + " trackId - {}, response - {}",
+                    trackId, createTelesalesOrderResponse);
             return Optional.of(createTelesalesOrderResponse.getOperationId());
         } catch (Exception e) {
             log.error("Send lead to telesales was failed :"
@@ -59,20 +66,16 @@ public class LeadService {
         var trackId = operationEntity.getId();
         try {
             log.info("Send lead to loan is started : trackId - {}", trackId);
-            LoanRequest loanRequest =
-                    LoanRequest.builder()
-                            .productType(ProductType.BIRKART)
-                            .subProductType(SubProductType.UMICO)
-                            .phoneNumber(operationEntity.getMobileNumber())
-                            .fullName(operationEntity.getFullName())
-                            .pinCode(operationEntity.getPin())
-                            .productAmount(operationEntity.getTotalAmount().add(operationEntity
-                                    .getCommission()))
-                            .build();
+            LoanRequest loanRequest = LoanRequest.builder().productType(ProductType.BIRKART)
+                    .subProductType(SubProductType.UMICO)
+                    .phoneNumber(operationEntity.getMobileNumber())
+                    .fullName(operationEntity.getFullName()).pinCode(operationEntity.getPin())
+                    .productAmount(
+                            operationEntity.getTotalAmount().add(operationEntity.getCommission()))
+                    .build();
             log.info("Send lead to loan : request - {}", loanRequest);
             LoanResponse response = loanClient.sendLead(UMICO_SOURCE_CODE, loanRequest);
-            log.info("Send lead to loan was finished : trackId - {}, response - {}",
-                    trackId,
+            log.info("Send lead to loan was finished : trackId - {}, response - {}", trackId,
                     response);
             return Optional.of(response.getData().getLeadId());
         } catch (Exception e) {
