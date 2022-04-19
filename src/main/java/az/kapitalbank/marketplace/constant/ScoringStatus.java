@@ -9,8 +9,5 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public enum ScoringStatus {
-    APPROVED(1),
-    REJECTED(0);
-
-    int status;
+    APPROVED, REJECTED
 }

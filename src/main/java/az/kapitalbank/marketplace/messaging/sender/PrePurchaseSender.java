@@ -1,7 +1,7 @@
 package az.kapitalbank.marketplace.messaging.sender;
 
-import az.kapitalbank.marketplace.messaging.event.FraudCheckEvent;
 import java.util.LinkedList;
+import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -14,21 +14,21 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class FraudCheckSender {
+public class PrePurchaseSender {
 
-    final LinkedList<FraudCheckEvent> fraudCheckEvents = new LinkedList<>();
+    final LinkedList<UUID> trackIdList = new LinkedList<>();
 
-    public void sendMessage(FraudCheckEvent fraudCheckEvent) {
-        fraudCheckEvents.push(fraudCheckEvent);
+    public void sendMessage(UUID trackId) {
+        trackIdList.push(trackId);
     }
 
     @Bean
-    public Supplier<FraudCheckEvent> checkFraud() {
+    public Supplier<UUID> prePurchase() {
         return () -> {
-            if (fraudCheckEvents.peek() != null) {
-                var message = fraudCheckEvents.peek();
-                fraudCheckEvents.poll();
-                log.info("Fraud check was produced. Message - {}", message);
+            if (trackIdList.peek() != null) {
+                var message = trackIdList.peek();
+                log.info("Pre purchase was produced. Message - {}", message);
+                trackIdList.poll();
                 return message;
             }
             return null;

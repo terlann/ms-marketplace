@@ -22,13 +22,9 @@ public class TelesalesResultRequestDto {
     String telesalesOrderId;
     @NotNull
     ScoringStatus scoringStatus;
-    @NotNull
     LocalDate loanContractStartDate;
-    @NotNull
     LocalDate loanContractEndDate;
-    @NotBlank
     String uid;
     String pan;
-    @NotNull
     BigDecimal scoredAmount;
 }

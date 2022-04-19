@@ -114,7 +114,10 @@ public class OrderService {
         var customerEntity = operationEntity.getCustomer();
         var cardId = request.getUid();
         customerEntity.setCardId(cardId);
-        // TODO send to kafka
+        var lastTempAmount = prePurchaseOrders(operationEntity, cardId);
+        if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
+            umicoService.sendPrePurchaseResult(operationEntity.getId());
+        }
     }
 
     @Transactional
@@ -305,23 +308,7 @@ public class OrderService {
         var orders = operationEntity.getOrders();
         validateOrdersForPrePurchase(orders, operationEntity.getId());
         for (var orderEntity : orders) {
-            var totalOrderAmount = orderEntity.getTotalAmount().add(orderEntity.getCommission());
-            var rrn = GenerateUtil.rrn();
-            var prePurchaseRequest = PrePurchaseRequest.builder()
-                    .rrn(rrn).amount(totalOrderAmount).uid(cardId)
-                    .description(PRE_PURCHASE_DESCRIPTION + orderEntity.getOrderNo()).build();
-            try {
-                var purchaseResponse = atlasClient.prePurchase(prePurchaseRequest);
-                orderEntity.setTransactionId(purchaseResponse.getId());
-                orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
-                orderEntity.setTransactionStatus(TransactionStatus.PRE_PURCHASE);
-            } catch (AtlasClientException e) {
-                lastTempAmount = lastTempAmount.add(totalOrderAmount);
-                orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_PRE_PURCHASE);
-                orderEntity.setTransactionError(e.getMessage());
-            }
-            orderEntity.setRrn(rrn);
-            orderEntity.setTransactionDate(LocalDateTime.now());
+            lastTempAmount = prePurchaseOrder(cardId, lastTempAmount, orderEntity);
         }
         if (lastTempAmount.compareTo(BigDecimal.ZERO) != 0) {
             var customerEntity = operationEntity.getCustomer();
@@ -329,6 +316,28 @@ public class OrderService {
                     customerEntity.getLastTempAmount().add(lastTempAmount));
         }
         log.info(" Orders pre purchase process was finished...");
+        return lastTempAmount;
+    }
+
+    private BigDecimal prePurchaseOrder(String cardId, BigDecimal lastTempAmount,
+                                        OrderEntity orderEntity) {
+        var totalOrderAmount = orderEntity.getTotalAmount().add(orderEntity.getCommission());
+        var rrn = GenerateUtil.rrn();
+        var prePurchaseRequest = PrePurchaseRequest.builder()
+                .rrn(rrn).amount(totalOrderAmount).uid(cardId)
+                .description(PRE_PURCHASE_DESCRIPTION + orderEntity.getOrderNo()).build();
+        try {
+            var purchaseResponse = atlasClient.prePurchase(prePurchaseRequest);
+            orderEntity.setTransactionId(purchaseResponse.getId());
+            orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
+            orderEntity.setTransactionStatus(TransactionStatus.PRE_PURCHASE);
+        } catch (AtlasClientException e) {
+            lastTempAmount = lastTempAmount.add(totalOrderAmount);
+            orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_PRE_PURCHASE);
+            orderEntity.setTransactionError(e.getMessage());
+        }
+        orderEntity.setRrn(rrn);
+        orderEntity.setTransactionDate(LocalDateTime.now());
         return lastTempAmount;
     }
 

@@ -13,7 +13,7 @@ spring:
     password: 7?-+sfVndfe2L=4\Nk3B
   cloud:
     function:
-      definition: checkFraud;checkFraudResult;scoringResult;verificationResult
+      definition: checkFraud;checkFraudResult;scoringResult;verificationResult;prePurchase;prePurchaseResult
     stream:
       binders:
         kafka-bpm:
@@ -48,6 +48,15 @@ spring:
           contentType: application/json
           group: marketplace-dvs-local
           destination: mp-order-dvs
+        prePurchaseResult-in-0:
+          binder: kafka-mp
+          contentType: application/json
+          group: mp-pre-purchase-local
+          destination: mp-pre-purchase
+        prePurchase-out-0:
+          binder: kafka-mp
+          contentType: application/json
+          destination: mp-pre-purchase
 
 umico:
   api-key: 978f22df-62cb-4894-9811-ea26212c0b38

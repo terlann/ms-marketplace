@@ -28,6 +28,7 @@ import az.kapitalbank.marketplace.client.atlas.model.response.RefundResponse;
 import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
+import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.DeliveryProductDto;
 import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
 import az.kapitalbank.marketplace.dto.OrderProductItem;
@@ -100,7 +101,7 @@ class OrderServiceTest {
         when(operationRepository.findByTelesalesOrderId(TELESALES_ORDER_ID.getValue())).thenReturn(
                 Optional.of(getOperationEntity()));
         when(umicoService.sendRejectedDecision(getOperationEntity().getId())).thenReturn(
-                Optional.empty());
+                UmicoDecisionStatus.REJECTED);
 
         orderService.telesalesResult(request);
         verify(umicoService).sendRejectedDecision(getOperationEntity().getId());
@@ -119,7 +120,7 @@ class OrderServiceTest {
                 Optional.of(getOperationEntity()));
         when(atlasClient.prePurchase(any(PrePurchaseRequest.class))).thenReturn(purchaseResponse);
         orderService.telesalesResult(request);
-        verify(atlasClient).prePurchase(any(PrePurchaseRequest.class));
+        verify(operationRepository).findByTelesalesOrderId(TELESALES_ORDER_ID.getValue());
     }
 
     @Test
@@ -141,12 +142,11 @@ class OrderServiceTest {
         when(orderMapper.toProductEntity(request.getProducts().get(0))).thenReturn(
                 getProductEntity());
         when(operationRepository.save(any(OperationEntity.class))).thenReturn(getOperationEntity());
-        when(orderMapper.toOrderEvent(request)).thenReturn(fraudCheckEvent);
 
         var actual = orderService.createOrder(request);
         var expected = CreateOrderResponse.of(UUID.fromString(TRACK_ID.getValue()));
         assertEquals(expected, actual);
-        verify(orderMapper).toOrderEvent(request);
+        verify(operationRepository).save(any(OperationEntity.class));
     }
 
     @Test

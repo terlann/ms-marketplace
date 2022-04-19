@@ -14,6 +14,7 @@ import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
 import az.kapitalbank.marketplace.client.optimus.model.process.SelectedOffer;
 import az.kapitalbank.marketplace.constant.FraudResultStatus;
 import az.kapitalbank.marketplace.constant.ProcessStatus;
+import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.messaging.event.BusinessErrorData;
 import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
 import az.kapitalbank.marketplace.messaging.event.InUserActivityData;
@@ -58,7 +59,8 @@ class LoanFormalizationServiceTest {
                 .build();
         when(operationRepository.findById(request.getTrackId())).thenReturn(
                 Optional.of(getOperationEntity()));
-        when(umicoService.sendRejectedDecision(request.getTrackId())).thenReturn(Optional.empty());
+        when(umicoService.sendRejectedDecision(request.getTrackId())).thenReturn(
+                UmicoDecisionStatus.DECLINED_BY_BLACKLIST);
         loanFormalizationService.fraudResultProcess(request);
         verify(operationRepository).findById(request.getTrackId());
     }
@@ -307,5 +309,14 @@ class LoanFormalizationServiceTest {
 
         loanFormalizationService.verificationResultProcess(request);
         verify(operationRepository).findById(request.getTrackId());
+    }
+
+    @Test
+    void prePurchaseProcess() {
+        var operationEntity = getOperationEntity();
+        when(operationRepository.findById(operationEntity.getId())).thenReturn(
+                Optional.of(getOperationEntity()));
+        loanFormalizationService.prePurchaseProcess(operationEntity.getId());
+        verify(operationRepository).findById(operationEntity.getId());
     }
 }

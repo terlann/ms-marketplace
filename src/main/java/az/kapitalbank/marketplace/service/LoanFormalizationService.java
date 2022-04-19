@@ -23,6 +23,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.UUID;
 import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -306,5 +307,13 @@ public class LoanFormalizationService {
             }
         }
         return Optional.empty();
+    }
+
+    @Transactional
+    public void prePurchaseProcess(UUID trackId) {
+        var operationEntity = operationRepository.findById(trackId)
+                .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
+        orderService.prePurchaseOrders(operationEntity, operationEntity.getCustomer().getCardId());
+        operationRepository.save(operationEntity);
     }
 }
