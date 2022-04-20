@@ -14,9 +14,7 @@ import az.kapitalbank.marketplace.client.optimus.model.scoring.CustomerDecision;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.CustomerNumber;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringRequest;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringVariable;
-import az.kapitalbank.marketplace.entity.OperationEntity;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,23 +31,6 @@ import org.springframework.stereotype.Service;
 public class ScoringService {
 
     OptimusClient optimusClient;
-
-    public Optional<LocalDateTime> deleteLoan(OperationEntity operationEntity) {
-        var businessKey = operationEntity.getBusinessKey();
-        if (operationEntity.getTaskId() != null
-                && operationEntity.getDeleteLoanAttemptDate() == null) {
-            log.info("Delete loan process is started : businessKey - {}", businessKey);
-            try {
-                optimusClient.deleteLoan(operationEntity.getBusinessKey());
-                log.info("Delete loan process was finished : businessKey - {}", businessKey);
-            } catch (OptimusClientException e) {
-                log.error("Delete loan process was failed : " + OPTIMUS_CLIENT_EXCEPTION,
-                        businessKey, e);
-            }
-            return Optional.of(LocalDateTime.now());
-        }
-        return Optional.empty();
-    }
 
     public Optional<String> startScoring(UUID trackId, String pin, String mobileNumber) {
         log.info("Start scoring process is started : trackId - {}", trackId);

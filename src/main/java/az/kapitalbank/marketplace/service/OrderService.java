@@ -46,7 +46,7 @@ import az.kapitalbank.marketplace.exception.UniqueAdditionalNumberException;
 import az.kapitalbank.marketplace.mapper.CustomerMapper;
 import az.kapitalbank.marketplace.mapper.OperationMapper;
 import az.kapitalbank.marketplace.mapper.OrderMapper;
-import az.kapitalbank.marketplace.messaging.sender.FraudCheckSender;
+import az.kapitalbank.marketplace.messaging.publisher.FraudCheckPublisher;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
@@ -79,7 +79,7 @@ public class OrderService {
     OrderRepository orderRepository;
     OperationMapper operationMapper;
     CustomerRepository customerRepository;
-    FraudCheckSender customerOrderProducer;
+    FraudCheckPublisher fraudCheckPublisher;
     OperationRepository operationRepository;
 
     @Transactional
@@ -100,6 +100,7 @@ public class OrderService {
             operationEntity.setOperationRejectReason(OperationRejectReason.TELESALES);
             operationEntity.setScoringStatus(ScoringStatus.REJECTED);
         }
+        operationEntity.setScoringDate(LocalDateTime.now());
         operationRepository.save(operationEntity);
     }
 
@@ -107,7 +108,6 @@ public class OrderService {
                                                OperationEntity operationEntity) {
         operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
         operationEntity.setScoringStatus(ScoringStatus.APPROVED);
-        operationEntity.setScoringDate(LocalDateTime.now());
         operationEntity.setLoanContractStartDate(request.getLoanContractStartDate());
         operationEntity.setLoanContractEndDate(request.getLoanContractEndDate());
         operationEntity.setScoredAmount(request.getScoredAmount());
@@ -133,7 +133,7 @@ public class OrderService {
                     customerEntity.getId(), trackId);
             var fraudCheckEvent = orderMapper.toOrderEvent(request);
             fraudCheckEvent.setTrackId(trackId);
-            customerOrderProducer.sendMessage(fraudCheckEvent);
+            fraudCheckPublisher.sendEvent(fraudCheckEvent);
         }
         log.info("Create order was finished : trackId - {}", trackId);
         return CreateOrderResponse.of(trackId);

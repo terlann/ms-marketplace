@@ -48,7 +48,7 @@ import az.kapitalbank.marketplace.mapper.CustomerMapper;
 import az.kapitalbank.marketplace.mapper.OperationMapper;
 import az.kapitalbank.marketplace.mapper.OrderMapper;
 import az.kapitalbank.marketplace.messaging.event.FraudCheckEvent;
-import az.kapitalbank.marketplace.messaging.sender.FraudCheckSender;
+import az.kapitalbank.marketplace.messaging.publisher.FraudCheckPublisher;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
@@ -86,7 +86,7 @@ class OrderServiceTest {
     @Mock
     CustomerRepository customerRepository;
     @Mock
-    FraudCheckSender customerOrderProducer;
+    FraudCheckPublisher fraudCheckPublisher;
     @Mock
     OperationRepository operationRepository;
     @InjectMocks

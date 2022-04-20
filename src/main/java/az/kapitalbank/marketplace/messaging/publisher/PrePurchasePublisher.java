@@ -1,4 +1,4 @@
-package az.kapitalbank.marketplace.messaging.sender;
+package az.kapitalbank.marketplace.messaging.publisher;
 
 import java.util.LinkedList;
 import java.util.UUID;
@@ -14,22 +14,22 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class PrePurchaseSender {
+public class PrePurchasePublisher {
 
-    final LinkedList<UUID> trackIdList = new LinkedList<>();
+    final LinkedList<UUID> prePurchaseEvents = new LinkedList<>();
 
-    public void sendMessage(UUID trackId) {
-        trackIdList.push(trackId);
+    public void sendEvent(UUID trackId) {
+        prePurchaseEvents.push(trackId);
     }
 
     @Bean
     public Supplier<UUID> prePurchase() {
         return () -> {
-            if (trackIdList.peek() != null) {
-                var message = trackIdList.peek();
-                log.info("Pre purchase was produced. Message - {}", message);
-                trackIdList.poll();
-                return message;
+            if (prePurchaseEvents.peek() != null) {
+                var event = prePurchaseEvents.peek();
+                log.info("Pre purchase was published. Event - {}", event);
+                prePurchaseEvents.poll();
+                return event;
             }
             return null;
         };
