@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(name = "adp-atlas",
-        url = "${client.adp-atlas.url}/api/v1",
+        url = "${client.adp-atlas.url}",
         configuration = AtlasClient.FeignConfiguration.class)
 public interface AtlasClient {
 
