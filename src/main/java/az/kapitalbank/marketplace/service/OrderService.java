@@ -291,7 +291,6 @@ public class OrderService {
         } catch (AtlasClientException ex) {
             exception = ex;
             order.setTransactionStatus(TransactionStatus.FAIL_IN_COMPLETE_PRE_PURCHASE);
-            order.setTransactionError(ex.getMessage());
             log.error("Atlas complete pre purchase process was failed. orderNo - {}",
                     order.getOrderNo());
         }
@@ -334,7 +333,6 @@ public class OrderService {
         } catch (AtlasClientException e) {
             lastTempAmount = lastTempAmount.add(totalOrderAmount);
             orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_PRE_PURCHASE);
-            orderEntity.setTransactionError(e.getMessage());
         }
         orderEntity.setRrn(rrn);
         orderEntity.setTransactionDate(LocalDateTime.now());
@@ -426,7 +424,6 @@ public class OrderService {
         } catch (AtlasClientException ex) {
             exception = ex;
             orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_REFUND);
-            orderEntity.setTransactionError(ex.getMessage());
             log.error("Atlas refund process was failed : orderNo - {}",
                     orderEntity.getOrderNo());
         }
