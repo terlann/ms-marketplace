@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 
 @FeignClient(name = "client-umico",
-        url = "${client.umico.url}/api/v2",
+        url = "${client.umico.url}",
         primary = false,
         configuration = UmicoClient.FeignConfiguration.class)
 public interface UmicoClient {

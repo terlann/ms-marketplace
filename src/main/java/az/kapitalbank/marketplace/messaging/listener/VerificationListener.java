@@ -23,7 +23,7 @@ public class VerificationListener {
     public Consumer<VerificationResultEvent> verificationResult() {
         return message -> {
             if (Objects.nonNull(message)) {
-                log.info("Verification status consumer. Message - {}", message);
+                log.info("Verification status consumer is started. Message - {}", message);
                 loanFormalizationService.verificationResultProcess(message);
             }
         };

@@ -1,5 +1,6 @@
 package az.kapitalbank.marketplace.controller;
 
+import az.kapitalbank.marketplace.annotation.NotNullForTelesalesResult;
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
 import az.kapitalbank.marketplace.dto.request.PurchaseRequestDto;
 import az.kapitalbank.marketplace.dto.request.RefundRequestDto;
@@ -42,7 +43,7 @@ public class OrderController {
 
     @PostMapping("/telesales/result")
     public ResponseEntity<Void> telesalesResult(
-            @Valid @RequestBody TelesalesResultRequestDto request) {
+            @Valid @NotNullForTelesalesResult @RequestBody TelesalesResultRequestDto request) {
         service.telesalesResult(request);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }

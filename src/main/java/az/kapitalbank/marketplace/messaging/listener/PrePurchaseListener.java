@@ -1,8 +1,8 @@
 package az.kapitalbank.marketplace.messaging.listener;
 
-import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
 import az.kapitalbank.marketplace.service.LoanFormalizationService;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.function.Consumer;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -15,16 +15,16 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class FraudListener {
+public class PrePurchaseListener {
 
     LoanFormalizationService loanFormalizationService;
 
     @Bean
-    public Consumer<FraudCheckResultEvent> checkFraudResult() {
+    public Consumer<UUID> prePurchaseResult() {
         return message -> {
             if (Objects.nonNull(message)) {
-                log.info("Check fraud result consumer is started. Message - {}", message);
-                loanFormalizationService.fraudResultProcess(message);
+                log.info("Pre purchase result consumer is started. Message - {}", message);
+                loanFormalizationService.prePurchaseProcess(message);
             }
         };
     }

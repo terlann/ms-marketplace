@@ -41,34 +41,38 @@ public class UmicoService {
         }
     }
 
-    public Optional<String> sendPendingDecision(UUID trackId) {
+    public UmicoDecisionStatus sendPendingDecision(UUID trackId) {
         var umicoDecisionRequest =
                 UmicoDecisionRequest.builder().decisionStatus(UmicoDecisionStatus.PENDING)
                         .trackId(trackId).build();
-        return sendDecision(umicoDecisionRequest);
+        var sendDecision = sendDecision(umicoDecisionRequest);
+        return sendDecision.orElse(UmicoDecisionStatus.FAIL_IN_PENDING);
     }
 
-    public Optional<String> sendRejectedDecision(UUID trackId) {
+    public UmicoDecisionStatus sendRejectedDecision(UUID trackId) {
         var umicoDecisionRequest =
                 UmicoDecisionRequest.builder().decisionStatus(UmicoDecisionStatus.REJECTED)
                         .trackId(trackId).build();
-        return sendDecision(umicoDecisionRequest);
+        var sendDecision = sendDecision(umicoDecisionRequest);
+        return sendDecision.orElse(UmicoDecisionStatus.FAIL_IN_REJECTED);
     }
 
-    public Optional<String> sendPreApprovedDecision(UUID trackId,
-                                                    String dvsUrl,
-                                                    UmicoDecisionStatus decisionStatus) {
+    public UmicoDecisionStatus sendPreApprovedDecision(UUID trackId,
+                                                       String dvsUrl,
+                                                       UmicoDecisionStatus decisionStatus) {
         var umicoDecisionRequest =
                 UmicoDecisionRequest.builder()
                         .trackId(trackId)
                         .dvsUrl(dvsUrl)
                         .decisionStatus(decisionStatus)
                         .build();
-        return sendDecision(umicoDecisionRequest);
+        var sendDecision = sendDecision(umicoDecisionRequest);
+        return sendDecision.orElse(UmicoDecisionStatus.FAIL_IN_PREAPPROVED);
     }
 
-    public Optional<String> sendApprovedDecision(OperationEntity operationEntity, UUID customerId) {
-        var umicoApprovedDecisionRequest =
+    public UmicoDecisionStatus sendApprovedDecision(OperationEntity operationEntity,
+                                                    UUID customerId) {
+        var umicoDecisionRequest =
                 UmicoDecisionRequest.builder()
                         .trackId(operationEntity.getId())
                         .commission(operationEntity.getCommission())
@@ -78,11 +82,12 @@ public class UmicoService {
                         .loanLimit(operationEntity.getScoredAmount())
                         .loanContractStartDate(operationEntity.getLoanContractStartDate())
                         .loanContractEndDate(operationEntity.getLoanContractEndDate()).build();
-        return sendDecision(umicoApprovedDecisionRequest);
+        var sendDecision = sendDecision(umicoDecisionRequest);
+        return sendDecision.orElse(UmicoDecisionStatus.FAIL_IN_APPROVED);
     }
 
 
-    private Optional<String> sendDecision(UmicoDecisionRequest umicoDecisionRequest) {
+    private Optional<UmicoDecisionStatus> sendDecision(UmicoDecisionRequest umicoDecisionRequest) {
         var trackId = umicoDecisionRequest.getTrackId();
         log.info("Send decision to umico is started : trackId - {} , request - {}", trackId,
                 umicoDecisionRequest);
@@ -90,12 +95,12 @@ public class UmicoService {
             var umicoDecisionResponse = umicoClient.sendDecision(umicoDecisionRequest, apiKey);
             log.info("Send decision to umico was finished : trackId - {} , response - {}", trackId,
                     umicoDecisionResponse);
-            return Optional.empty();
+            return Optional.of(umicoDecisionRequest.getDecisionStatus());
         } catch (UmicoClientException e) {
             log.error(
                     "Send decision to umico was failed : trackId - {} , UmicoClientException - {}",
                     trackId, e);
-            return Optional.ofNullable(e.getMessage());
+            return Optional.empty();
         }
     }
 }

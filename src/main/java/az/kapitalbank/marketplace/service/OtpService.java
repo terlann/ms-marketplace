@@ -13,6 +13,7 @@ import az.kapitalbank.marketplace.dto.request.VerifyOtpRequestDto;
 import az.kapitalbank.marketplace.dto.response.SendOtpResponseDto;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.SubscriptionNotFoundException;
+import az.kapitalbank.marketplace.messaging.sender.PrePurchaseSender;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.util.OtpUtil;
 import java.util.UUID;
@@ -31,8 +32,7 @@ public class OtpService {
 
     OtpClient otpClient;
     AtlasClient atlasClient;
-    UmicoService umicoService;
-    OrderService orderService;
+    PrePurchaseSender prePurchaseSender;
     OperationRepository operationRepository;
 
     @Transactional
@@ -65,13 +65,8 @@ public class OtpService {
                         .build();
         log.info("Verify otp : request - {}", otpVerifyRequest);
         var verifyOtpResponse = otpClient.verify(otpVerifyRequest);
+        prePurchaseSender.sendMessage(trackId);
         log.info("Verify otp process was finished : response - {}", verifyOtpResponse);
-
-        var isPrePurchasedOrders = orderService.prePurchaseOrders(operationEntity, cardId);
-        if (isPrePurchasedOrders) {
-            umicoService.sendPrePurchaseResult(trackId);
-        }
-        operationRepository.save(operationEntity);
     }
 
     private String getCardLinkedMobileNumber(String cardId) {

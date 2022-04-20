@@ -7,7 +7,6 @@ import az.kapitalbank.marketplace.client.telesales.TelesalesClient;
 import az.kapitalbank.marketplace.constant.FraudType;
 import az.kapitalbank.marketplace.constant.ProductType;
 import az.kapitalbank.marketplace.constant.SubProductType;
-import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.request.LoanRequest;
 import az.kapitalbank.marketplace.dto.response.LoanResponse;
 import az.kapitalbank.marketplace.entity.OperationEntity;
@@ -49,16 +48,16 @@ public class LeadService {
             if (!responseCode.equals("0")) {
                 log.error("Send lead to telesales was failed : trackId - {}, exception - {}",
                         trackId, responseMessage);
-                operationEntity.setSendTelesalesError(responseMessage);
+                operationEntity.setSendLeadTelesales(true);
                 return Optional.empty();
             }
             log.info("Send lead to telesales was finished :" + " trackId - {}, response - {}",
                     trackId, createTelesalesOrderResponse);
             return Optional.of(createTelesalesOrderResponse.getOperationId());
         } catch (Exception e) {
-            log.error("Send lead to telesales was failed :" + " trackId - {}, exception - {}",
-                    trackId, e);
-            operationEntity.setSendTelesalesError(e.getMessage());
+            log.error("Send lead to telesales was failed :"
+                    + " trackId - {}, exception - {}", trackId, e);
+            operationEntity.setSendLeadTelesales(false);
             return Optional.empty();
         }
     }
@@ -90,8 +89,7 @@ public class LeadService {
         telesalesOrderId.ifPresent(operationEntity::setTelesalesOrderId);
         var leadId = sendLeadLoan(operationEntity);
         leadId.ifPresent(operationEntity::setLeadId);
-        var sendDecision = umicoService.sendPendingDecision(operationEntity.getId());
-        sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
-        operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.PENDING);
+        var umicoDecisionStatus = umicoService.sendPendingDecision(operationEntity.getId());
+        operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
     }
 }
