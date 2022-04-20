@@ -1,7 +1,7 @@
 package az.kapitalbank.marketplace.messaging.publisher;
 
+import az.kapitalbank.marketplace.messaging.event.PrePurchaseEvent;
 import java.util.LinkedList;
-import java.util.UUID;
 import java.util.function.Supplier;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -16,14 +16,14 @@ import org.springframework.stereotype.Component;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class PrePurchasePublisher {
 
-    final LinkedList<UUID> prePurchaseEvents = new LinkedList<>();
+    final LinkedList<PrePurchaseEvent> prePurchaseEvents = new LinkedList<>();
 
-    public void sendEvent(UUID trackId) {
-        prePurchaseEvents.push(trackId);
+    public void sendEvent(PrePurchaseEvent prePurchaseEvent) {
+        prePurchaseEvents.push(prePurchaseEvent);
     }
 
     @Bean
-    public Supplier<UUID> prePurchase() {
+    public Supplier<PrePurchaseEvent> prePurchase() {
         return () -> {
             if (prePurchaseEvents.peek() != null) {
                 var event = prePurchaseEvents.peek();

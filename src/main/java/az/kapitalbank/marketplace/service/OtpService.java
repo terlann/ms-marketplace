@@ -13,6 +13,7 @@ import az.kapitalbank.marketplace.dto.request.VerifyOtpRequestDto;
 import az.kapitalbank.marketplace.dto.response.SendOtpResponseDto;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.SubscriptionNotFoundException;
+import az.kapitalbank.marketplace.messaging.event.PrePurchaseEvent;
 import az.kapitalbank.marketplace.messaging.publisher.PrePurchasePublisher;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.util.OtpUtil;
@@ -65,7 +66,7 @@ public class OtpService {
                         .build();
         log.info("Verify otp : request - {}", otpVerifyRequest);
         var verifyOtpResponse = otpClient.verify(otpVerifyRequest);
-        prePurchasePublisher.sendEvent(trackId);
+        prePurchasePublisher.sendEvent(new PrePurchaseEvent(trackId));
         log.info("Verify otp process was finished : response - {}", verifyOtpResponse);
     }
 

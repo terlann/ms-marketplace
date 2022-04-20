@@ -16,6 +16,7 @@ import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.messaging.event.BusinessErrorData;
 import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
 import az.kapitalbank.marketplace.messaging.event.InUserActivityData;
+import az.kapitalbank.marketplace.messaging.event.PrePurchaseEvent;
 import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
 import az.kapitalbank.marketplace.messaging.event.VerificationResultEvent;
 import az.kapitalbank.marketplace.repository.OperationRepository;
@@ -23,7 +24,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.UUID;
 import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -310,7 +310,8 @@ public class LoanFormalizationService {
     }
 
     @Transactional
-    public void prePurchaseProcess(UUID trackId) {
+    public void prePurchaseProcess(PrePurchaseEvent prePurchaseEvent) {
+        var trackId = prePurchaseEvent.getTrackId();
         var operationEntity = operationRepository.findById(trackId)
                 .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
         var lastTempAmount = orderService.prePurchaseOrders(operationEntity,
