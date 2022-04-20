@@ -2,7 +2,9 @@ package az.kapitalbank.marketplace.service;
 
 import static az.kapitalbank.marketplace.constants.ConstantObject.getCardDetailResponse;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getCustomerEntity;
+import static az.kapitalbank.marketplace.constants.ConstantObject.getCustomerEntity2;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntity;
+import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntityFirstCustomer;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOrderEntity;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getProductEntity;
 import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
@@ -134,14 +136,17 @@ class OrderServiceTest {
         when(amountUtil.getCommission(BigDecimal.valueOf(50), 12))
                 .thenReturn(BigDecimal.valueOf(12));
         when(customerMapper.toCustomerEntity(request.getCustomerInfo())).thenReturn(
-                getCustomerEntity());
-        when(customerRepository.save(any(CustomerEntity.class))).thenReturn(getCustomerEntity());
-        when(operationMapper.toOperationEntity(request)).thenReturn(getOperationEntity());
+                getCustomerEntity2());
+        when(customerRepository.save(any(CustomerEntity.class))).thenReturn(getCustomerEntity2());
+        when(operationMapper.toOperationEntity(request)).thenReturn(
+                getOperationEntityFirstCustomer());
         when(orderMapper.toOrderEntity(request.getDeliveryInfo().get(0),
                 BigDecimal.valueOf(12))).thenReturn(getOrderEntity());
         when(orderMapper.toProductEntity(request.getProducts().get(0))).thenReturn(
                 getProductEntity());
-        when(operationRepository.save(any(OperationEntity.class))).thenReturn(getOperationEntity());
+        when(operationRepository.save(any(OperationEntity.class))).thenReturn(
+                getOperationEntityFirstCustomer());
+        when(orderMapper.toOrderEvent(request)).thenReturn(FraudCheckEvent.builder().build());
 
         var actual = orderService.createOrder(request);
         var expected = CreateOrderResponse.of(UUID.fromString(TRACK_ID.getValue()));

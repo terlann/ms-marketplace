@@ -22,13 +22,27 @@ public class ConstantObject {
         return CustomerEntity.builder()
                 .cardId(CARD_UID.getValue()).build();
     }
-
+    public static CustomerEntity getCustomerEntity2() {
+        return CustomerEntity.builder().build();
+    }
     public static OperationEntity getOperationEntity() {
         return OperationEntity.builder()
                 .id(UUID.fromString(TRACK_ID.getValue()))
                 .orders(List.of(getOrderEntity()))
                 .commission(BigDecimal.valueOf(12))
                 .customer(getCustomerEntity())
+                .totalAmount(BigDecimal.ONE)
+                .dvsOrderId(12345L)
+                .taskId(TASK_ID.getValue())
+                .businessKey(BUSINESS_KEY.getValue())
+                .build();
+    }
+    public static OperationEntity getOperationEntityFirstCustomer() {
+        return OperationEntity.builder()
+                .id(UUID.fromString(TRACK_ID.getValue()))
+                .orders(List.of(getOrderEntity()))
+                .commission(BigDecimal.valueOf(12))
+                .customer(getCustomerEntity2())
                 .totalAmount(BigDecimal.ONE)
                 .dvsOrderId(12345L)
                 .taskId(TASK_ID.getValue())
