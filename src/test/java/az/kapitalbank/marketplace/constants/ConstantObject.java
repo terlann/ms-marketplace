@@ -22,9 +22,11 @@ public class ConstantObject {
         return CustomerEntity.builder()
                 .cardId(CARD_UID.getValue()).build();
     }
+
     public static CustomerEntity getCustomerEntity2() {
         return CustomerEntity.builder().build();
     }
+
     public static OperationEntity getOperationEntity() {
         return OperationEntity.builder()
                 .id(UUID.fromString(TRACK_ID.getValue()))
@@ -37,6 +39,7 @@ public class ConstantObject {
                 .businessKey(BUSINESS_KEY.getValue())
                 .build();
     }
+
     public static OperationEntity getOperationEntityFirstCustomer() {
         return OperationEntity.builder()
                 .id(UUID.fromString(TRACK_ID.getValue()))
