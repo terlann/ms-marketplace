@@ -313,7 +313,11 @@ public class LoanFormalizationService {
     public void prePurchaseProcess(UUID trackId) {
         var operationEntity = operationRepository.findById(trackId)
                 .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
-        orderService.prePurchaseOrders(operationEntity, operationEntity.getCustomer().getCardId());
+        var lastTempAmount = orderService.prePurchaseOrders(operationEntity,
+                operationEntity.getCustomer().getCardId());
+        if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
+            umicoService.sendPrePurchaseResult(trackId);
+        }
         operationRepository.save(operationEntity);
     }
 }
