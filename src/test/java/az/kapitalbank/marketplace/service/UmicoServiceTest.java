@@ -1,6 +1,5 @@
 package az.kapitalbank.marketplace.service;
 
-import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntity;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -45,7 +44,7 @@ class UmicoServiceTest {
     }
 
     @Test
-    void testSendPendingDecision_Success() {
+    void sendPendingDecision_Success() {
         when(umicoClient.sendDecision(any(UmicoDecisionRequest.class), eq(null)))
                 .thenReturn(new UmicoDecisionResponse("status", 0));
 
@@ -54,7 +53,7 @@ class UmicoServiceTest {
     }
 
     @Test
-    void testSendRejectedDecision() {
+    void sendRejectedDecision_Success() {
         when(umicoClient.sendDecision(any(UmicoDecisionRequest.class), eq(null)))
                 .thenReturn(new UmicoDecisionResponse("status", 0));
 
@@ -63,23 +62,13 @@ class UmicoServiceTest {
     }
 
     @Test
-    void testSendPreApprovedDecision() {
+    void sendPreApprovedDecision_Success() {
         when(umicoClient.sendDecision(any(UmicoDecisionRequest.class), eq(null)))
                 .thenReturn(new UmicoDecisionResponse("status", 0));
 
         umicoService.sendPreApprovedDecision(
                 UUID.fromString("70e5bb3d-0120-456a-a5d3-fa953bcd5d7b"), "dvsUrl",
                 UmicoDecisionStatus.APPROVED);
-        verify(umicoClient).sendDecision(any(UmicoDecisionRequest.class), eq(null));
-    }
-
-    @Test
-    void testSendApprovedDecision() {
-        when(umicoClient.sendDecision(any(UmicoDecisionRequest.class), eq(null)))
-                .thenReturn(new UmicoDecisionResponse("status", 0));
-
-        umicoService.sendApprovedDecision(getOperationEntity(),
-                UUID.fromString("7a18702d-e8dc-471c-8dd5-09c1a1c772b5"));
         verify(umicoClient).sendDecision(any(UmicoDecisionRequest.class), eq(null));
     }
 }

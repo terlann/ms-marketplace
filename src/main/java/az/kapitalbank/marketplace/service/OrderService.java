@@ -13,6 +13,7 @@ import az.kapitalbank.marketplace.client.atlas.model.request.CompletePrePurchase
 import az.kapitalbank.marketplace.client.atlas.model.request.PrePurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.RefundRequest;
 import az.kapitalbank.marketplace.constant.AccountStatus;
+import az.kapitalbank.marketplace.constant.OperationRejectReason;
 import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
@@ -55,8 +56,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.transaction.Transactional;
@@ -93,25 +92,19 @@ public class OrderService {
         if (operationEntity.getScoringStatus() != null) {
             throw new OperationAlreadyScoredException(TELESALES_ORDER_ID_LOG + telesalesOrderId);
         }
-        Optional<String> sendDecision;
         if (request.getScoringStatus() == ScoringStatus.APPROVED) {
-            sendDecision = telesalesResultApproveProcess(request, operationEntity);
+            telesalesResultApproveProcess(request, operationEntity);
         } else {
-            operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.REJECTED);
+            var umicoDecisionStatus = umicoService.sendRejectedDecision(operationEntity.getId());
+            operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+            operationEntity.setOperationRejectReason(OperationRejectReason.TELESALES);
             operationEntity.setScoringStatus(ScoringStatus.REJECTED);
-            sendDecision = umicoService.sendRejectedDecision(operationEntity.getId());
         }
-        sendDecision.ifPresent(operationEntity::setUmicoDecisionError);
         operationRepository.save(operationEntity);
     }
 
-    private Optional<String> telesalesResultApproveProcess(TelesalesResultRequestDto request,
-                                                           OperationEntity operationEntity) {
-        var cardId = request.getUid();
-        var isPrePurchasedOrders = prePurchaseOrders(operationEntity, cardId);
-        if (isPrePurchasedOrders) {
-            umicoService.sendPrePurchaseResult(operationEntity.getId());
-        }
+    private void telesalesResultApproveProcess(TelesalesResultRequestDto request,
+                                               OperationEntity operationEntity) {
         operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
         operationEntity.setScoringStatus(ScoringStatus.APPROVED);
         operationEntity.setScoringDate(LocalDateTime.now());
@@ -119,9 +112,12 @@ public class OrderService {
         operationEntity.setLoanContractEndDate(request.getLoanContractEndDate());
         operationEntity.setScoredAmount(request.getScoredAmount());
         var customerEntity = operationEntity.getCustomer();
+        var cardId = request.getUid();
         customerEntity.setCardId(cardId);
-        customerEntity.setCompleteProcessDate(LocalDateTime.now());
-        return umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
+        var lastTempAmount = prePurchaseOrders(operationEntity, cardId);
+        if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
+            umicoService.sendPrePurchaseResult(operationEntity.getId());
+        }
     }
 
     @Transactional
@@ -132,7 +128,7 @@ public class OrderService {
         CustomerEntity customerEntity = getCustomerEntity(request, customerId);
         OperationEntity operationEntity = saveOperationEntity(request, customerEntity);
         var trackId = operationEntity.getId();
-        if (customerId == null && customerEntity.getCompleteProcessDate() == null) {
+        if (customerId == null && customerEntity.getCardId() == null) {
             log.info("First transaction process is started : customerId - {}, trackId - {}",
                     customerEntity.getId(), trackId);
             var fraudCheckEvent = orderMapper.toOrderEvent(request);
@@ -183,6 +179,13 @@ public class OrderService {
                     request.getCustomerInfo().getUmicoUserId());
             if (customerByUmicoUserId.isPresent()) {
                 customerEntity = customerByUmicoUserId.get();
+                var isExistsCustomerByDecisionStatus =
+                        operationRepository.existsByCustomerAndUmicoDecisionStatusIn(customerEntity,
+                                List.of(null, UmicoDecisionStatus.PENDING,
+                                        UmicoDecisionStatus.PREAPPROVED));
+                if (isExistsCustomerByDecisionStatus) {
+                    throw new CustomerNotCompletedProcessException(CUSTOMER_ID_LOG + customerId);
+                }
             } else {
                 customerEntity = customerMapper.toCustomerEntity(request.getCustomerInfo());
                 customerEntity = customerRepository.save(customerEntity);
@@ -191,12 +194,6 @@ public class OrderService {
         } else {
             customerEntity = customerRepository.findById(customerId)
                     .orElseThrow(() -> new CustomerNotFoundException(CUSTOMER_ID_LOG + customerId));
-            var isExistsCustomerByDecisionStatus =
-                    operationRepository.existsByCustomerAndUmicoDecisionStatusIn(customerEntity,
-                            Set.of(UmicoDecisionStatus.PENDING, UmicoDecisionStatus.PREAPPROVED));
-            if (isExistsCustomerByDecisionStatus) {
-                throw new CustomerNotCompletedProcessException(CUSTOMER_ID_LOG + customerId);
-            }
             validateCustomerBalance(request, customerEntity.getCardId());
         }
         return customerEntity;
@@ -306,35 +303,42 @@ public class OrderService {
         }
     }
 
-    public boolean prePurchaseOrders(OperationEntity operationEntity, String cardId) {
+    public BigDecimal prePurchaseOrders(OperationEntity operationEntity, String cardId) {
         BigDecimal lastTempAmount = BigDecimal.ZERO;
-        boolean isPrePurchasedOrders = true;
         var orders = operationEntity.getOrders();
         validateOrdersForPrePurchase(orders, operationEntity.getId());
         for (var orderEntity : orders) {
-            var totalOrderAmount = orderEntity.getTotalAmount().add(orderEntity.getCommission());
-            var rrn = GenerateUtil.rrn();
-            var prePurchaseRequest = PrePurchaseRequest.builder()
-                    .rrn(rrn).amount(totalOrderAmount).uid(cardId)
-                    .description(PRE_PURCHASE_DESCRIPTION + orderEntity.getOrderNo()).build();
-            try {
-                var purchaseResponse = atlasClient.prePurchase(prePurchaseRequest);
-                orderEntity.setTransactionId(purchaseResponse.getId());
-                orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
-                orderEntity.setTransactionStatus(TransactionStatus.PRE_PURCHASE);
-            } catch (AtlasClientException e) {
-                isPrePurchasedOrders = false;
-                lastTempAmount = lastTempAmount.add(totalOrderAmount);
-                orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_PRE_PURCHASE);
-                orderEntity.setTransactionError(e.getMessage());
-            }
-            orderEntity.setRrn(rrn);
-            orderEntity.setTransactionDate(LocalDateTime.now());
+            lastTempAmount = prePurchaseOrder(cardId, lastTempAmount, orderEntity);
         }
-        var customerEntity = operationEntity.getCustomer();
-        customerEntity.setLastTempAmount(customerEntity.getLastTempAmount().add(lastTempAmount));
+        if (lastTempAmount.compareTo(BigDecimal.ZERO) != 0) {
+            var customerEntity = operationEntity.getCustomer();
+            customerEntity.setLastTempAmount(
+                    customerEntity.getLastTempAmount().add(lastTempAmount));
+        }
         log.info(" Orders pre purchase process was finished...");
-        return isPrePurchasedOrders;
+        return lastTempAmount;
+    }
+
+    private BigDecimal prePurchaseOrder(String cardId, BigDecimal lastTempAmount,
+                                        OrderEntity orderEntity) {
+        var totalOrderAmount = orderEntity.getTotalAmount().add(orderEntity.getCommission());
+        var rrn = GenerateUtil.rrn();
+        var prePurchaseRequest = PrePurchaseRequest.builder()
+                .rrn(rrn).amount(totalOrderAmount).uid(cardId)
+                .description(PRE_PURCHASE_DESCRIPTION + orderEntity.getOrderNo()).build();
+        try {
+            var purchaseResponse = atlasClient.prePurchase(prePurchaseRequest);
+            orderEntity.setTransactionId(purchaseResponse.getId());
+            orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
+            orderEntity.setTransactionStatus(TransactionStatus.PRE_PURCHASE);
+        } catch (AtlasClientException e) {
+            lastTempAmount = lastTempAmount.add(totalOrderAmount);
+            orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_PRE_PURCHASE);
+            orderEntity.setTransactionError(e.getMessage());
+        }
+        orderEntity.setRrn(rrn);
+        orderEntity.setTransactionDate(LocalDateTime.now());
+        return lastTempAmount;
     }
 
     private void validateOrdersForPrePurchase(List<OrderEntity> orders, UUID trackId) {

@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 @FeignClient(name = "loan-client", url = "${client.loan.url}")
 public interface LoanClient {
 
-    @PostMapping("v1/lead/loan")
+    @PostMapping("/lead/loan")
     LoanResponse sendLead(@RequestHeader("X-lEAD-SOURCE") String source,
                           @RequestBody LoanRequest request);
 }

@@ -23,7 +23,7 @@ public class ScoringListener {
     public Consumer<ScoringResultEvent> scoringResult() {
         return message -> {
             if (Objects.nonNull(message)) {
-                log.info("scoring result consumer. Message - {}", message);
+                log.info("Scoring result consumer is started. Message - {}", message);
                 loanFormalizationService.scoringResultProcess(message);
             }
         };

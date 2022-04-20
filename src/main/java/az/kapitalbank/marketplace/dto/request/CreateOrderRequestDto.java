@@ -1,5 +1,6 @@
 package az.kapitalbank.marketplace.dto.request;
 
+import az.kapitalbank.marketplace.annotation.CheckAdditionalPhoneNumber;
 import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
 import az.kapitalbank.marketplace.dto.OrderProductItem;
 import java.math.BigDecimal;
@@ -22,6 +23,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CreateOrderRequestDto {
     @NotNull
+    @CheckAdditionalPhoneNumber
     CustomerInfo customerInfo;
     @NotNull
     @Min(1)

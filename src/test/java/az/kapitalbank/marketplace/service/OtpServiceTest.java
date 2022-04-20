@@ -23,6 +23,7 @@ import az.kapitalbank.marketplace.dto.response.SendOtpResponseDto;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
+import az.kapitalbank.marketplace.messaging.sender.PrePurchaseSender;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import java.math.BigDecimal;
 import java.util.List;
@@ -40,13 +41,13 @@ import org.springframework.beans.factory.annotation.Value;
 class OtpServiceTest {
 
     @Mock
-    AtlasClient atlasClient;
-    @Mock
     OtpClient otpClient;
     @Mock
-    OperationRepository operationRepository;
+    AtlasClient atlasClient;
     @Mock
-    OrderService orderService;
+    PrePurchaseSender prePurchaseSender;
+    @Mock
+    OperationRepository operationRepository;
     @InjectMocks
     OtpService otpService;
     @NonFinal
