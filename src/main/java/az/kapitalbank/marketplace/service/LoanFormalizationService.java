@@ -6,9 +6,9 @@ import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
 import az.kapitalbank.marketplace.constant.DvsStatus;
 import az.kapitalbank.marketplace.constant.FraudResultStatus;
 import az.kapitalbank.marketplace.constant.OperationRejectReason;
-import az.kapitalbank.marketplace.constant.OperationStatus;
 import az.kapitalbank.marketplace.constant.RejectedBusinessError;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
+import az.kapitalbank.marketplace.constant.SendLeadReason;
 import az.kapitalbank.marketplace.constant.TaskDefinitionKey;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.entity.OperationEntity;
@@ -16,6 +16,7 @@ import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.messaging.event.BusinessErrorData;
 import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
 import az.kapitalbank.marketplace.messaging.event.InUserActivityData;
+import az.kapitalbank.marketplace.messaging.event.PrePurchaseEvent;
 import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
 import az.kapitalbank.marketplace.messaging.event.VerificationResultEvent;
 import az.kapitalbank.marketplace.repository.OperationRepository;
@@ -23,7 +24,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.UUID;
 import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -129,7 +129,7 @@ public class LoanFormalizationService {
                 operationEntity.getBusinessKey(), operationEntity.getAdditionalPhoneNumber1(),
                 operationEntity.getAdditionalPhoneNumber2());
         if (completeScoring.isEmpty()) {
-            operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_COMPLETE_SCORING);
+            operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_COMPLETE_SCORING);
             leadService.sendLead(operationEntity, null);
         } else {
             operationEntity.setDvsOrderStatus(DvsStatus.CONFIRMED);
@@ -172,7 +172,7 @@ public class LoanFormalizationService {
                 userTaskSignDocumentsProcess(operationEntity, processResponse.get(), taskId);
             }
         } else {
-            operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_GET_PROCESS);
+            operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_GET_PROCESS);
             leadService.sendLead(operationEntity, null);
             operationRepository.save(operationEntity);
         }
@@ -192,13 +192,13 @@ public class LoanFormalizationService {
         } else if (scoredAmount.compareTo(selectedAmount) < 0) {
             log.info("Start scoring result - No enough amount : selectedAmount - {},"
                     + " scoredAmount - {}", selectedAmount, scoredAmount);
-            operationEntity.setOperationStatus(OperationStatus.OPTIMUS_NO_ENOUGH_AMOUNT);
+            operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_NO_ENOUGH_AMOUNT);
             leadService.sendLead(operationEntity, null);
         } else {
             var createScoring =
                     scoringService.createScoring(operationEntity.getId(), taskId, scoredAmount);
             if (createScoring.isEmpty()) {
-                operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_CREATE_SCORING);
+                operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_CREATE_SCORING);
                 leadService.sendLead(operationEntity, null);
             }
         }
@@ -222,7 +222,7 @@ public class LoanFormalizationService {
                     UmicoDecisionStatus.PREAPPROVED);
             operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
         } else {
-            operationEntity.setOperationStatus(OperationStatus.DVS_URL_FAIL);
+            operationEntity.setSendLeadReason(SendLeadReason.DVS_URL_FAIL);
             leadService.sendLead(operationEntity, null);
         }
         operationRepository.save(operationEntity);
@@ -233,7 +233,7 @@ public class LoanFormalizationService {
         Optional<String> cardId = scoringService.getCardId(operationEntity.getBusinessKey(), UID);
         if (cardId.isEmpty()) {
             log.error("Card id is empty. BusinessKey: " + operationEntity.getBusinessKey());
-            operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_GET_CARD_ID);
+            operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_GET_CARD_ID);
             operationRepository.save(operationEntity);
             return;
         }
@@ -257,7 +257,7 @@ public class LoanFormalizationService {
                 scoringService.startScoring(operationEntity.getId(), operationEntity.getPin(),
                         operationEntity.getMobileNumber());
         if (businessKey.isEmpty()) {
-            operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_START_SCORING);
+            operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_START_SCORING);
             leadService.sendLead(operationEntity, null);
         } else {
             operationEntity.setBusinessKey(businessKey.get());
@@ -277,7 +277,7 @@ public class LoanFormalizationService {
             operationEntity.setOperationRejectReason(OperationRejectReason.BUSINESS_ERROR);
         } else {
             leadService.sendLead(operationEntity, null);
-            operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_BUSINESS_ERROR);
+            operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_BUSINESS_ERROR);
         }
 
         operationRepository.save(operationEntity);
@@ -288,7 +288,7 @@ public class LoanFormalizationService {
         log.error("Scoring result : incident happened , response - {}",
                 scoringResultEvent.getData());
         leadService.sendLead(operationEntity, null);
-        operationEntity.setOperationStatus(OperationStatus.OPTIMUS_FAIL_INCIDENT_HAPPENED);
+        operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_INCIDENT_HAPPENED);
         operationRepository.save(operationEntity);
     }
 
@@ -310,7 +310,8 @@ public class LoanFormalizationService {
     }
 
     @Transactional
-    public void prePurchaseProcess(UUID trackId) {
+    public void prePurchaseProcess(PrePurchaseEvent prePurchaseEvent) {
+        var trackId = prePurchaseEvent.getTrackId();
         var operationEntity = operationRepository.findById(trackId)
                 .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
         var lastTempAmount = orderService.prePurchaseOrders(operationEntity,
