@@ -64,7 +64,7 @@ class LoanFormalizationServiceTest {
         when(operationRepository.findById(request.getTrackId())).thenReturn(
                 Optional.of(getOperationEntity()));
         when(umicoService.sendRejectedDecision(request.getTrackId())).thenReturn(
-                UmicoDecisionStatus.DECLINED_BY_BLACKLIST);
+                UmicoDecisionStatus.REJECTED);
         loanFormalizationService.fraudResultProcess(request);
         verify(operationRepository).findById(request.getTrackId());
     }

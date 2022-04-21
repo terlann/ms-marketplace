@@ -6,6 +6,7 @@ import static az.kapitalbank.marketplace.constant.AtlasConstant.PRE_PURCHASE_DES
 import static az.kapitalbank.marketplace.constant.CommonConstant.CUSTOMER_ID_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.ORDER_NO_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.TELESALES_ORDER_ID_LOG;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.APPROVED;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PENDING;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PREAPPROVED;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PENDING;
@@ -21,7 +22,6 @@ import az.kapitalbank.marketplace.constant.OperationRejectReason;
 import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
-import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
 import az.kapitalbank.marketplace.dto.OrderProductItem;
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
@@ -112,7 +112,7 @@ public class OrderService {
 
     private void telesalesResultApproveProcess(TelesalesResultRequestDto request,
                                                OperationEntity operationEntity) {
-        operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
+        operationEntity.setUmicoDecisionStatus(APPROVED);
         operationEntity.setScoringStatus(ScoringStatus.APPROVED);
         operationEntity.setLoanContractStartDate(request.getLoanContractStartDate());
         operationEntity.setLoanContractEndDate(request.getLoanContractEndDate());
@@ -122,7 +122,11 @@ public class OrderService {
         customerEntity.setCardId(cardId);
         var lastTempAmount = prePurchaseOrders(operationEntity, cardId);
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
-            umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
+            var umicoDecisionStatus =
+                    umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
+            operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+        } else {
+            operationEntity.setUmicoDecisionStatus(PREAPPROVED);
         }
     }
 

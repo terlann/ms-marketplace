@@ -1,6 +1,7 @@
 package az.kapitalbank.marketplace.service;
 
 import static az.kapitalbank.marketplace.constant.AtlasConstant.UID;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PREAPPROVED;
 
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
 import az.kapitalbank.marketplace.constant.DvsStatus;
@@ -247,14 +248,18 @@ public class LoanFormalizationService {
             operationRepository.save(operationEntity);
             return;
         }
-        orderService.prePurchaseOrders(operationEntity, cardId.get());
-        log.info("End-to-end process : orders purchase process was finished : trackId - {}",
-                operationEntity.getId());
         var customerEntity = operationEntity.getCustomer();
         customerEntity.setCardId(cardId.get());
-        var umicoDecisionStatus =
-                umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
-        operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+        var lastTempAmount = orderService.prePurchaseOrders(operationEntity, cardId.get());
+        log.info("End-to-end process : orders purchase process was finished : trackId - {}",
+                operationEntity.getId());
+        if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
+            var umicoDecisionStatus =
+                    umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
+            operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+        } else {
+            operationEntity.setUmicoDecisionStatus(PREAPPROVED);
+        }
         operationRepository.save(operationEntity);
         log.info("Customer finished end-to-end process : trackId - {} , customerId - {}",
                 operationEntity.getId(), customerEntity.getId());
