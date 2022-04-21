@@ -179,9 +179,9 @@ public class OrderService {
                     request.getCustomerInfo().getUmicoUserId());
             if (customerByUmicoUserId.isPresent()) {
                 customerEntity = customerByUmicoUserId.get();
-                var isExistsCustomerByDecisionStatus =
-                        operationRepository.existsByCustomerAndUmicoDecisionStatusIn(customerEntity,
-                                List.of(null, UmicoDecisionStatus.PENDING,
+                var isExistsCustomerByDecisionStatus = operationRepository
+                        .existsByCustomerAndUmicoDecisionStatusInOrUmicoDecisionStatusIsNull(
+                                customerEntity, List.of(UmicoDecisionStatus.PENDING,
                                         UmicoDecisionStatus.PREAPPROVED));
                 if (isExistsCustomerByDecisionStatus) {
                     throw new CustomerNotCompletedProcessException(CUSTOMER_ID_LOG + customerId);
