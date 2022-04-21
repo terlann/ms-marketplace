@@ -1,6 +1,5 @@
 package az.kapitalbank.marketplace.mapper;
 
-import static az.kapitalbank.marketplace.constant.OptimusConstant.CARD_PRODUCT_CODE;
 import static az.kapitalbank.marketplace.constant.OptimusConstant.SALES_SOURCE;
 
 import az.kapitalbank.marketplace.client.telesales.model.CreateTelesalesOrderRequest;
@@ -24,8 +23,8 @@ public interface TelesalesMapper {
     @Mapping(source = "operationEntity.email", target = "email")
     @Mapping(source = "operationEntity.loanTerm", target = "duration")
     @Mapping(target = "position", constant = SALES_SOURCE)
-    @Mapping(target = "productType", constant = CARD_PRODUCT_CODE)
     @Mapping(source = "fraudTypes", target = "orderComment", qualifiedByName = "mapFraudTypes")
+    @Mapping(source = "operationEntity", target = "loanAmount", qualifiedByName = "mapTotalAmount")
     CreateTelesalesOrderRequest toTelesalesOrder(OperationEntity operationEntity,
                                                  List<FraudType> fraudTypes);
 }
