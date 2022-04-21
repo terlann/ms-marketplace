@@ -7,7 +7,7 @@ import lombok.NoArgsConstructor;
 public final class AtlasConstant {
     public static final Integer AZN = 944;
     public static final String UID = "uid";
-    public static final String TERMINAL_NAME = "R1020002";
+    public static final String TERMINAL_NAME = "UMICOLOAN";
     public static final String PRE_PURCHASE_DESCRIPTION =
             "umico pre-purchase operation, orderNo : ";
     public static final String COMPLETE_PRE_PURCHASE_DESCRIPTION =

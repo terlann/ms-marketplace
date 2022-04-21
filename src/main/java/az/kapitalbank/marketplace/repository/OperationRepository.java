@@ -12,11 +12,11 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface OperationRepository extends JpaRepository<OperationEntity, UUID> {
+
     Optional<OperationEntity> findByTelesalesOrderId(String telesalesOrderId);
 
     Optional<OperationEntity> findByBusinessKey(String businessKey);
 
     boolean existsByCustomerAndUmicoDecisionStatusIn(CustomerEntity customer,
                                                      List<UmicoDecisionStatus> umicoDecisionStatus);
-
 }
