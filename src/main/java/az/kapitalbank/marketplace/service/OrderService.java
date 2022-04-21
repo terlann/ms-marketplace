@@ -318,7 +318,8 @@ public class OrderService {
             customerEntity.setLastTempAmount(
                     customerEntity.getLastTempAmount().add(lastTempAmount));
         }
-        log.info("Orders pre purchase process was finished: lastTempAmount - {}", lastTempAmount);
+        log.info("Orders pre purchase process was finished: trackId - {}, lastTempAmount - {}",
+                operationEntity.getId(), lastTempAmount);
         return lastTempAmount;
     }
 
