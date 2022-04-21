@@ -314,7 +314,7 @@ public class OrderService {
             customerEntity.setLastTempAmount(
                     customerEntity.getLastTempAmount().add(lastTempAmount));
         }
-        log.info(" Orders pre purchase process was finished...");
+        log.info("Orders pre purchase process was finished: lastTempAmount - {}", lastTempAmount);
         return lastTempAmount;
     }
 
@@ -330,7 +330,8 @@ public class OrderService {
             orderEntity.setTransactionId(purchaseResponse.getId());
             orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
             orderEntity.setTransactionStatus(TransactionStatus.PRE_PURCHASE);
-        } catch (AtlasClientException e) {
+        } catch (AtlasClientException ex) {
+            log.error("Atlas pre purchase process was failed. exception - {}", ex.toString());
             lastTempAmount = lastTempAmount.add(totalOrderAmount);
             orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_PRE_PURCHASE);
         }
