@@ -40,7 +40,6 @@ public class OrderEntity extends BaseEntity {
     String deliveryAddress;
     BigDecimal commission;
     String transactionId;
-    String transactionError;
     LocalDateTime transactionDate;
     String rrn;
     String approvalCode;

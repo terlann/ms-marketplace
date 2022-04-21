@@ -1,8 +1,8 @@
 package az.kapitalbank.marketplace.messaging.listener;
 
+import az.kapitalbank.marketplace.messaging.event.PrePurchaseEvent;
 import az.kapitalbank.marketplace.service.LoanFormalizationService;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.function.Consumer;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +20,7 @@ public class PrePurchaseListener {
     LoanFormalizationService loanFormalizationService;
 
     @Bean
-    public Consumer<UUID> prePurchaseResult() {
+    public Consumer<PrePurchaseEvent> prePurchaseResult() {
         return message -> {
             if (Objects.nonNull(message)) {
                 log.info("Pre purchase result consumer is started. Message - {}", message);

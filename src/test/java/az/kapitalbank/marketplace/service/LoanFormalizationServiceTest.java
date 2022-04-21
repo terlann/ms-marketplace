@@ -21,6 +21,7 @@ import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.messaging.event.BusinessErrorData;
 import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
 import az.kapitalbank.marketplace.messaging.event.InUserActivityData;
+import az.kapitalbank.marketplace.messaging.event.PrePurchaseEvent;
 import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
 import az.kapitalbank.marketplace.messaging.event.VerificationResultEvent;
 import az.kapitalbank.marketplace.repository.OperationRepository;
@@ -321,7 +322,7 @@ class LoanFormalizationServiceTest {
                 Optional.of(getOperationEntity()));
         when(orderService.prePurchaseOrders(any(OperationEntity.class),
                 eq(operationEntity.getCustomer().getCardId()))).thenReturn(BigDecimal.ZERO);
-        loanFormalizationService.prePurchaseProcess(operationEntity.getId());
+        loanFormalizationService.prePurchaseProcess(new PrePurchaseEvent(operationEntity.getId()));
         verify(operationRepository).findById(operationEntity.getId());
     }
 }

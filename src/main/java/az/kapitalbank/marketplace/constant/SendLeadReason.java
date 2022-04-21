@@ -1,6 +1,6 @@
 package az.kapitalbank.marketplace.constant;
 
-public enum OperationStatus {
+public enum SendLeadReason {
     OPTIMUS_FAIL_START_SCORING,
     OPTIMUS_FAIL_CREATE_SCORING,
     OPTIMUS_FAIL_COMPLETE_SCORING,

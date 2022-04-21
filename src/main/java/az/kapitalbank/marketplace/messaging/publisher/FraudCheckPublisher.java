@@ -1,4 +1,4 @@
-package az.kapitalbank.marketplace.messaging.sender;
+package az.kapitalbank.marketplace.messaging.publisher;
 
 import az.kapitalbank.marketplace.messaging.event.FraudCheckEvent;
 import java.util.LinkedList;
@@ -14,11 +14,11 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class FraudCheckSender {
+public class FraudCheckPublisher {
 
     final LinkedList<FraudCheckEvent> fraudCheckEvents = new LinkedList<>();
 
-    public void sendMessage(FraudCheckEvent fraudCheckEvent) {
+    public void sendEvent(FraudCheckEvent fraudCheckEvent) {
         fraudCheckEvents.push(fraudCheckEvent);
     }
 
@@ -26,10 +26,10 @@ public class FraudCheckSender {
     public Supplier<FraudCheckEvent> checkFraud() {
         return () -> {
             if (fraudCheckEvents.peek() != null) {
-                var message = fraudCheckEvents.peek();
+                var event = fraudCheckEvents.peek();
                 fraudCheckEvents.poll();
-                log.info("Fraud check was produced. Message - {}", message);
-                return message;
+                log.info("Fraud check was published. Event - {}", event);
+                return event;
             }
             return null;
         };

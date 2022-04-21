@@ -2,8 +2,8 @@ package az.kapitalbank.marketplace.entity;
 
 import az.kapitalbank.marketplace.constant.DvsStatus;
 import az.kapitalbank.marketplace.constant.OperationRejectReason;
-import az.kapitalbank.marketplace.constant.OperationStatus;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
+import az.kapitalbank.marketplace.constant.SendLeadReason;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -68,11 +68,9 @@ public class OperationEntity extends BaseEntity {
     UmicoDecisionStatus umicoDecisionStatus;
     @Enumerated(EnumType.STRING)
     OperationRejectReason operationRejectReason;
-    String umicoPrePurchaseResult;
     Boolean sendLeadTelesales;
-    LocalDateTime deleteLoanAttemptDate;
     @Enumerated(EnumType.STRING)
-    OperationStatus operationStatus;
+    SendLeadReason sendLeadReason;
     BigDecimal scoredAmount;
 
     @ManyToOne(fetch = FetchType.LAZY)
