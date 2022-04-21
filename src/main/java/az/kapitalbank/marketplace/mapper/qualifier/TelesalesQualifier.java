@@ -14,7 +14,7 @@ public class TelesalesQualifier {
 
     @Named("mapFraudTypes")
     public String mapFraudTypes(List<FraudType> fraudTypes) {
-        return "BUMM" + fraudTypes.stream().map(Object::toString).collect(Collectors.joining(";"));
+        return fraudTypes.stream().map(Object::toString).collect(Collectors.joining(";"));
     }
 
     @Named("mapTotalAmount")
