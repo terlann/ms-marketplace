@@ -21,10 +21,10 @@ public class VerificationListener {
 
     @Bean
     public Consumer<VerificationResultEvent> verificationResult() {
-        return message -> {
-            if (Objects.nonNull(message)) {
-                log.info("Verification status consumer is started. Message - {}", message);
-                loanFormalizationService.verificationResultProcess(message);
+        return event -> {
+            if (Objects.nonNull(event)) {
+                log.info("Verification result consumer is started. Event - {}", event);
+                loanFormalizationService.verificationResultProcess(event);
             }
         };
     }

@@ -21,10 +21,10 @@ public class PrePurchaseListener {
 
     @Bean
     public Consumer<PrePurchaseEvent> prePurchaseResult() {
-        return message -> {
-            if (Objects.nonNull(message)) {
-                log.info("Pre purchase result consumer is started. Message - {}", message);
-                loanFormalizationService.prePurchaseProcess(message);
+        return event -> {
+            if (Objects.nonNull(event)) {
+                log.info("Pre purchase result consumer is started. Event - {}", event);
+                loanFormalizationService.prePurchaseProcess(event);
             }
         };
     }
