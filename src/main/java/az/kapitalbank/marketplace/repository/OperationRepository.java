@@ -17,6 +17,7 @@ public interface OperationRepository extends JpaRepository<OperationEntity, UUID
 
     Optional<OperationEntity> findByBusinessKey(String businessKey);
 
-    boolean existsByCustomerAndUmicoDecisionStatusIn(CustomerEntity customer,
-                                                     List<UmicoDecisionStatus> umicoDecisionStatus);
+    boolean existsByCustomerAndUmicoDecisionStatusInOrUmicoDecisionStatusIsNull(
+            CustomerEntity customer,
+            List<UmicoDecisionStatus> umicoDecisionStatus);
 }
