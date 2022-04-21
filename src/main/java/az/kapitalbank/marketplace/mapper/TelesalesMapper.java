@@ -24,6 +24,7 @@ public interface TelesalesMapper {
     @Mapping(source = "operationEntity.loanTerm", target = "duration")
     @Mapping(target = "position", constant = SALES_SOURCE)
     @Mapping(source = "fraudTypes", target = "orderComment", qualifiedByName = "mapFraudTypes")
+    @Mapping(source = "operationEntity", target = "loanAmount", qualifiedByName = "mapTotalAmount")
     CreateTelesalesOrderRequest toTelesalesOrder(OperationEntity operationEntity,
                                                  List<FraudType> fraudTypes);
 }

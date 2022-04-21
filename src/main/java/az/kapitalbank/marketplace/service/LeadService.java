@@ -36,18 +36,14 @@ public class LeadService {
         var trackId = operationEntity.getId();
         log.info("Send lead to telesales is started : trackId - {}", trackId);
         try {
-            var createTelesalesOrderRequest =
-                    telesalesMapper.toTelesalesOrder(operationEntity, fraudTypes);
-            var amountWithCommission =
-                    operationEntity.getTotalAmount().add(operationEntity.getCommission());
-            var orderComment = createTelesalesOrderRequest.getOrderComment();
+            var request = telesalesMapper.toTelesalesOrder(operationEntity, fraudTypes);
+            var orderComment = request.getOrderComment();
             orderComment = orderComment == null ? CARD_PRODUCT_CODE :
                     CARD_PRODUCT_CODE + ";" + orderComment;
-            createTelesalesOrderRequest.setOrderComment(orderComment);
-            createTelesalesOrderRequest.setLoanAmount(amountWithCommission);
-            log.info("Send lead to telesales : request - {}", createTelesalesOrderRequest);
+            request.setOrderComment(orderComment);
+            log.info("Send lead to telesales : request - {}", request);
             var createTelesalesOrderResponse =
-                    telesalesClient.sendLead(createTelesalesOrderRequest);
+                    telesalesClient.sendLead(request);
             var responseMessage = createTelesalesOrderResponse.getResponse().getMessage();
             var responseCode = createTelesalesOrderResponse.getResponse().getCode();
             if (!responseCode.equals("0")) {
