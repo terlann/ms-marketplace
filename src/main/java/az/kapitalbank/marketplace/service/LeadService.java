@@ -1,5 +1,6 @@
 package az.kapitalbank.marketplace.service;
 
+import static az.kapitalbank.marketplace.constant.OptimusConstant.CARD_PRODUCT_CODE;
 import static az.kapitalbank.marketplace.constant.TelesalesConstant.UMICO_SOURCE_CODE;
 
 import az.kapitalbank.marketplace.client.loan.LoanClient;
@@ -39,6 +40,10 @@ public class LeadService {
                     telesalesMapper.toTelesalesOrder(operationEntity, fraudTypes);
             var amountWithCommission =
                     operationEntity.getTotalAmount().add(operationEntity.getCommission());
+            var orderComment = createTelesalesOrderRequest.getOrderComment();
+            orderComment = orderComment == null ? CARD_PRODUCT_CODE :
+                    CARD_PRODUCT_CODE + ";" + orderComment;
+            createTelesalesOrderRequest.setOrderComment(orderComment);
             createTelesalesOrderRequest.setLoanAmount(amountWithCommission);
             log.info("Send lead to telesales : request - {}", createTelesalesOrderRequest);
             var createTelesalesOrderResponse =
