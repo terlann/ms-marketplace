@@ -6,6 +6,10 @@ import static az.kapitalbank.marketplace.constant.AtlasConstant.PRE_PURCHASE_DES
 import static az.kapitalbank.marketplace.constant.CommonConstant.CUSTOMER_ID_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.ORDER_NO_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.TELESALES_ORDER_ID_LOG;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PENDING;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PREAPPROVED;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PENDING;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PREAPPROVED;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
@@ -181,8 +185,8 @@ public class OrderService {
                 customerEntity = customerByUmicoUserId.get();
                 var isExistsCustomerByDecisionStatus = operationRepository
                         .existsByCustomerAndUmicoDecisionStatusInOrUmicoDecisionStatusIsNull(
-                                customerEntity, List.of(UmicoDecisionStatus.PENDING,
-                                        UmicoDecisionStatus.PREAPPROVED));
+                                customerEntity, List.of(PENDING, FAIL_IN_PENDING, PREAPPROVED,
+                                        FAIL_IN_PREAPPROVED));
                 if (isExistsCustomerByDecisionStatus) {
                     throw new CustomerNotCompletedProcessException(CUSTOMER_ID_LOG + customerId);
                 }
