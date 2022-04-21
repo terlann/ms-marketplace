@@ -320,5 +320,6 @@ public class LoanFormalizationService {
             umicoService.sendPrePurchaseResult(trackId);
         }
         operationRepository.save(operationEntity);
+        log.info("Pre purchase consumer process was finished: trackId - {}", trackId);
     }
 }
