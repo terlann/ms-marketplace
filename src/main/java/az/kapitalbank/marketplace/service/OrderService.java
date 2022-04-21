@@ -120,7 +120,7 @@ public class OrderService {
         customerEntity.setCardId(cardId);
         var lastTempAmount = prePurchaseOrders(operationEntity, cardId);
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
-            umicoService.sendPrePurchaseResult(operationEntity.getId());
+            umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
         }
     }
 

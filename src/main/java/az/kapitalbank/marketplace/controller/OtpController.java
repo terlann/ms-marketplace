@@ -4,6 +4,7 @@ import az.kapitalbank.marketplace.dto.request.SendOtpRequestDto;
 import az.kapitalbank.marketplace.dto.request.VerifyOtpRequestDto;
 import az.kapitalbank.marketplace.dto.response.SendOtpResponseDto;
 import az.kapitalbank.marketplace.service.OtpService;
+import javax.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,12 +21,12 @@ public class OtpController {
     private final OtpService otpService;
 
     @PostMapping("/send")
-    public ResponseEntity<SendOtpResponseDto> send(@RequestBody SendOtpRequestDto request) {
+    public ResponseEntity<SendOtpResponseDto> send(@Valid @RequestBody SendOtpRequestDto request) {
         return ResponseEntity.ok(otpService.send(request));
     }
 
     @PostMapping("/verify")
-    public ResponseEntity<Void> verify(@RequestBody VerifyOtpRequestDto request) {
+    public ResponseEntity<Void> verify(@Valid @RequestBody VerifyOtpRequestDto request) {
         otpService.verify(request);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
