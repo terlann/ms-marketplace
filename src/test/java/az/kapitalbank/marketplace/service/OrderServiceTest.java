@@ -128,6 +128,22 @@ class OrderServiceTest {
     }
 
     @Test
+    void telesalesResult_lastTempAmountNotZero() {
+        var request = TelesalesResultRequestDto.builder()
+                .telesalesOrderId(TELESALES_ORDER_ID.getValue())
+                .scoringStatus(ScoringStatus.APPROVED)
+                .uid(CARD_UID.getValue())
+                .build();
+        var purchaseResponse = PrePurchaseResponse.builder().build();
+        when(operationRepository.findByTelesalesOrderId(TELESALES_ORDER_ID.getValue())).thenReturn(
+                Optional.of(getOperationEntity()));
+        when(atlasClient.prePurchase(any(PrePurchaseRequest.class))).thenThrow(
+                AtlasClientException.class);
+        orderService.telesalesResult(request);
+        verify(operationRepository).findByTelesalesOrderId(TELESALES_ORDER_ID.getValue());
+    }
+
+    @Test
     void createOrder_firstOperation() {
         CreateOrderRequestDto request =
                 getCreateOrderRequestDto(null);
