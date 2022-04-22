@@ -10,7 +10,7 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public enum Error {
 
-    BAD_REQUEST("E100", "Request is not valid (Field is null or not valid) : %s"),
+    BAD_REQUEST("E100", "Request is not valid"),
     ORDER_NOT_FOUND("E101", "Order not found"),
     NO_MATCH_LOAN_AMOUNT_BY_ORDERS("E102", "Loan amount is not equal total order amount"),
     LOAN_TERM_NOT_FOUND("E103", "No such loan term"),
@@ -36,7 +36,9 @@ public enum Error {
     SUBSCRIPTION_NOT_FOUND("E122", "Mobile number not found"),
     INVALID_OTP_AND_PHONE_BLOCKED("E123", "Invalid otp. mobile number was blocked"),
     NO_MATCH_ORDER_AMOUNT_BY_PRODUCTS("E124", "Order amount is not equal total products amount"),
-    PRODUCT_NOT_LINKED_TO_ORDER("E125", "Product is not linked to order");
+    PRODUCT_NOT_LINKED_TO_ORDER("E125", "Product is not linked to order"),
+    REFUND_FAILED("E126", "Refund operation couldn't finished"),
+    COMPLETE_PRE_PURCHASE_FAILED("E127", "Purchase operation couldn't finished");
 
     String code;
     String message;

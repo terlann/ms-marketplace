@@ -44,8 +44,10 @@ import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
+import az.kapitalbank.marketplace.exception.CompletePrePurchaseException;
 import az.kapitalbank.marketplace.exception.NoMatchOrderAmountByProductException;
 import az.kapitalbank.marketplace.exception.NoPermissionForTransaction;
+import az.kapitalbank.marketplace.exception.RefundException;
 import az.kapitalbank.marketplace.mapper.CustomerMapper;
 import az.kapitalbank.marketplace.mapper.OperationMapper;
 import az.kapitalbank.marketplace.mapper.OrderMapper;
@@ -121,6 +123,22 @@ class OrderServiceTest {
         when(operationRepository.findByTelesalesOrderId(TELESALES_ORDER_ID.getValue())).thenReturn(
                 Optional.of(getOperationEntity()));
         when(atlasClient.prePurchase(any(PrePurchaseRequest.class))).thenReturn(purchaseResponse);
+        orderService.telesalesResult(request);
+        verify(operationRepository).findByTelesalesOrderId(TELESALES_ORDER_ID.getValue());
+    }
+
+    @Test
+    void telesalesResult_lastTempAmountNotZero() {
+        var request = TelesalesResultRequestDto.builder()
+                .telesalesOrderId(TELESALES_ORDER_ID.getValue())
+                .scoringStatus(ScoringStatus.APPROVED)
+                .uid(CARD_UID.getValue())
+                .build();
+        var purchaseResponse = PrePurchaseResponse.builder().build();
+        when(operationRepository.findByTelesalesOrderId(TELESALES_ORDER_ID.getValue())).thenReturn(
+                Optional.of(getOperationEntity()));
+        when(atlasClient.prePurchase(any(PrePurchaseRequest.class))).thenThrow(
+                AtlasClientException.class);
         orderService.telesalesResult(request);
         verify(operationRepository).findByTelesalesOrderId(TELESALES_ORDER_ID.getValue());
     }
@@ -238,7 +256,7 @@ class OrderServiceTest {
         when(atlasClient.refund(eq(null), any(RefundRequest.class)))
                 .thenThrow(new AtlasClientException(null, null, null));
 
-        assertThrows(AtlasClientException.class, () -> orderService.refund(refundRequestDto));
+        assertThrows(RefundException.class, () -> orderService.refund(refundRequestDto));
     }
 
     @Test
@@ -313,7 +331,7 @@ class OrderServiceTest {
                 .orderNo("123")
                 .deliveryProducts(Set.of(DeliveryProductDto.builder().productId("p1").build()))
                 .build();
-        assertThrows(AtlasClientException.class, () -> orderService.purchase(request));
+        assertThrows(CompletePrePurchaseException.class, () -> orderService.purchase(request));
     }
 
     @Test

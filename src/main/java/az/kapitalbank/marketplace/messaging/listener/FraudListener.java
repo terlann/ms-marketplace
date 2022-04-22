@@ -21,10 +21,10 @@ public class FraudListener {
 
     @Bean
     public Consumer<FraudCheckResultEvent> checkFraudResult() {
-        return message -> {
-            if (Objects.nonNull(message)) {
-                log.info("Check fraud result consumer is started. Message - {}", message);
-                loanFormalizationService.fraudResultProcess(message);
+        return event -> {
+            if (Objects.nonNull(event)) {
+                log.info("Check fraud result consumer is started. Event - {}", event);
+                loanFormalizationService.fraudResultProcess(event);
             }
         };
     }

@@ -6,6 +6,7 @@ import static az.kapitalbank.marketplace.constant.AtlasConstant.PRE_PURCHASE_DES
 import static az.kapitalbank.marketplace.constant.CommonConstant.CUSTOMER_ID_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.ORDER_NO_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.TELESALES_ORDER_ID_LOG;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.APPROVED;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PENDING;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PREAPPROVED;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PENDING;
@@ -21,7 +22,6 @@ import az.kapitalbank.marketplace.constant.OperationRejectReason;
 import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
-import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
 import az.kapitalbank.marketplace.dto.OrderProductItem;
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
@@ -34,6 +34,7 @@ import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.entity.ProductEntity;
+import az.kapitalbank.marketplace.exception.CompletePrePurchaseException;
 import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
 import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
 import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
@@ -45,6 +46,7 @@ import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotLinkedToCustomer;
 import az.kapitalbank.marketplace.exception.ProductNotLinkedToOrder;
+import az.kapitalbank.marketplace.exception.RefundException;
 import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
 import az.kapitalbank.marketplace.exception.UniqueAdditionalNumberException;
 import az.kapitalbank.marketplace.mapper.CustomerMapper;
@@ -110,7 +112,7 @@ public class OrderService {
 
     private void telesalesResultApproveProcess(TelesalesResultRequestDto request,
                                                OperationEntity operationEntity) {
-        operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
+        operationEntity.setUmicoDecisionStatus(APPROVED);
         operationEntity.setScoringStatus(ScoringStatus.APPROVED);
         operationEntity.setLoanContractStartDate(request.getLoanContractStartDate());
         operationEntity.setLoanContractEndDate(request.getLoanContractEndDate());
@@ -120,7 +122,11 @@ public class OrderService {
         customerEntity.setCardId(cardId);
         var lastTempAmount = prePurchaseOrders(operationEntity, cardId);
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
-            umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
+            var umicoDecisionStatus =
+                    umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
+            operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+        } else {
+            operationEntity.setUmicoDecisionStatus(PREAPPROVED);
         }
     }
 
@@ -225,7 +231,7 @@ public class OrderService {
         return orderResponseDto;
     }
 
-    @Transactional(dontRollbackOn = AtlasClientException.class)
+    @Transactional(dontRollbackOn = CompletePrePurchaseException.class)
     public void purchase(PurchaseRequestDto request) {
         log.info("Complete pre purchase process is started : request - {}", request);
         var orderEntity = orderRepository.findByOrderNo(request.getOrderNo())
@@ -243,7 +249,7 @@ public class OrderService {
             }
         } else {
             log.error(
-                    "No Permission for complete pre purchase. orderNo - {}, transactionStatus -{}",
+                    "No Permission for complete pre purchase : orderNo - {}, transactionStatus -{}",
                     orderEntity.getOrderNo(), orderEntity.getTransactionStatus());
             throw new NoPermissionForTransaction(
                     ORDER_NO_LOG + orderEntity.getId() + " transactionStatus - "
@@ -295,14 +301,16 @@ public class OrderService {
         } catch (AtlasClientException ex) {
             exception = ex;
             order.setTransactionStatus(TransactionStatus.FAIL_IN_COMPLETE_PRE_PURCHASE);
-            log.error("Atlas complete pre purchase process was failed. orderNo - {}",
-                    order.getOrderNo());
+            log.error(
+                    "Atlas complete pre purchase process was failed : "
+                            + "orderNo - {}, AtlasClientException - {}",
+                    order.getOrderNo(), ex);
         }
         order.setRrn(completePrePurchaseRequest.getRrn());
         order.setTransactionDate(LocalDateTime.now());
         orderRepository.save(order);
         if (exception != null) {
-            throw exception;
+            throw new CompletePrePurchaseException(ORDER_NO_LOG + order.getOrderNo());
         }
     }
 
@@ -318,7 +326,7 @@ public class OrderService {
             customerEntity.setLastTempAmount(
                     customerEntity.getLastTempAmount().add(lastTempAmount));
         }
-        log.info("Orders pre purchase process was finished: trackId - {}, lastTempAmount - {}",
+        log.info("Orders pre purchase process was finished : trackId - {}, lastTempAmount - {}",
                 operationEntity.getId(), lastTempAmount);
         return lastTempAmount;
     }
@@ -336,7 +344,7 @@ public class OrderService {
             orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
             orderEntity.setTransactionStatus(TransactionStatus.PRE_PURCHASE);
         } catch (AtlasClientException ex) {
-            log.error("Atlas pre purchase process was failed. exception - {}", ex.toString());
+            log.error("Atlas pre purchase process was failed : AtlasClientException - {}", ex);
             lastTempAmount = lastTempAmount.add(totalOrderAmount);
             orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_PRE_PURCHASE);
         }
@@ -390,7 +398,7 @@ public class OrderService {
                 .build();
     }
 
-    @Transactional(dontRollbackOn = AtlasClientException.class)
+    @Transactional(dontRollbackOn = RefundException.class)
     public void refund(RefundRequestDto request) {
         log.info("Refund process is started : request - {}", request);
         var orderNo = request.getOrderNo();
@@ -406,14 +414,19 @@ public class OrderService {
             }
             var purchaseCompleteRequest =
                     getCompletePrePurchaseRequest(orderEntity, customerEntity.getCardId());
-            completePrePurchaseOrder(orderEntity, purchaseCompleteRequest);
+            try {
+                completePrePurchaseOrder(orderEntity, purchaseCompleteRequest);
+            } catch (CompletePrePurchaseException ex) {
+                log.error("Atlas complete pre purchase process for refund was failed : "
+                        + "orderNo - {}, AtlasClientException - {}", orderNo, ex);
+                throw new RefundException(ORDER_NO_LOG + orderNo);
+            }
             refundAmount(orderEntity);
             log.info("Refund process was finished : orderNo - {}, customerId - {}",
-                    request.getOrderNo(), request.getCustomerId());
+                    orderNo, request.getCustomerId());
         } else {
             throw new NoPermissionForTransaction(
-                    ORDER_NO_LOG + orderEntity.getId() + " transactionStatus - "
-                            + transactionStatus);
+                    ORDER_NO_LOG + orderNo + " transactionStatus - " + transactionStatus);
         }
     }
 
@@ -430,14 +443,14 @@ public class OrderService {
         } catch (AtlasClientException ex) {
             exception = ex;
             orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_REFUND);
-            log.error("Atlas refund process was failed : orderNo - {}",
-                    orderEntity.getOrderNo());
+            log.error("Atlas refund process was failed : orderNo - {}, AtlasClientException - {}",
+                    orderEntity.getOrderNo(), ex);
         }
         orderEntity.setRrn(rrn);
         orderEntity.setTransactionDate(LocalDateTime.now());
         orderRepository.save(orderEntity);
         if (exception != null) {
-            throw exception;
+            throw new RefundException(ORDER_NO_LOG + orderEntity.getOrderNo());
         }
     }
 
