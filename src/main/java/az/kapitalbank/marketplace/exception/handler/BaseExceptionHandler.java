@@ -1,10 +1,10 @@
 package az.kapitalbank.marketplace.exception.handler;
 
-import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
 import az.kapitalbank.marketplace.client.integration.exception.IamasClientException;
 import az.kapitalbank.marketplace.client.otp.exception.OtpClientException;
 import az.kapitalbank.marketplace.constant.Error;
 import az.kapitalbank.marketplace.dto.ErrorResponseDto;
+import az.kapitalbank.marketplace.exception.CompletePrePurchaseException;
 import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
 import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
 import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
@@ -17,6 +17,7 @@ import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotLinkedToCustomer;
 import az.kapitalbank.marketplace.exception.PersonNotFoundException;
 import az.kapitalbank.marketplace.exception.ProductNotLinkedToOrder;
+import az.kapitalbank.marketplace.exception.RefundException;
 import az.kapitalbank.marketplace.exception.SubscriptionNotFoundException;
 import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
 import az.kapitalbank.marketplace.exception.UmicoUserNotFoundException;
@@ -57,10 +58,18 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
-    @ExceptionHandler(AtlasClientException.class)
-    public ResponseEntity<ErrorResponseDto> atlasClientException(AtlasClientException ex) {
+    @ExceptionHandler(RefundException.class)
+    public ResponseEntity<ErrorResponseDto> refundException(RefundException ex) {
         log.error(EXCEPTION, ex);
-        var errorResponseDto = new ErrorResponseDto(Error.SERVICE_UNAVAILABLE);
+        var errorResponseDto = new ErrorResponseDto(Error.REFUND_FAILED);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(CompletePrePurchaseException.class)
+    public ResponseEntity<ErrorResponseDto> completePrePurchaseException(
+            CompletePrePurchaseException ex) {
+        log.error(EXCEPTION, ex);
+        var errorResponseDto = new ErrorResponseDto(Error.COMPLETE_PRE_PURCHASE_FAILED);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
@@ -195,7 +204,7 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(OtpClientException.class)
     public ResponseEntity<ErrorResponseDto> otpClientException(OtpClientException ex) {
-        log.error(ex.toString());
+        log.error(EXCEPTION, ex);
         Error error;
         switch (ex.getDetail()) {
             case "phone blocked":

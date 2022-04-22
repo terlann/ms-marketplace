@@ -21,10 +21,10 @@ public class ScoringListener {
 
     @Bean
     public Consumer<ScoringResultEvent> scoringResult() {
-        return message -> {
-            if (Objects.nonNull(message)) {
-                log.info("Scoring result consumer is started. Message - {}", message);
-                loanFormalizationService.scoringResultProcess(message);
+        return event -> {
+            if (Objects.nonNull(event)) {
+                log.info("Scoring result consumer is started. Event - {}", event);
+                loanFormalizationService.scoringResultProcess(event);
             }
         };
     }

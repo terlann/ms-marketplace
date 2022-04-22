@@ -1,6 +1,7 @@
 package az.kapitalbank.marketplace.service;
 
 import static az.kapitalbank.marketplace.constant.AtlasConstant.UID;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PREAPPROVED;
 
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
 import az.kapitalbank.marketplace.constant.DvsStatus;
@@ -181,17 +182,21 @@ public class LoanFormalizationService {
 
     private void userTaskScoringProcess(OperationEntity operationEntity, BigDecimal scoredAmount,
                                         String taskId) {
-        log.info("Start scoring result : businessKey - {}", operationEntity.getBusinessKey());
+        log.info("Start scoring result : trackId - {}, businessKey - {}",
+                operationEntity.getId(),
+                operationEntity.getBusinessKey());
         operationEntity.setTaskId(taskId);
         operationEntity.setScoredAmount(scoredAmount);
         var selectedAmount = operationEntity.getTotalAmount().add(operationEntity.getCommission());
         if (scoredAmount.compareTo(BigDecimal.ZERO) == 0) {
-            log.info("Start scoring result - Scoring amount is zero");
+            log.info("Start scoring result - Scoring amount is zero : trackId - {}",
+                    operationEntity.getId());
             var umicoDecisionStatus = umicoService.sendRejectedDecision(operationEntity.getId());
             operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
         } else if (scoredAmount.compareTo(selectedAmount) < 0) {
             log.info("Start scoring result - No enough amount : selectedAmount - {},"
-                    + " scoredAmount - {}", selectedAmount, scoredAmount);
+                            + " scoredAmount - {}, trackId - {}", selectedAmount, scoredAmount,
+                    operationEntity.getId());
             operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_NO_ENOUGH_AMOUNT);
             leadService.sendLead(operationEntity, null);
         } else {
@@ -207,7 +212,9 @@ public class LoanFormalizationService {
 
     private void userTaskSignDocumentsProcess(OperationEntity operationEntity,
                                               ProcessResponse processResponse, String taskId) {
-        log.info("Create scoring result : businessKey - {}", operationEntity.getBusinessKey());
+        log.info("Create scoring result : trackId - {}, businessKey - {}",
+                operationEntity.getId(),
+                operationEntity.getBusinessKey());
         var dvsId = processResponse.getVariables().getDvsOrderId();
         var start = processResponse.getVariables().getCreateCardCreditRequest().getStartDate();
         var end = processResponse.getVariables().getCreateCardCreditRequest().getEndDate();
@@ -229,26 +236,32 @@ public class LoanFormalizationService {
     }
 
     private void scoringCompletedProcess(OperationEntity operationEntity) {
-        log.info("Complete scoring result : businessKey - {}", operationEntity.getBusinessKey());
-        Optional<String> cardId = scoringService.getCardId(operationEntity.getBusinessKey(), UID);
-        if (cardId.isEmpty()) {
-            log.error("Card id is empty. BusinessKey: " + operationEntity.getBusinessKey());
-            operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_GET_CARD_ID);
-            operationRepository.save(operationEntity);
-            return;
-        }
-        orderService.prePurchaseOrders(operationEntity, cardId.get());
-        log.info("Auto flow : orders purchase process was finished...");
+        log.info("Complete scoring result : trackId - {}, businessKey - {}",
+                operationEntity.getId(), operationEntity.getBusinessKey());
         operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
         operationEntity.setScoringDate(LocalDateTime.now());
         operationEntity.setScoringStatus(ScoringStatus.APPROVED);
+        Optional<String> cardId = scoringService.getCardId(operationEntity.getBusinessKey(), UID);
+        if (cardId.isEmpty()) {
+            log.warn("Card id is empty : trackId - {}, businessKey - {}",
+                    operationEntity.getId(), operationEntity.getBusinessKey());
+            operationRepository.save(operationEntity);
+            return;
+        }
         var customerEntity = operationEntity.getCustomer();
         customerEntity.setCardId(cardId.get());
-        var umicoDecisionStatus =
-                umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
-        operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+        var lastTempAmount = orderService.prePurchaseOrders(operationEntity, cardId.get());
+        log.info("End-to-end process : orders purchase process was finished : trackId - {}",
+                operationEntity.getId());
+        if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
+            var umicoDecisionStatus =
+                    umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
+            operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+        } else {
+            operationEntity.setUmicoDecisionStatus(PREAPPROVED);
+        }
         operationRepository.save(operationEntity);
-        log.info("Customer was finished whole flow : trackId - {} , customerId - {}",
+        log.info("Customer finished end-to-end process : trackId - {} , customerId - {}",
                 operationEntity.getId(), customerEntity.getId());
     }
 
