@@ -1,7 +1,6 @@
 package az.kapitalbank.marketplace.config;
 
 import java.util.Collections;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;

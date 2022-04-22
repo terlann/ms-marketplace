@@ -1,21 +1,22 @@
 package az.kapitalbank.marketplace.dto;
 
-import java.util.Map;
-
 import az.kapitalbank.marketplace.constant.Error;
-import lombok.AccessLevel;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.experimental.FieldDefaults;
 
 @Data
+@Builder
 @NoArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE)
+@AllArgsConstructor
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ErrorResponseDto {
-
-    String code;
-    String message;
-    Map<String, String> checks;
+    private String code;
+    private String message;
+    private Map<String, String> checks;
 
     public ErrorResponseDto(Error error, Map<String, String> checks) {
         this.code = error.getCode();

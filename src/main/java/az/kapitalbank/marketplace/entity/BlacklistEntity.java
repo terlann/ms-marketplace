@@ -1,16 +1,16 @@
 package az.kapitalbank.marketplace.entity;
 
+import az.kapitalbank.marketplace.constant.BlacklistType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
 import javax.persistence.Enumerated;
 import javax.persistence.Table;
-
-import az.kapitalbank.marketplace.constant.BlacklistType;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.NonNull;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
@@ -25,8 +25,13 @@ import lombok.experimental.SuperBuilder;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class BlacklistEntity extends BaseEntity {
 
-    @Column(unique = true, nullable = false)
-    String name;
+    @NonNull
     @Enumerated(EnumType.STRING)
     BlacklistType type;
+
+    @NonNull
+    @Column(unique = true)
+    String value;
+
+    String reason;
 }

@@ -1,27 +1,30 @@
 package az.kapitalbank.marketplace.dto.request;
 
+import az.kapitalbank.marketplace.constant.ScoringStatus;
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
-import java.time.LocalDate;
-
-import az.kapitalbank.marketplace.constant.ScoringStatus;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class TelesalesResultRequestDto {
     @NotBlank
     String telesalesOrderId;
     @NotNull
     ScoringStatus scoringStatus;
-    @NotNull
-    LocalDate loanStartDate;
-    @NotNull
-    LocalDate loanEndDate;
-    @NotBlank
-    @Size(min = 16, max = 16)
+    LocalDate loanContractStartDate;
+    LocalDate loanContractEndDate;
+    String uid;
     String pan;
+    BigDecimal scoredAmount;
 }

@@ -2,24 +2,29 @@ package az.kapitalbank.marketplace.client.optimus.model.scoring;
 
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
 @Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class CustomerNumber {
     String name;
-    Number number;
+    NumberDto number;
 
     public CustomerNumber(String name, String number) {
         this.name = name;
-        this.number = new Number(number);
+        this.number = new NumberDto(number);
     }
 
     @Data
     @AllArgsConstructor
     @FieldDefaults(level = AccessLevel.PRIVATE)
-    public static class Number {
+    public static class NumberDto {
         String number;
     }
 }

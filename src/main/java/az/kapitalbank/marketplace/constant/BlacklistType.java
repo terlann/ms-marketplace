@@ -1,12 +1,6 @@
 package az.kapitalbank.marketplace.constant;
 
-public enum BlacklistType { // don't remove
-    IP,
-    EMAIL,
-    DEVICE,
-    IDENTITY_NUMBER,
-    MOBILE_NUMBER,
-    EMPLOYER_NAME,
-    DELIVERY_ADDRESS,
+public enum BlacklistType {
+    PIN,
     UMICO_USER_ID
 }

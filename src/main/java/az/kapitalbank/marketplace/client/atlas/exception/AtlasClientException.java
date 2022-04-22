@@ -1,17 +1,19 @@
 package az.kapitalbank.marketplace.client.atlas.exception;
 
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
-import lombok.Setter;
-import lombok.experimental.FieldDefaults;
 
 @Getter
-@Setter
-@AllArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class AtlasClientException extends RuntimeException {
-    String uuid;
-    String code;
-    String message;
+    private final String uuid;
+    private final String code;
+    private final String message;
+
+    public AtlasClientException(String uuid, String code, String message) {
+        super(message);
+        this.uuid = uuid;
+        this.code = code;
+        this.message = message;
+    }
 }

@@ -1,5 +1,15 @@
 package az.kapitalbank.marketplace.entity;
 
+import az.kapitalbank.marketplace.constant.DvsStatus;
+import az.kapitalbank.marketplace.constant.OperationRejectReason;
+import az.kapitalbank.marketplace.constant.ScoringStatus;
+import az.kapitalbank.marketplace.constant.SendLeadReason;
+import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import javax.persistence.CascadeType;
 import javax.persistence.Entity;
 import javax.persistence.EnumType;
@@ -9,15 +19,6 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
-import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-
-import az.kapitalbank.marketplace.constant.DvsStatus;
-import az.kapitalbank.marketplace.constant.ScoringStatus;
-import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -37,6 +38,7 @@ import lombok.experimental.SuperBuilder;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OperationEntity extends BaseEntity {
     String telesalesOrderId;
+    String leadId;
     BigDecimal totalAmount;
     BigDecimal commission;
     Integer loanTerm;
@@ -51,8 +53,8 @@ public class OperationEntity extends BaseEntity {
     String fullName;
     String additionalPhoneNumber1;
     String additionalPhoneNumber2;
-    LocalDate birthday;
     String taskId;
+    BigDecimal loanPercent;
     String businessKey;
     LocalDateTime scoringDate;
     @Enumerated(EnumType.STRING)
@@ -60,9 +62,16 @@ public class OperationEntity extends BaseEntity {
     LocalDate loanContractStartDate;
     LocalDate loanContractEndDate;
     Long dvsOrderId;
+    @Enumerated(EnumType.STRING)
     DvsStatus dvsOrderStatus;
     @Enumerated(EnumType.STRING)
     UmicoDecisionStatus umicoDecisionStatus;
+    @Enumerated(EnumType.STRING)
+    OperationRejectReason operationRejectReason;
+    Boolean sendLeadTelesales;
+    @Enumerated(EnumType.STRING)
+    SendLeadReason sendLeadReason;
+    BigDecimal scoredAmount;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false, updatable = false)

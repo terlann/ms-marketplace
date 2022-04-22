@@ -1,13 +1,12 @@
 package az.kapitalbank.marketplace.entity;
 
+import java.io.Serializable;
+import java.time.OffsetDateTime;
+import java.util.UUID;
 import javax.persistence.Column;
 import javax.persistence.GeneratedValue;
 import javax.persistence.Id;
 import javax.persistence.MappedSuperclass;
-import java.io.Serializable;
-import java.time.OffsetDateTime;
-import java.util.UUID;
-
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;

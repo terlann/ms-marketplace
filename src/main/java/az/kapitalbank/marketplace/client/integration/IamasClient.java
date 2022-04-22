@@ -1,9 +1,8 @@
 package az.kapitalbank.marketplace.client.integration;
 
-import java.util.List;
-
 import az.kapitalbank.marketplace.client.integration.model.IamasResponse;
 import feign.Logger;
+import java.util.List;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.bind.annotation.GetMapping;

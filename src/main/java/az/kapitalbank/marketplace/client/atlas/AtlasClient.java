@@ -1,13 +1,13 @@
 package az.kapitalbank.marketplace.client.atlas;
 
-import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseCompleteRequest;
-import az.kapitalbank.marketplace.client.atlas.model.request.PurchaseRequest;
-import az.kapitalbank.marketplace.client.atlas.model.request.ReversPurchaseRequest;
+import az.kapitalbank.marketplace.client.atlas.model.request.CompletePrePurchaseRequest;
+import az.kapitalbank.marketplace.client.atlas.model.request.PrePurchaseRequest;
+import az.kapitalbank.marketplace.client.atlas.model.request.RefundRequest;
 import az.kapitalbank.marketplace.client.atlas.model.response.CardDetailResponse;
-import az.kapitalbank.marketplace.client.atlas.model.response.CardResponse;
-import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseCompleteResponse;
-import az.kapitalbank.marketplace.client.atlas.model.response.PurchaseResponse;
-import az.kapitalbank.marketplace.client.atlas.model.response.ReverseResponse;
+import az.kapitalbank.marketplace.client.atlas.model.response.CompletePrePurchaseResponse;
+import az.kapitalbank.marketplace.client.atlas.model.response.PrePurchaseResponse;
+import az.kapitalbank.marketplace.client.atlas.model.response.RefundResponse;
+import az.kapitalbank.marketplace.client.atlas.model.response.SubscriptionResponse;
 import az.kapitalbank.marketplace.constant.ResultType;
 import feign.Logger;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -20,25 +20,28 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(name = "adp-atlas",
-        url = "${client.adp-atlas.url}/api/v1",
+        url = "${client.adp-atlas.url}",
         configuration = AtlasClient.FeignConfiguration.class)
 public interface AtlasClient {
 
     @PostMapping("/transfers/purchase")
-    PurchaseResponse purchase(@RequestBody PurchaseRequest request);
+    PrePurchaseResponse prePurchase(@RequestBody PrePurchaseRequest request);
 
     @PutMapping("/transfers/complete")
-    PurchaseCompleteResponse complete(@RequestBody PurchaseCompleteRequest request);
+    CompletePrePurchaseResponse completePrePurchase(
+            @RequestBody CompletePrePurchaseRequest request);
 
-    @PutMapping("/transfers/{id}/reverse")
-    ReverseResponse reverse(@PathVariable String id, @RequestBody ReversPurchaseRequest request);
+    @PostMapping("/transfers/{id}/refund")
+    RefundResponse refund(@PathVariable String id, @RequestBody RefundRequest request);
 
     @GetMapping("/cards/uid/{uid}")
-    CardDetailResponse findCardByUID(@PathVariable String uid,
+    CardDetailResponse findCardByUid(@PathVariable String uid,
                                      @RequestParam ResultType resultType);
 
-    @GetMapping("/cards/pan/{pan}")
-    CardResponse findByPan(@PathVariable String pan);
+    @GetMapping("/card-messaging/cards/{uid}/subscriptions")
+    SubscriptionResponse findAllByUid(@PathVariable String uid,
+                                      @RequestParam String channel,
+                                      @RequestParam String schema);
 
     class FeignConfiguration {
         @Bean

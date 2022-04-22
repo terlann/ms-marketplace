@@ -8,68 +8,76 @@ spring:
   datasource:
     hikari:
       pool-name: marketplace-pool
-    url: jdbc:oracle:thin:@//10.0.32.28:1521/umico
+    url: jdbc:oracle:thin:@//10.0.32.32:1521/umico
     username: umico
-    password: Z3]:Fnd!j9=2.u9/?P)8
+    password: 7?-+sfVndfe2L=4\Nk3B
   cloud:
     function:
-      definition: checkFraud;checkFraudResult;startScoringResult;orderDvsStatus
+      definition: checkFraud;checkFraudResult;scoringResult;verificationResult;prePurchase;prePurchaseResult
     stream:
       binders:
         kafka-bpm:
           type: kafka
           environment.spring.cloud.stream.kafka.binder:
-            brokers: 10.0.80.75
+            brokers: 10.0.81.75:9094
         kafka-mp:
           type: kafka
           environment.spring.cloud.stream.kafka.binder:
             brokers: localhost:9092
+            auto-create-topics: true
+            auto-add-partitions: true
+            min-partition-count: 1
       bindings:
-        startScoringResult-in-0:
+        scoringResult-in-0:
           binder: kafka-bpm
           contentType: application/json
           destination: bpm-market-place-online-state
+          group: marketplace-bpm-online-state-local
         checkFraudResult-in-0:
           binder: kafka-mp
           contentType: application/json
-          group: marketplace-fraud-result
-          destination: mp-customer-validation-result
+          group: marketplace-fraud-result-local
+          destination: mp-fraud-validation-result
         checkFraud-out-0:
           binder: kafka-mp
           contentType: application/json
-          group: marketplace-fraud
-          destination: mp-customer-validation
-        orderDvsStatus-in-0:
+          group: marketplace-fraud-local
+          destination: mp-fraud-validation
+        verificationResult-in-0:
           binder: kafka-mp
           contentType: application/json
-          group: marketplace-dvs
+          group: marketplace-dvs-local
           destination: mp-order-dvs
-
-optimus:
-  process:
-    key: process_credit_online
-    product-type: CONSUMER_LOAN_MARKET_PLACE_ONLINE
+        prePurchaseResult-in-0:
+          binder: kafka-mp
+          contentType: application/json
+          group: mp-pre-purchase-local
+          destination: mp-pre-purchase
+        prePurchase-out-0:
+          binder: kafka-mp
+          contentType: application/json
+          destination: mp-pre-purchase
 
 umico:
   api-key: 978f22df-62cb-4894-9811-ea26212c0b38
 
 client:
-  zeus:
-    url: http://testzeusws.kapitalcard.az
   ete:
-    url: http://testsrsws.kapitalcard.az
+    url: http://presrsws.kapitalcard.az
   umico:
-    url: https://broker-dev.umico.az
-  checker:
-    url: https://dev.ms-checker.kapitalbank.az
+    url: https://broker-stage.umico.az/api/v2
   adp-atlas:
-    url: https://dev.adp-atlas.kapitalbank.az
+    url: https://pre.adp-atlas.kapitalbank.az/api/v1
   adp-optimus:
-    url: https://dev.adp-optimus.kapitalbank.az/
+    url: https://pre.adp-optimus.kapitalbank.az/api/v1
   adp-dvs:
     url: https://pre.adp-dvs.kapitalbank.az/v1
   externalinteg:
-    url: http://dev.externalinteg.kapitalbank.az/api
+    url: http://pre.externalinteg.kapitalbank.az/api
+  ms-otp:
+    url: https://pre.ms-otp.kapitalbank.az/v1
+  loan:
+    url: https://dev.ms-loan.kapitalbank.az/v1
 feign:
   httpclient:
     disable-ssl-validation: true
@@ -79,9 +87,6 @@ feign:
 
 server:
   port: 8080
-
-purchase:
-  terminal-name: R1020002
 
 commission:
   values:

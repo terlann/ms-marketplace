@@ -1,5 +1,10 @@
 package az.kapitalbank.marketplace.constant;
 
 public enum TransactionStatus {
-    PURCHASE, REVERSE, COMPLETE, FAIL_IN_COMPLETE, FAIL_IN_PURCHASE, FAIL_IN_REVERSE
+    PRE_PURCHASE,
+    REFUND,
+    COMPLETE_PRE_PURCHASE,
+    FAIL_IN_COMPLETE_PRE_PURCHASE,
+    FAIL_IN_PRE_PURCHASE,
+    FAIL_IN_REFUND
 }
