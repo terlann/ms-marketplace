@@ -1,5 +1,6 @@
 package az.kapitalbank.marketplace.service;
 
+import static az.kapitalbank.marketplace.constants.ConstantObject.getCustomerEntity;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntity;
 import static az.kapitalbank.marketplace.constants.TestConstants.BUSINESS_KEY;
 import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
@@ -225,6 +226,8 @@ class LoanFormalizationServiceTest {
                 Optional.of(getOperationEntity()));
         when(scoringService.getCardId(getOperationEntity().getBusinessKey(), "uid")).thenReturn(
                 Optional.of(CARD_UID.getValue()));
+        when(orderService.prePurchaseOrders(any(OperationEntity.class),
+                eq(getCustomerEntity().getCardId()))).thenReturn(BigDecimal.ZERO);
         loanFormalizationService.scoringResultProcess(request);
         verify(operationRepository).findByBusinessKey(request.getBusinessKey());
     }
