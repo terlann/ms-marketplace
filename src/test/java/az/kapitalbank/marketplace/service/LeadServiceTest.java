@@ -54,17 +54,11 @@ class LeadServiceTest {
 
     @Test
     void testSendLead_UmicoServiceReturnsAbsent() {
-        var createTelesalesOrderRequest = CreateTelesalesOrderRequest.builder().build();
-        var createTelesalesOrderResponse = CreateTelesalesOrderResponse.builder().build();
         var loanResponse = new LoanResponse(new LeadResponse("leadId"));
 
-        when(telesalesMapper.toTelesalesOrder(any(OperationEntity.class),
-                eq(List.of(FraudType.PIN)))).thenReturn(createTelesalesOrderRequest);
-        when(telesalesClient.sendLead(any(CreateTelesalesOrderRequest.class))).thenReturn(
-                createTelesalesOrderResponse);
         when(loanClient.sendLead(eq("0007"), any(LoanRequest.class))).thenReturn(loanResponse);
 
-        leadService.sendLead(getOperationEntity(), List.of(FraudType.PIN));
+        leadService.sendLeadLoan(getOperationEntity());
         verify(loanClient).sendLead(eq("0007"), any(LoanRequest.class));
     }
 
