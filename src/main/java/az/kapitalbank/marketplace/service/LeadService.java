@@ -63,7 +63,7 @@ public class LeadService {
         }
     }
 
-    private Optional<String> sendLeadLoan(OperationEntity operationEntity) {
+    public Optional<String> sendLeadLoan(OperationEntity operationEntity) {
         var trackId = operationEntity.getId();
         try {
             log.info("Send lead to loan is started : trackId - {}", trackId);
@@ -88,8 +88,6 @@ public class LeadService {
     public void sendLead(OperationEntity operationEntity, List<FraudType> fraudTypes) {
         var telesalesOrderId = sendLeadTelesales(operationEntity, fraudTypes);
         telesalesOrderId.ifPresent(operationEntity::setTelesalesOrderId);
-        var leadId = sendLeadLoan(operationEntity);
-        leadId.ifPresent(operationEntity::setLeadId);
         var umicoDecisionStatus = umicoService.sendPendingDecision(operationEntity.getId());
         operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
     }
