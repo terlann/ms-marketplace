@@ -1,6 +1,7 @@
 package az.kapitalbank.marketplace.service;
 
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntity;
+import static az.kapitalbank.marketplace.constants.TestConstants.BUSINESS_KEY;
 import static az.kapitalbank.marketplace.constants.TestConstants.TASK_ID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -14,6 +15,7 @@ import az.kapitalbank.marketplace.client.optimus.model.scoring.CompleteScoringRe
 import az.kapitalbank.marketplace.client.optimus.model.scoring.CreateScoringRequest;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringRequest;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringResponse;
+import feign.FeignException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -41,7 +43,7 @@ class ScoringServiceTest {
     @Test
     void startScoring_OptimusClientException() {
         when(optimusClient.scoringStart(any(StartScoringRequest.class)))
-                .thenThrow(new RuntimeException(""));
+                .thenThrow(FeignException.class);
 
         scoringService.startScoring(getOperationEntity());
         verify(optimusClient).scoringStart(any(StartScoringRequest.class));
@@ -50,19 +52,19 @@ class ScoringServiceTest {
     @Test
     void getCardId() {
         var processVariableResponse = new ProcessVariableResponse("pan", "uid");
-        when(optimusClient.getProcessVariable("businessKey", "uid"))
+        when(optimusClient.getProcessVariable(BUSINESS_KEY.getValue(), "uid"))
                 .thenReturn(processVariableResponse);
 
         scoringService.getCardId(getOperationEntity(), "uid");
-        verify(optimusClient).getProcessVariable("businessKey", "uid");
+        verify(optimusClient).getProcessVariable(BUSINESS_KEY.getValue(), "uid");
     }
 
     @Test
     void getCardId_OptimusClientException() {
-        when(optimusClient.getProcessVariable("businessKey", "uid")).thenThrow(
-                new RuntimeException(""));
+        when(optimusClient.getProcessVariable(BUSINESS_KEY.getValue(), "uid"))
+                .thenThrow(FeignException.class);
         scoringService.getCardId(getOperationEntity(), "uid");
-        verify(optimusClient).getProcessVariable("businessKey", "uid");
+        verify(optimusClient).getProcessVariable(BUSINESS_KEY.getValue(), "uid");
     }
 
     @Test
@@ -74,19 +76,18 @@ class ScoringServiceTest {
 
     @Test
     void getProcess_Success() {
-        when(optimusClient.getProcess("businessKey")).thenReturn(ProcessResponse.builder().build());
+        when(optimusClient.getProcess(BUSINESS_KEY.getValue())).thenReturn(
+                ProcessResponse.builder().build());
         scoringService.getProcess(getOperationEntity());
-        verify(optimusClient).getProcess("businessKey");
+        verify(optimusClient).getProcess(BUSINESS_KEY.getValue());
     }
 
     @Test
     void getProcess_OptimusClientException() {
-
-        when(optimusClient.getProcess("businessKey"))
-                .thenThrow(new RuntimeException(""));
+        when(optimusClient.getProcess(BUSINESS_KEY.getValue())).thenThrow(FeignException.class);
 
         scoringService.getProcess(getOperationEntity());
-        verify(optimusClient).getProcess("businessKey");
+        verify(optimusClient).getProcess(BUSINESS_KEY.getValue());
     }
 
     @Test

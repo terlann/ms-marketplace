@@ -27,17 +27,17 @@ public class UmicoService {
     String apiKey;
     UmicoClient umicoClient;
 
-    public Optional<String> sendPrePurchaseResult(UUID trackId) {
+    public Optional<UUID> sendPrePurchaseResult(UUID trackId) {
         log.info("Send pre purchase result to umico is started : trackId - {} ", trackId);
         try {
             umicoClient.sendPrePurchaseResult(new PrePurchaseResultRequest(trackId), apiKey);
             log.info("Send pre purchase result to umico was finished : trackId - {} ", trackId);
-            return Optional.empty();
+            return Optional.of(trackId);
         } catch (FeignException e) {
             log.error(
                     "Send pre purchase result to umico was failed : trackId - {} , exception - {}",
                     trackId, e);
-            return Optional.of(e.getMessage());
+            return Optional.empty();
         }
     }
 
