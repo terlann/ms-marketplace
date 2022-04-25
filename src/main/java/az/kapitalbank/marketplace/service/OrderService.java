@@ -13,7 +13,6 @@ import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PENDING;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PREAPPROVED;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
-import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
 import az.kapitalbank.marketplace.client.atlas.model.request.CompletePrePurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.PrePurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.RefundRequest;
@@ -58,6 +57,7 @@ import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
 import az.kapitalbank.marketplace.util.AmountUtil;
 import az.kapitalbank.marketplace.util.GenerateUtil;
+import feign.FeignException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -241,10 +241,10 @@ public class OrderService {
         verifyProductIdIsLinkedToOrderNo(request, productEntities);
         if (transactionStatus == TransactionStatus.PRE_PURCHASE
                 || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE_PRE_PURCHASE) {
-            var deliveryAmount = getDeliveryAmount(request, productEntities);
-            if (deliveryAmount.compareTo(BigDecimal.ZERO) > 0) {
+            var deliveredOrderAmount = getDeliveredOrderAmount(request, productEntities);
+            if (deliveredOrderAmount.compareTo(BigDecimal.ZERO) > 0) {
                 var purchaseCompleteRequest =
-                        getCompletePrePurchaseRequest(orderEntity, deliveryAmount);
+                        getCompletePrePurchaseRequest(orderEntity, deliveredOrderAmount);
                 completePrePurchaseOrder(orderEntity, purchaseCompleteRequest);
             }
         } else {
@@ -255,8 +255,8 @@ public class OrderService {
                     ORDER_NO_LOG + orderEntity.getId() + " transactionStatus - "
                             + transactionStatus);
         }
-        log.info("Complete pre purchase process was finished : trackId - {}, customerId - {}",
-                request.getTrackId(), request.getCustomerId());
+        log.info("Complete pre purchase process was finished : orderNo - {}, customerId - {}",
+                request.getOrderNo(), request.getCustomerId());
     }
 
     private void verifyProductIdIsLinkedToOrderNo(PurchaseRequestDto request,
@@ -272,41 +272,43 @@ public class OrderService {
         }
     }
 
-    private BigDecimal getDeliveryAmount(PurchaseRequestDto request,
-                                         List<ProductEntity> productEntities) {
-        var deliveryAmount = BigDecimal.ZERO;
+    private BigDecimal getDeliveredOrderAmount(PurchaseRequestDto request,
+                                               List<ProductEntity> productEntities) {
+        var deliveredOrderAmount = BigDecimal.ZERO;
         for (var productEntity : productEntities) {
             for (var deliveryProduct : request.getDeliveryProducts()) {
                 if (productEntity.getProductId().equals(deliveryProduct.getProductId())) {
-                    deliveryAmount = deliveryAmount.add(productEntity.getProductAmount());
+                    deliveredOrderAmount =
+                            deliveredOrderAmount.add(productEntity.getProductAmount());
                     productEntity.setDeliveryStatus(true);
                 } else {
                     productEntity.setDeliveryStatus(false);
                 }
             }
         }
-        log.info("Delivery amount is : {}", deliveryAmount);
-        return deliveryAmount;
+        log.info("Delivered order amount is : {}, orderNo - {}", deliveredOrderAmount,
+                request.getOrderNo());
+        return deliveredOrderAmount;
     }
 
     private void completePrePurchaseOrder(OrderEntity order,
                                           CompletePrePurchaseRequest completePrePurchaseRequest) {
-        AtlasClientException exception = null;
+        FeignException exception = null;
         try {
             var purchaseCompleteResponse =
                     atlasClient.completePrePurchase(completePrePurchaseRequest);
             var transactionId = purchaseCompleteResponse.getId();
             order.setTransactionId(transactionId);
+            order.setRrn(completePrePurchaseRequest.getRrn());
             order.setTransactionStatus(TransactionStatus.COMPLETE_PRE_PURCHASE);
-        } catch (AtlasClientException ex) {
+        } catch (FeignException ex) {
             exception = ex;
             order.setTransactionStatus(TransactionStatus.FAIL_IN_COMPLETE_PRE_PURCHASE);
             log.error(
                     "Atlas complete pre purchase process was failed : "
-                            + "orderNo - {}, AtlasClientException - {}",
+                            + "orderNo - {}, exception - {}",
                     order.getOrderNo(), ex);
         }
-        order.setRrn(completePrePurchaseRequest.getRrn());
         order.setTransactionDate(LocalDateTime.now());
         orderRepository.save(order);
         if (exception != null) {
@@ -319,7 +321,7 @@ public class OrderService {
         var orders = operationEntity.getOrders();
         validateOrdersForPrePurchase(orders, operationEntity.getId());
         for (var orderEntity : orders) {
-            lastTempAmount = prePurchaseOrder(cardId, lastTempAmount, orderEntity);
+            lastTempAmount = lastTempAmount.add(prePurchaseOrder(cardId, orderEntity));
         }
         if (lastTempAmount.compareTo(BigDecimal.ZERO) != 0) {
             var customerEntity = operationEntity.getCustomer();
@@ -331,26 +333,26 @@ public class OrderService {
         return lastTempAmount;
     }
 
-    private BigDecimal prePurchaseOrder(String cardId, BigDecimal lastTempAmount,
-                                        OrderEntity orderEntity) {
+    private BigDecimal prePurchaseOrder(String cardId, OrderEntity orderEntity) {
         var totalOrderAmount = orderEntity.getTotalAmount().add(orderEntity.getCommission());
         var rrn = GenerateUtil.rrn();
         var prePurchaseRequest = PrePurchaseRequest.builder()
                 .rrn(rrn).amount(totalOrderAmount).uid(cardId)
                 .description(PRE_PURCHASE_DESCRIPTION + orderEntity.getOrderNo()).build();
         try {
+            orderEntity.setTransactionDate(LocalDateTime.now());
             var purchaseResponse = atlasClient.prePurchase(prePurchaseRequest);
+            orderEntity.setRrn(rrn);
             orderEntity.setTransactionId(purchaseResponse.getId());
             orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
             orderEntity.setTransactionStatus(TransactionStatus.PRE_PURCHASE);
-        } catch (AtlasClientException ex) {
-            log.error("Atlas pre purchase process was failed : AtlasClientException - {}", ex);
-            lastTempAmount = lastTempAmount.add(totalOrderAmount);
+            return BigDecimal.ZERO;
+        } catch (FeignException ex) {
+            log.error("Atlas pre purchase process was failed : orderNo - {}, exception - {}",
+                    orderEntity.getOrderNo(), ex);
             orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_PRE_PURCHASE);
+            return totalOrderAmount;
         }
-        orderEntity.setRrn(rrn);
-        orderEntity.setTransactionDate(LocalDateTime.now());
-        return lastTempAmount;
     }
 
     private void validateOrdersForPrePurchase(List<OrderEntity> orders, UUID trackId) {
@@ -431,22 +433,22 @@ public class OrderService {
     }
 
     private void refundAmount(OrderEntity orderEntity) {
-        AtlasClientException exception = null;
+        FeignException exception = null;
         var rrn = GenerateUtil.rrn();
         var amountWithCommission =
                 orderEntity.getTotalAmount().add(orderEntity.getCommission());
         try {
             var refundResponse = atlasClient.refund(orderEntity.getTransactionId(),
                     new RefundRequest(amountWithCommission, rrn));
+            orderEntity.setRrn(rrn);
             orderEntity.setTransactionId(refundResponse.getId());
             orderEntity.setTransactionStatus(TransactionStatus.REFUND);
-        } catch (AtlasClientException ex) {
+        } catch (FeignException ex) {
             exception = ex;
             orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_REFUND);
             log.error("Atlas refund process was failed : orderNo - {}, AtlasClientException - {}",
                     orderEntity.getOrderNo(), ex);
         }
-        orderEntity.setRrn(rrn);
         orderEntity.setTransactionDate(LocalDateTime.now());
         orderRepository.save(orderEntity);
         if (exception != null) {

@@ -37,6 +37,7 @@ public class ConstantObject {
                 .dvsOrderId(12345L)
                 .taskId(TASK_ID.getValue())
                 .businessKey(BUSINESS_KEY.getValue())
+                .scoredAmount(BigDecimal.ONE)
                 .build();
     }
 

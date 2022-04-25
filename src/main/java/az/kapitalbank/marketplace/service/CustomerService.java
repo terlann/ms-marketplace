@@ -1,7 +1,6 @@
 package az.kapitalbank.marketplace.service;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
-import az.kapitalbank.marketplace.client.atlas.model.response.CardDetailResponse;
 import az.kapitalbank.marketplace.client.integration.IamasClient;
 import az.kapitalbank.marketplace.client.integration.model.IamasResponse;
 import az.kapitalbank.marketplace.constant.AccountStatus;
@@ -11,6 +10,7 @@ import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
 import az.kapitalbank.marketplace.exception.PersonNotFoundException;
 import az.kapitalbank.marketplace.exception.UmicoUserNotFoundException;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
+import feign.FeignException;
 import java.math.BigDecimal;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -30,16 +30,20 @@ public class CustomerService {
     IamasClient iamasClient;
 
     public void checkPerson(String pin) {
-        log.info("Checking starts by pin in IAMAS. Pin - {} ", pin);
-        var iamasResponse = iamasClient.findPersonByPin(pin)
-                .stream()
-                .filter(IamasResponse::isActive)
-                .findFirst();
-
-        if (iamasResponse.isEmpty()) {
+        log.info("Check person is started : pin - {} ", pin);
+        try {
+            var iamasResponse = iamasClient.findPersonByPin(pin)
+                    .stream()
+                    .filter(IamasResponse::isActive)
+                    .findFirst();
+            if (iamasResponse.isEmpty()) {
+                throw new PersonNotFoundException("pin - " + pin);
+            }
+        } catch (FeignException e) {
+            log.error("Check person was failed : pin - {}, exception - {}", pin, e);
             throw new PersonNotFoundException("pin - " + pin);
         }
-        log.info("Pin found in IAMAS. Pin - {} ", pin);
+        log.info("Check person was finished : pin - {} ", pin);
     }
 
     public BalanceResponseDto getBalance(String umicoUserId, UUID customerId) {
@@ -72,26 +76,5 @@ public class CustomerService {
                 .loanLimit(loanLimit)
                 .cardExpiryDate(cardDetailResponse.getExpiryDate())
                 .build();
-    }
-
-    public BigDecimal getLoanLimit(String cardId) {
-        CardDetailResponse cardDetailResponse;
-        try {
-            cardDetailResponse = atlasClient.findCardByUid(cardId, ResultType.ACCOUNT);
-        } catch (Exception ex) {
-            log.error("Get loan limit process was failed : cardId - {}, exception - {}",
-                    cardId, ex);
-            return BigDecimal.ZERO;
-        }
-        var primaryAccount = cardDetailResponse.getAccounts()
-                .stream()
-                .filter(x -> x.getStatus() == AccountStatus.OPEN_PRIMARY)
-                .findFirst();
-        if (primaryAccount.isPresent()) {
-            return primaryAccount.get().getOverdraftLimit();
-        }
-        log.error("Get loan limit process was finished : cardId - {}, primaryAccount - {}", cardId,
-                primaryAccount);
-        return BigDecimal.ZERO;
     }
 }

@@ -24,11 +24,6 @@ public interface DvsClient {
             return Logger.Level.FULL;
         }
 
-        @Bean
-        DvsClientErrorDecoder errorDecoder() {
-            return new DvsClientErrorDecoder();
-        }
-
     }
 
 }

@@ -15,12 +15,12 @@ import static az.kapitalbank.marketplace.constants.TestConstants.UMICO_USER_ID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
-import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
 import az.kapitalbank.marketplace.client.atlas.model.request.CompletePrePurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.PrePurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.RefundRequest;
@@ -57,6 +57,7 @@ import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
 import az.kapitalbank.marketplace.util.AmountUtil;
+import feign.FeignException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -135,10 +136,10 @@ class OrderServiceTest {
                 .uid(CARD_UID.getValue())
                 .build();
         var purchaseResponse = PrePurchaseResponse.builder().build();
-        when(operationRepository.findByTelesalesOrderId(TELESALES_ORDER_ID.getValue())).thenReturn(
+        when(operationRepository.findByTelesalesOrderId(anyString())).thenReturn(
                 Optional.of(getOperationEntity()));
         when(atlasClient.prePurchase(any(PrePurchaseRequest.class))).thenThrow(
-                AtlasClientException.class);
+                FeignException.class);
         orderService.telesalesResult(request);
         verify(operationRepository).findByTelesalesOrderId(TELESALES_ORDER_ID.getValue());
     }
@@ -254,8 +255,7 @@ class OrderServiceTest {
         when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class))).thenReturn(
                 CompletePrePurchaseResponse.builder().build());
         when(atlasClient.refund(eq(null), any(RefundRequest.class)))
-                .thenThrow(new AtlasClientException(null, null, null));
-
+                .thenThrow(FeignException.class);
         assertThrows(RefundException.class, () -> orderService.refund(refundRequestDto));
     }
 
@@ -325,7 +325,7 @@ class OrderServiceTest {
         when(orderRepository.findByOrderNo("123")).thenReturn(Optional.of(orderEntity));
         when(amountUtil.getCommissionByPercent(BigDecimal.ONE, null)).thenReturn(BigDecimal.ONE);
         when(atlasClient.completePrePurchase(any())).thenThrow(
-                new AtlasClientException(null, null, null));
+                new CompletePrePurchaseException(null));
         var request = PurchaseRequestDto.builder()
                 .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
                 .orderNo("123")

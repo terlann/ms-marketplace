@@ -1,4 +1,4 @@
-package az.kapitalbank.marketplace.dto.request;
+package az.kapitalbank.marketplace.client.loan.model;
 
 import az.kapitalbank.marketplace.constant.FormalizationMethod;
 import az.kapitalbank.marketplace.constant.ProductType;
