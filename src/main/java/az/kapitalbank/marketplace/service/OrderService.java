@@ -299,6 +299,7 @@ public class OrderService {
                     atlasClient.completePrePurchase(completePrePurchaseRequest);
             var transactionId = purchaseCompleteResponse.getId();
             order.setTransactionId(transactionId);
+            order.setRrn(completePrePurchaseRequest.getRrn());
             order.setTransactionStatus(TransactionStatus.COMPLETE_PRE_PURCHASE);
         } catch (FeignException ex) {
             exception = ex;
@@ -308,7 +309,6 @@ public class OrderService {
                             + "orderNo - {}, exception - {}",
                     order.getOrderNo(), ex);
         }
-        order.setRrn(completePrePurchaseRequest.getRrn());
         order.setTransactionDate(LocalDateTime.now());
         orderRepository.save(order);
         if (exception != null) {
@@ -340,9 +340,9 @@ public class OrderService {
                 .rrn(rrn).amount(totalOrderAmount).uid(cardId)
                 .description(PRE_PURCHASE_DESCRIPTION + orderEntity.getOrderNo()).build();
         try {
-            orderEntity.setRrn(rrn);
             orderEntity.setTransactionDate(LocalDateTime.now());
             var purchaseResponse = atlasClient.prePurchase(prePurchaseRequest);
+            orderEntity.setRrn(rrn);
             orderEntity.setTransactionId(purchaseResponse.getId());
             orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
             orderEntity.setTransactionStatus(TransactionStatus.PRE_PURCHASE);
@@ -440,6 +440,7 @@ public class OrderService {
         try {
             var refundResponse = atlasClient.refund(orderEntity.getTransactionId(),
                     new RefundRequest(amountWithCommission, rrn));
+            orderEntity.setRrn(rrn);
             orderEntity.setTransactionId(refundResponse.getId());
             orderEntity.setTransactionStatus(TransactionStatus.REFUND);
         } catch (FeignException ex) {
@@ -448,7 +449,6 @@ public class OrderService {
             log.error("Atlas refund process was failed : orderNo - {}, AtlasClientException - {}",
                     orderEntity.getOrderNo(), ex);
         }
-        orderEntity.setRrn(rrn);
         orderEntity.setTransactionDate(LocalDateTime.now());
         orderRepository.save(orderEntity);
         if (exception != null) {
