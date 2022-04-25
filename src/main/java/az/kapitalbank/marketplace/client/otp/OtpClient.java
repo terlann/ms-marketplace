@@ -24,10 +24,5 @@ public interface OtpClient {
         Logger.Level loggerLevel() {
             return Logger.Level.FULL;
         }
-
-        @Bean
-        OtpClientErrorDecoder errorDecoder() {
-            return new OtpClientErrorDecoder();
-        }
     }
 }

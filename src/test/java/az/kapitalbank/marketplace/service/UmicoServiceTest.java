@@ -7,7 +7,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import az.kapitalbank.marketplace.client.umico.UmicoClient;
-import az.kapitalbank.marketplace.client.umico.exception.UmicoClientException;
 import az.kapitalbank.marketplace.client.umico.model.PrePurchaseResultRequest;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionResponse;
@@ -36,7 +35,7 @@ class UmicoServiceTest {
 
     @Test
     void sendPrePurchaseResult_Exception() {
-        doThrow(new UmicoClientException("exception"))
+        doThrow(new RuntimeException("exception"))
                 .when(umicoClient)
                 .sendPrePurchaseResult(any(PrePurchaseResultRequest.class), eq(null));
         umicoService.sendPrePurchaseResult(UUID.fromString(TestConstants.TRACK_ID.getValue()));

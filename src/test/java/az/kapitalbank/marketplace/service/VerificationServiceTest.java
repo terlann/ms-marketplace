@@ -5,8 +5,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import az.kapitalbank.marketplace.client.dvs.DvsClient;
-import az.kapitalbank.marketplace.client.dvs.exception.DvsClientException;
 import az.kapitalbank.marketplace.client.dvs.model.DvsGetDetailsResponse;
+import feign.FeignException;
+import feign.Response;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,7 +36,9 @@ class VerificationServiceTest {
     @Test
     void getDvsUrl_DvsClientException() {
         when(dvsClient.getDetails(UUID.fromString(TRACK_ID.getValue()),
-                12345L)).thenThrow(new DvsClientException("", ""));
+                12345L)).thenThrow(
+                FeignException.errorStatus("ee",
+                        Response.builder().body(new byte[5]).build()));
         verificationService.getDvsUrl(
                 UUID.fromString(TRACK_ID.getValue()), 12345L);
         verify(dvsClient).getDetails(UUID.fromString(TRACK_ID.getValue()),

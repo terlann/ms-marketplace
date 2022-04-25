@@ -20,7 +20,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
-import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
 import az.kapitalbank.marketplace.client.atlas.model.request.CompletePrePurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.PrePurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.RefundRequest;
@@ -138,7 +137,7 @@ class OrderServiceTest {
         when(operationRepository.findByTelesalesOrderId(TELESALES_ORDER_ID.getValue())).thenReturn(
                 Optional.of(getOperationEntity()));
         when(atlasClient.prePurchase(any(PrePurchaseRequest.class))).thenThrow(
-                AtlasClientException.class);
+                RuntimeException.class);
         orderService.telesalesResult(request);
         verify(operationRepository).findByTelesalesOrderId(TELESALES_ORDER_ID.getValue());
     }
@@ -254,7 +253,7 @@ class OrderServiceTest {
         when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class))).thenReturn(
                 CompletePrePurchaseResponse.builder().build());
         when(atlasClient.refund(eq(null), any(RefundRequest.class)))
-                .thenThrow(new AtlasClientException(null, null, null));
+                .thenThrow(new RuntimeException());
 
         assertThrows(RefundException.class, () -> orderService.refund(refundRequestDto));
     }
@@ -325,7 +324,7 @@ class OrderServiceTest {
         when(orderRepository.findByOrderNo("123")).thenReturn(Optional.of(orderEntity));
         when(amountUtil.getCommissionByPercent(BigDecimal.ONE, null)).thenReturn(BigDecimal.ONE);
         when(atlasClient.completePrePurchase(any())).thenThrow(
-                new AtlasClientException(null, null, null));
+                new RuntimeException());
         var request = PurchaseRequestDto.builder()
                 .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
                 .orderNo("123")

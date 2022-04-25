@@ -1,7 +1,5 @@
 package az.kapitalbank.marketplace.exception.handler;
 
-import az.kapitalbank.marketplace.client.integration.exception.IamasClientException;
-import az.kapitalbank.marketplace.client.otp.exception.OtpClientException;
 import az.kapitalbank.marketplace.constant.Error;
 import az.kapitalbank.marketplace.dto.ErrorResponseDto;
 import az.kapitalbank.marketplace.exception.CompletePrePurchaseException;
@@ -15,6 +13,7 @@ import az.kapitalbank.marketplace.exception.OperationAlreadyScoredException;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotLinkedToCustomer;
+import az.kapitalbank.marketplace.exception.OtpException;
 import az.kapitalbank.marketplace.exception.PersonNotFoundException;
 import az.kapitalbank.marketplace.exception.ProductNotLinkedToOrder;
 import az.kapitalbank.marketplace.exception.RefundException;
@@ -73,9 +72,8 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
-    @ExceptionHandler({PersonNotFoundException.class, IamasClientException.class})
-    public ResponseEntity<ErrorResponseDto> personNotFound(Exception ex) {
-        log.error(EXCEPTION, ex);
+    @ExceptionHandler(PersonNotFoundException.class)
+    public ResponseEntity<ErrorResponseDto> personNotFound(PersonNotFoundException ex) {
         var errorResponseDto = new ErrorResponseDto(Error.PERSON_NOT_FOUND);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponseDto);
     }
@@ -202,11 +200,10 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
-    @ExceptionHandler(OtpClientException.class)
-    public ResponseEntity<ErrorResponseDto> otpClientException(OtpClientException ex) {
-        log.error(EXCEPTION, ex);
+    @ExceptionHandler(OtpException.class)
+    public ResponseEntity<ErrorResponseDto> otpClientException(OtpException ex) {
         Error error;
-        switch (ex.getDetail()) {
+        switch (ex.getMessage()) {
             case "phone blocked":
                 error = Error.OTP_PHONE_BLOCKED;
                 break;

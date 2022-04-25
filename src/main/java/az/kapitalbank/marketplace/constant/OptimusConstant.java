@@ -14,5 +14,5 @@ public final class OptimusConstant {
     public static final String SALES_SOURCE = "umico_marketplace";
     public static final String NAME_ON_CARD = "empty";
     public static final String OPTIMUS_CLIENT_EXCEPTION =
-            "businessKey - {}, OptimusClientException - {}";
+            "trackId - {}, businessKey - {}, exception - {}";
 }

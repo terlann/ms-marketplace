@@ -101,9 +101,7 @@ class LoanFormalizationServiceTest {
                 .build();
         when(operationRepository.findById(request.getTrackId())).thenReturn(
                 Optional.of(getOperationEntity()));
-        when(scoringService.startScoring(getOperationEntity().getId(),
-                getOperationEntity().getPin(),
-                getOperationEntity().getMobileNumber())).thenReturn(Optional.empty());
+        when(scoringService.startScoring(getOperationEntity())).thenReturn(Optional.empty());
         loanFormalizationService.fraudResultProcess(request);
         verify(operationRepository).findById(request.getTrackId());
     }
@@ -115,9 +113,7 @@ class LoanFormalizationServiceTest {
                 .build();
         when(operationRepository.findById(request.getTrackId())).thenReturn(
                 Optional.of(getOperationEntity()));
-        when(scoringService.startScoring(getOperationEntity().getId(),
-                getOperationEntity().getPin(),
-                getOperationEntity().getMobileNumber())).thenReturn(Optional.of("asdf"));
+        when(scoringService.startScoring(getOperationEntity())).thenReturn(Optional.of("asdf"));
         loanFormalizationService.fraudResultProcess(request);
         verify(operationRepository).findById(request.getTrackId());
     }
@@ -146,7 +142,7 @@ class LoanFormalizationServiceTest {
                                 .build()).build()).build();
         when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
                 Optional.of(getOperationEntity()));
-        when(scoringService.getProcess(getOperationEntity().getBusinessKey())).thenReturn(
+        when(scoringService.getProcess(getOperationEntity())).thenReturn(
                 Optional.of(processResponse));
         when(verificationService.getDvsUrl(getOperationEntity().getId(),
                 getOperationEntity().getDvsOrderId())).thenReturn(Optional.of("Https//dvs.com"));
@@ -181,7 +177,7 @@ class LoanFormalizationServiceTest {
                 .build();
         when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
                 Optional.of(getOperationEntity()));
-        when(scoringService.getProcess(getOperationEntity().getBusinessKey())).thenReturn(
+        when(scoringService.getProcess(getOperationEntity())).thenReturn(
                 Optional.of(processResponse));
         loanFormalizationService.scoringResultProcess(request);
         verify(operationRepository).findByBusinessKey(request.getBusinessKey());
@@ -208,7 +204,7 @@ class LoanFormalizationServiceTest {
                 .build();
         when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
                 Optional.of(getOperationEntity()));
-        when(scoringService.getProcess(getOperationEntity().getBusinessKey())).thenReturn(
+        when(scoringService.getProcess(getOperationEntity())).thenReturn(
                 Optional.of(processResponse));
         loanFormalizationService.scoringResultProcess(request);
         verify(operationRepository).findByBusinessKey(request.getBusinessKey());
@@ -224,7 +220,7 @@ class LoanFormalizationServiceTest {
                 .businessKey(BUSINESS_KEY.getValue()).build();
         when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
                 Optional.of(getOperationEntity()));
-        when(scoringService.getCardId(getOperationEntity().getBusinessKey(), "uid")).thenReturn(
+        when(scoringService.getCardId(getOperationEntity(), "uid")).thenReturn(
                 Optional.of(CARD_UID.getValue()));
         when(orderService.prePurchaseOrders(any(OperationEntity.class),
                 eq(getCustomerEntity().getCardId()))).thenReturn(BigDecimal.ZERO);
@@ -242,7 +238,7 @@ class LoanFormalizationServiceTest {
                 .businessKey(BUSINESS_KEY.getValue()).build();
         when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
                 Optional.of(getOperationEntity()));
-        when(scoringService.getCardId(getOperationEntity().getBusinessKey(), "uid")).thenReturn(
+        when(scoringService.getCardId(getOperationEntity(), "uid")).thenReturn(
                 Optional.empty());
         loanFormalizationService.scoringResultProcess(request);
         verify(operationRepository).findByBusinessKey(request.getBusinessKey());
