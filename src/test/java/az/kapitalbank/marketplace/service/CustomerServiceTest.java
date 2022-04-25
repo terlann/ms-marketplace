@@ -1,13 +1,10 @@
 package az.kapitalbank.marketplace.service;
 
-import static az.kapitalbank.marketplace.constants.ConstantObject.getCardDetailResponse;
-import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
-import az.kapitalbank.marketplace.client.atlas.exception.AtlasClientException;
 import az.kapitalbank.marketplace.client.atlas.model.response.AccountResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.CardDetailResponse;
 import az.kapitalbank.marketplace.client.integration.IamasClient;
@@ -117,39 +114,6 @@ class CustomerServiceTest {
                 .build();
         var actual = customerService.getBalance(umicoUserId, customerId);
         assertEquals(expected, actual);
-    }
-
-    @Test
-    void getLoanLimit_Success() {
-        when(atlasClient.findCardByUid(CARD_UID.getValue(), ResultType.ACCOUNT)).thenReturn(
-                getCardDetailResponse());
-        var actual = customerService.getLoanLimit(CARD_UID.getValue());
-        var expected = BigDecimal.valueOf(10000L);
-        assertEquals(expected, actual);
-    }
-
-    @Test
-    void getLoanLimit_AtlasException() {
-        when(atlasClient.findCardByUid(CARD_UID.getValue(), ResultType.ACCOUNT)).thenThrow(
-                new AtlasClientException("", "", ""));
-        var actual = customerService.getLoanLimit(CARD_UID.getValue());
-        var expected = BigDecimal.ZERO;
-        assertEquals(expected, actual);
-    }
-
-    @Test
-    void getLoanLimit_NotPrimaryAccount() {
-        when(atlasClient.findCardByUid(CARD_UID.getValue(), ResultType.ACCOUNT)).thenReturn(
-                getNoPrimaryAccountCardDetailResponse());
-        var actual = customerService.getLoanLimit(CARD_UID.getValue());
-        var expected = BigDecimal.ZERO;
-        assertEquals(expected, actual);
-    }
-
-    CardDetailResponse getNoPrimaryAccountCardDetailResponse() {
-        return CardDetailResponse.builder()
-                .accounts(List.of())
-                .build();
     }
 
 }

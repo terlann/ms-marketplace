@@ -1,11 +1,11 @@
 package az.kapitalbank.marketplace.service;
 
 import az.kapitalbank.marketplace.client.umico.UmicoClient;
-import az.kapitalbank.marketplace.client.umico.exception.UmicoClientException;
 import az.kapitalbank.marketplace.client.umico.model.PrePurchaseResultRequest;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.entity.OperationEntity;
+import feign.FeignException;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -27,17 +27,17 @@ public class UmicoService {
     String apiKey;
     UmicoClient umicoClient;
 
-    public Optional<String> sendPrePurchaseResult(UUID trackId) {
+    public Optional<UUID> sendPrePurchaseResult(UUID trackId) {
         log.info("Send pre purchase result to umico is started : trackId - {} ", trackId);
         try {
             umicoClient.sendPrePurchaseResult(new PrePurchaseResultRequest(trackId), apiKey);
             log.info("Send pre purchase result to umico was finished : trackId - {} ", trackId);
-            return Optional.empty();
-        } catch (UmicoClientException e) {
-            log.error("Send pre purchase result to umico was failed : "
-                            + "trackId - {} , UmicoClientException - {}",
+            return Optional.of(trackId);
+        } catch (FeignException e) {
+            log.error(
+                    "Send pre purchase result to umico was failed : trackId - {} , exception - {}",
                     trackId, e);
-            return Optional.of(e.getMessage());
+            return Optional.empty();
         }
     }
 
@@ -96,9 +96,9 @@ public class UmicoService {
             log.info("Send decision to umico was finished : trackId - {} , response - {}", trackId,
                     umicoDecisionResponse);
             return Optional.of(umicoDecisionRequest.getDecisionStatus());
-        } catch (UmicoClientException e) {
+        } catch (FeignException e) {
             log.error(
-                    "Send decision to umico was failed : trackId - {} , UmicoClientException - {}",
+                    "Send decision to umico was failed : trackId - {} , exception - {}",
                     trackId, e);
             return Optional.empty();
         }

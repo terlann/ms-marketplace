@@ -1,7 +1,7 @@
 package az.kapitalbank.marketplace.service;
 
 import az.kapitalbank.marketplace.client.dvs.DvsClient;
-import az.kapitalbank.marketplace.client.dvs.exception.DvsClientException;
+import feign.FeignException;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.AccessLevel;
@@ -25,8 +25,8 @@ public class VerificationService {
             log.info("Dvs get web url was finished : trackId - {} , webUrl - {}", trackId,
                     webUrl);
             return Optional.ofNullable(webUrl);
-        } catch (DvsClientException e) {
-            log.error("Dvs get web url was failed : trackId - {} , DvsClientException - {}",
+        } catch (FeignException e) {
+            log.error("Dvs get web url was failed : trackId - {} , exception - {}",
                     trackId, e);
             return Optional.empty();
         }

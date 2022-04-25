@@ -62,12 +62,12 @@ public class LoanFormalizationService {
                         OperationRejectReason.BLACKLIST);
                 operationRepository.save(operationEntity);
             } else if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_TELESALES) {
-                log.warn("Fraud case was found in this operation, send to Telesales : trackId - {}",
+                log.warn("Fraud case was found and sent to Telesales : trackId - {}",
                         trackId);
                 leadService.sendLead(operationEntity, fraudCheckResultEvent.getTypes());
                 operationRepository.save(operationEntity);
             } else if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_UMICO) {
-                log.warn("This operation rejected, send to Umico : trackId - {}", trackId);
+                log.warn("Fraud case was found and sent to umico : trackId - {}", trackId);
                 var umicoDecisionStatus = umicoService.sendRejectedDecision(trackId);
                 operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
                 operationEntity.setOperationRejectReason(OperationRejectReason.FRAUD);
@@ -126,9 +126,7 @@ public class LoanFormalizationService {
 
     private void onVerificationConfirmed(OperationEntity operationEntity) {
         log.info("Verification status result confirmed : trackId - {}", operationEntity.getId());
-        var completeScoring = scoringService.completeScoring(operationEntity.getTaskId(),
-                operationEntity.getBusinessKey(), operationEntity.getAdditionalPhoneNumber1(),
-                operationEntity.getAdditionalPhoneNumber2());
+        var completeScoring = scoringService.completeScoring(operationEntity);
         if (completeScoring.isEmpty()) {
             operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_COMPLETE_SCORING);
             leadService.sendLead(operationEntity, null);
@@ -157,8 +155,7 @@ public class LoanFormalizationService {
 
     private void inUserActivityProcess(ScoringResultEvent scoringResultEvent,
                                        OperationEntity operationEntity) {
-        var businessKey = operationEntity.getBusinessKey();
-        var processResponse = scoringService.getProcess(businessKey);
+        var processResponse = scoringService.getProcess(operationEntity);
         if (processResponse.isPresent()) {
             var inUserActivityData = (InUserActivityData) scoringResultEvent.getData();
             var taskId = processResponse.get().getTaskId();
@@ -183,8 +180,7 @@ public class LoanFormalizationService {
     private void userTaskScoringProcess(OperationEntity operationEntity, BigDecimal scoredAmount,
                                         String taskId) {
         log.info("Start scoring result : trackId - {}, businessKey - {}",
-                operationEntity.getId(),
-                operationEntity.getBusinessKey());
+                operationEntity.getId(), operationEntity.getBusinessKey());
         operationEntity.setTaskId(taskId);
         operationEntity.setScoredAmount(scoredAmount);
         var selectedAmount = operationEntity.getTotalAmount().add(operationEntity.getCommission());
@@ -200,8 +196,7 @@ public class LoanFormalizationService {
             operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_NO_ENOUGH_AMOUNT);
             leadService.sendLead(operationEntity, null);
         } else {
-            var createScoring =
-                    scoringService.createScoring(operationEntity.getId(), taskId, scoredAmount);
+            var createScoring = scoringService.createScoring(operationEntity);
             if (createScoring.isEmpty()) {
                 operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_CREATE_SCORING);
                 leadService.sendLead(operationEntity, null);
@@ -236,39 +231,39 @@ public class LoanFormalizationService {
     }
 
     private void scoringCompletedProcess(OperationEntity operationEntity) {
+        var trackId = operationEntity.getId();
         log.info("Complete scoring result : trackId - {}, businessKey - {}",
-                operationEntity.getId(), operationEntity.getBusinessKey());
+                trackId, operationEntity.getBusinessKey());
         operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
         operationEntity.setScoringDate(LocalDateTime.now());
         operationEntity.setScoringStatus(ScoringStatus.APPROVED);
-        Optional<String> cardId = scoringService.getCardId(operationEntity.getBusinessKey(), UID);
+        Optional<String> cardId = scoringService.getCardId(operationEntity, UID);
         if (cardId.isEmpty()) {
-            log.warn("Card id is empty : trackId - {}, businessKey - {}",
-                    operationEntity.getId(), operationEntity.getBusinessKey());
             operationRepository.save(operationEntity);
             return;
         }
         var customerEntity = operationEntity.getCustomer();
         customerEntity.setCardId(cardId.get());
         var lastTempAmount = orderService.prePurchaseOrders(operationEntity, cardId.get());
-        log.info("End-to-end process : orders purchase process was finished : trackId - {}",
-                operationEntity.getId());
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
             var umicoDecisionStatus =
                     umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
             operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+            log.info("Scoring complete result : Pre purchase was finished : "
+                    + "trackId - {}", trackId);
         } else {
             operationEntity.setUmicoDecisionStatus(PREAPPROVED);
+            log.info("Scoring complete result : Pre purchase was unfinished : trackId - {}",
+                    trackId);
         }
         operationRepository.save(operationEntity);
-        log.info("Customer finished end-to-end process : trackId - {} , customerId - {}",
-                operationEntity.getId(), customerEntity.getId());
+        log.info("Scoring complete result : Customer was finished end-to-end process : "
+                + "trackId - {} , customerId - {}", trackId, customerEntity.getId());
     }
 
     private void noFraudProcess(OperationEntity operationEntity) {
         var businessKey =
-                scoringService.startScoring(operationEntity.getId(), operationEntity.getPin(),
-                        operationEntity.getMobileNumber());
+                scoringService.startScoring(operationEntity);
         if (businessKey.isEmpty()) {
             operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_START_SCORING);
             leadService.sendLead(operationEntity, null);
@@ -292,7 +287,6 @@ public class LoanFormalizationService {
             leadService.sendLead(operationEntity, null);
             operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_BUSINESS_ERROR);
         }
-
         operationRepository.save(operationEntity);
     }
 
@@ -331,6 +325,7 @@ public class LoanFormalizationService {
                 operationEntity.getCustomer().getCardId());
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
             umicoService.sendPrePurchaseResult(trackId);
+            log.info("Pre purchase result was sent to umico : trackId - {}", trackId);
         }
         operationRepository.save(operationEntity);
         log.info("Pre purchase consumer process was finished: trackId - {}", trackId);

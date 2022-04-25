@@ -21,10 +21,5 @@ public interface TelesalesClient {
         Logger.Level loggerLevel() {
             return Logger.Level.FULL;
         }
-
-        @Bean
-        TelesalesClientErrorDecoder errorDecoder() {
-            return new TelesalesClientErrorDecoder();
-        }
     }
 }
