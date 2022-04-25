@@ -29,10 +29,5 @@ public interface UmicoClient {
         Logger.Level loggerLevel() {
             return Logger.Level.FULL;
         }
-
-        @Bean
-        UmicoClientErrorDecoder errorDecoder() {
-            return new UmicoClientErrorDecoder();
-        }
     }
 }

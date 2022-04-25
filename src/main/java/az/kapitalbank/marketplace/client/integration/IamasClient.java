@@ -22,10 +22,5 @@ public interface IamasClient {
         Logger.Level loggerLevel() {
             return Logger.Level.FULL;
         }
-
-        @Bean
-        IamasClientErrorDecoder errorDecoder() {
-            return new IamasClientErrorDecoder();
-        }
     }
 }

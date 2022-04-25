@@ -47,10 +47,5 @@ public interface OptimusClient {
         Logger.Level loggerLevel() {
             return Logger.Level.FULL;
         }
-
-        @Bean
-        OptimusClientErrorDecoder errorDecoder() {
-            return new OptimusClientErrorDecoder();
-        }
     }
 }

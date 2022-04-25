@@ -1,25 +1,21 @@
 package az.kapitalbank.marketplace.service;
 
+import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntity;
 import static az.kapitalbank.marketplace.constants.TestConstants.BUSINESS_KEY;
-import static az.kapitalbank.marketplace.constants.TestConstants.MOBILE_NUMBER;
-import static az.kapitalbank.marketplace.constants.TestConstants.PIN;
 import static az.kapitalbank.marketplace.constants.TestConstants.TASK_ID;
-import static az.kapitalbank.marketplace.constants.TestConstants.TRACK_ID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import az.kapitalbank.marketplace.client.optimus.OptimusClient;
-import az.kapitalbank.marketplace.client.optimus.exception.OptimusClientException;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessVariableResponse;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.CompleteScoringRequest;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.CreateScoringRequest;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringRequest;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.StartScoringResponse;
-import java.math.BigDecimal;
-import java.util.UUID;
+import feign.FeignException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -40,67 +36,63 @@ class ScoringServiceTest {
         when(optimusClient.scoringStart(any(StartScoringRequest.class)))
                 .thenReturn(new StartScoringResponse("businessKey"));
 
-        scoringService.startScoring(UUID.fromString(TRACK_ID.getValue()), PIN.getValue(),
-                MOBILE_NUMBER.getValue());
+        scoringService.startScoring(getOperationEntity());
         verify(optimusClient).scoringStart(any(StartScoringRequest.class));
     }
 
     @Test
     void startScoring_OptimusClientException() {
         when(optimusClient.scoringStart(any(StartScoringRequest.class)))
-                .thenThrow(new OptimusClientException("", ""));
+                .thenThrow(FeignException.class);
 
-        scoringService.startScoring(UUID.fromString(TRACK_ID.getValue()), PIN.getValue(),
-                MOBILE_NUMBER.getValue());
+        scoringService.startScoring(getOperationEntity());
         verify(optimusClient).scoringStart(any(StartScoringRequest.class));
     }
 
     @Test
     void getCardId() {
         var processVariableResponse = new ProcessVariableResponse("pan", "uid");
-        when(optimusClient.getProcessVariable("businessKey", "uid"))
+        when(optimusClient.getProcessVariable(BUSINESS_KEY.getValue(), "uid"))
                 .thenReturn(processVariableResponse);
 
-        scoringService.getCardId("businessKey", "uid");
-        verify(optimusClient).getProcessVariable("businessKey", "uid");
+        scoringService.getCardId(getOperationEntity(), "uid");
+        verify(optimusClient).getProcessVariable(BUSINESS_KEY.getValue(), "uid");
     }
 
     @Test
     void getCardId_OptimusClientException() {
-        when(optimusClient.getProcessVariable("businessKey", "uid")).thenThrow(
-                new OptimusClientException("", ""));
-        scoringService.getCardId("businessKey", "uid");
-        verify(optimusClient).getProcessVariable("businessKey", "uid");
+        when(optimusClient.getProcessVariable(BUSINESS_KEY.getValue(), "uid"))
+                .thenThrow(FeignException.class);
+        scoringService.getCardId(getOperationEntity(), "uid");
+        verify(optimusClient).getProcessVariable(BUSINESS_KEY.getValue(), "uid");
     }
 
     @Test
     void createScoring_Success() {
-        scoringService.createScoring(UUID.fromString(TRACK_ID.getValue()), TASK_ID.getValue(),
-                BigDecimal.ONE);
+        scoringService.createScoring(getOperationEntity());
         verify(optimusClient).scoringCreate(eq(TASK_ID.getValue()),
                 any(CreateScoringRequest.class));
     }
 
     @Test
     void getProcess_Success() {
-        when(optimusClient.getProcess("businessKey")).thenReturn(ProcessResponse.builder().build());
-        scoringService.getProcess("businessKey");
-        verify(optimusClient).getProcess("businessKey");
+        when(optimusClient.getProcess(BUSINESS_KEY.getValue())).thenReturn(
+                ProcessResponse.builder().build());
+        scoringService.getProcess(getOperationEntity());
+        verify(optimusClient).getProcess(BUSINESS_KEY.getValue());
     }
 
     @Test
     void getProcess_OptimusClientException() {
+        when(optimusClient.getProcess(BUSINESS_KEY.getValue())).thenThrow(FeignException.class);
 
-        when(optimusClient.getProcess("businessKey"))
-                .thenThrow(new OptimusClientException("", ""));
-
-        scoringService.getProcess("businessKey");
-        verify(optimusClient).getProcess("businessKey");
+        scoringService.getProcess(getOperationEntity());
+        verify(optimusClient).getProcess(BUSINESS_KEY.getValue());
     }
 
     @Test
     void completeScoring_Success() {
-        scoringService.completeScoring(TASK_ID.getValue(), BUSINESS_KEY.getValue(), "a1", "a2");
+        scoringService.completeScoring(getOperationEntity());
         verify(optimusClient).scoringComplete(eq(TASK_ID.getValue()),
                 any(CompleteScoringRequest.class));
     }

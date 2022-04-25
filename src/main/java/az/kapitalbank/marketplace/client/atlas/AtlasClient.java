@@ -48,11 +48,6 @@ public interface AtlasClient {
         Logger.Level feignLoggerLevel() {
             return Logger.Level.FULL;
         }
-
-        @Bean
-        AtlasClientErrorDecoder exceptionDecoder() {
-            return new AtlasClientErrorDecoder();
-        }
     }
 
 }

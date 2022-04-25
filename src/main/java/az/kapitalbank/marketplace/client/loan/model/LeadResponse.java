@@ -1,5 +1,6 @@
-package az.kapitalbank.marketplace.dto.response;
+package az.kapitalbank.marketplace.client.loan.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -12,6 +13,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class LoanResponse {
-    LeadResponse data;
+public class LeadResponse {
+    @JsonProperty("lead_id")
+    String leadId;
 }
