@@ -189,13 +189,7 @@ public class OrderService {
                     request.getCustomerInfo().getUmicoUserId());
             if (customerByUmicoUserId.isPresent()) {
                 customerEntity = customerByUmicoUserId.get();
-                var isExistsCustomerByDecisionStatus = operationRepository
-                        .existsByCustomerAndUmicoDecisionStatusInOrUmicoDecisionStatusIsNull(
-                                customerEntity, List.of(PENDING, FAIL_IN_PENDING, PREAPPROVED,
-                                        FAIL_IN_PREAPPROVED));
-                if (isExistsCustomerByDecisionStatus) {
-                    throw new CustomerNotCompletedProcessException(CUSTOMER_ID_LOG + customerId);
-                }
+                checkCustomerIncompleteProcess(customerEntity);
             } else {
                 customerEntity = customerMapper.toCustomerEntity(request.getCustomerInfo());
                 customerEntity = customerRepository.save(customerEntity);
@@ -207,6 +201,16 @@ public class OrderService {
             validateCustomerBalance(request, customerEntity.getCardId());
         }
         return customerEntity;
+    }
+
+    private void checkCustomerIncompleteProcess(CustomerEntity customerEntity) {
+        var isExistsCustomerByDecisionStatus = operationRepository
+                .existsByCustomerIdAndUmicoDecisionStatuses(customerEntity.getId().toString(),
+                        List.of(PENDING, FAIL_IN_PENDING, PREAPPROVED, FAIL_IN_PREAPPROVED));
+        if (isExistsCustomerByDecisionStatus) {
+            throw new CustomerNotCompletedProcessException(
+                    "customerId - " + customerEntity.getId());
+        }
     }
 
     private void checkAdditionalPhoneNumbersEquals(CreateOrderRequestDto request) {

@@ -2,6 +2,7 @@ package az.kapitalbank.marketplace.constants;
 
 import static az.kapitalbank.marketplace.constants.TestConstants.BUSINESS_KEY;
 import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
+import static az.kapitalbank.marketplace.constants.TestConstants.CUSTOMER_ID;
 import static az.kapitalbank.marketplace.constants.TestConstants.TASK_ID;
 import static az.kapitalbank.marketplace.constants.TestConstants.TRACK_ID;
 
@@ -24,7 +25,9 @@ public class ConstantObject {
     }
 
     public static CustomerEntity getCustomerEntity2() {
-        return CustomerEntity.builder().build();
+        return CustomerEntity.builder()
+                .id(UUID.fromString(CUSTOMER_ID.getValue()))
+                .build();
     }
 
     public static OperationEntity getOperationEntity() {
