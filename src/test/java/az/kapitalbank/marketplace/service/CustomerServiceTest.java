@@ -1,7 +1,5 @@
 package az.kapitalbank.marketplace.service;
 
-import static az.kapitalbank.marketplace.constants.ConstantObject.getCardDetailResponse;
-import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -116,30 +114,6 @@ class CustomerServiceTest {
                 .build();
         var actual = customerService.getBalance(umicoUserId, customerId);
         assertEquals(expected, actual);
-    }
-
-    @Test
-    void getLoanLimit_Success() {
-        when(atlasClient.findCardByUid(CARD_UID.getValue(), ResultType.ACCOUNT)).thenReturn(
-                getCardDetailResponse());
-    }
-
-    @Test
-    void getLoanLimit_AtlasException() {
-        when(atlasClient.findCardByUid(CARD_UID.getValue(), ResultType.ACCOUNT)).thenThrow(
-                new RuntimeException());
-    }
-
-    @Test
-    void getLoanLimit_NotPrimaryAccount() {
-        when(atlasClient.findCardByUid(CARD_UID.getValue(), ResultType.ACCOUNT)).thenReturn(
-                getNoPrimaryAccountCardDetailResponse());
-    }
-
-    CardDetailResponse getNoPrimaryAccountCardDetailResponse() {
-        return CardDetailResponse.builder()
-                .accounts(List.of())
-                .build();
     }
 
 }

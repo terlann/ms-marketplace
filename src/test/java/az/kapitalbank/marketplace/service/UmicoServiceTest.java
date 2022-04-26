@@ -12,6 +12,7 @@ import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionResponse;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.constants.TestConstants;
+import feign.FeignException;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,8 +36,7 @@ class UmicoServiceTest {
 
     @Test
     void sendPrePurchaseResult_Exception() {
-        doThrow(new RuntimeException("exception"))
-                .when(umicoClient)
+        doThrow(FeignException.class).when(umicoClient)
                 .sendPrePurchaseResult(any(PrePurchaseResultRequest.class), eq(null));
         umicoService.sendPrePurchaseResult(UUID.fromString(TestConstants.TRACK_ID.getValue()));
         verify(umicoClient).sendPrePurchaseResult(any(PrePurchaseResultRequest.class), eq(null));
