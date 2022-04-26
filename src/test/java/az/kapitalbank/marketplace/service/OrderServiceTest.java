@@ -1,5 +1,9 @@
 package az.kapitalbank.marketplace.service;
 
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PENDING;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PREAPPROVED;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PENDING;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PREAPPROVED;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getCardDetailResponse;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getCustomerEntity;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getCustomerEntity2;
@@ -45,6 +49,7 @@ import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.exception.CompletePrePurchaseException;
+import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
 import az.kapitalbank.marketplace.exception.NoMatchOrderAmountByProductException;
 import az.kapitalbank.marketplace.exception.NoPermissionForTransaction;
 import az.kapitalbank.marketplace.exception.RefundException;
@@ -171,6 +176,28 @@ class OrderServiceTest {
         var expected = CreateOrderResponse.of(UUID.fromString(TRACK_ID.getValue()));
         assertEquals(expected, actual);
         verify(operationRepository).save(any(OperationEntity.class));
+    }
+
+    @Test
+    void createOrder_NotCompleteProcess() {
+        CreateOrderRequestDto request =
+                getCreateOrderRequestDto(null);
+
+        when(customerRepository.findByUmicoUserId(UMICO_USER_ID.getValue()))
+                .thenReturn(Optional.empty());
+        when(amountUtil.getCommission(BigDecimal.valueOf(50), 12))
+                .thenReturn(BigDecimal.valueOf(12));
+        Optional<CustomerEntity> customerEntity2 = Optional.of(getCustomerEntity2());
+        when(customerRepository.findByUmicoUserId(
+                request.getCustomerInfo().getUmicoUserId())).thenReturn(
+                customerEntity2);
+        when(operationRepository
+                .existsByUmicoDecisionStatusInOrUmicoDecisionStatusIsNullAndCustomer(
+                        List.of(PENDING, FAIL_IN_PENDING, PREAPPROVED,
+                                FAIL_IN_PREAPPROVED), customerEntity2.get())).thenReturn(true);
+
+        assertThrows(CustomerNotCompletedProcessException.class,
+                () -> orderService.createOrder(request));
     }
 
     @Test
