@@ -192,9 +192,10 @@ class OrderServiceTest {
                 request.getCustomerInfo().getUmicoUserId())).thenReturn(
                 customerEntity2);
         when(operationRepository
-                .existsByUmicoDecisionStatusInOrUmicoDecisionStatusIsNullAndCustomer(
+                .existsByCustomerIdAndUmicoDecisionStatuses(
+                        customerEntity2.get().getId(),
                         List.of(PENDING, FAIL_IN_PENDING, PREAPPROVED,
-                                FAIL_IN_PREAPPROVED), customerEntity2.get())).thenReturn(true);
+                                FAIL_IN_PREAPPROVED))).thenReturn(true);
 
         assertThrows(CustomerNotCompletedProcessException.class,
                 () -> orderService.createOrder(request));
