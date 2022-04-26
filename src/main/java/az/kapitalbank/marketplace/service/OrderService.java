@@ -190,9 +190,9 @@ public class OrderService {
             if (customerByUmicoUserId.isPresent()) {
                 customerEntity = customerByUmicoUserId.get();
                 var isExistsCustomerByDecisionStatus = operationRepository
-                        .existsByCustomerAndUmicoDecisionStatusInOrUmicoDecisionStatusIsNull(
-                                customerEntity, List.of(PENDING, FAIL_IN_PENDING, PREAPPROVED,
-                                        FAIL_IN_PREAPPROVED));
+                        .existsByUmicoDecisionStatusInOrUmicoDecisionStatusIsNullAndCustomer(
+                                List.of(PENDING, FAIL_IN_PENDING, PREAPPROVED,
+                                        FAIL_IN_PREAPPROVED), customerEntity);
                 if (isExistsCustomerByDecisionStatus) {
                     throw new CustomerNotCompletedProcessException(CUSTOMER_ID_LOG + customerId);
                 }
