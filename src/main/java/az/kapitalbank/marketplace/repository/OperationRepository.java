@@ -24,6 +24,6 @@ public interface OperationRepository extends JpaRepository<OperationEntity, UUID
                     + "AND (UMICO_DECISION_STATUS is null "
                     + "or UMICO_DECISION_STATUS in (:decisions))")
     boolean existsByCustomerIdAndUmicoDecisionStatuses(
-            UUID customerId, List<UmicoDecisionStatus> decisions);
+            String customerId, List<UmicoDecisionStatus> decisions);
 
 }
