@@ -190,11 +190,11 @@ public class OrderService {
             if (customerByUmicoUserId.isPresent()) {
                 customerEntity = customerByUmicoUserId.get();
                 var isExistsCustomerByDecisionStatus = operationRepository
-                        .existsByUmicoDecisionStatusInOrUmicoDecisionStatusIsNullAndCustomer(
-                                List.of(PENDING, FAIL_IN_PENDING, PREAPPROVED,
-                                        FAIL_IN_PREAPPROVED), customerEntity);
+                        .existsByCustomerIdAndUmicoDecisionStatuses(customerEntity.getId(), List
+                                .of(PENDING, FAIL_IN_PENDING, PREAPPROVED, FAIL_IN_PREAPPROVED));
                 if (isExistsCustomerByDecisionStatus) {
-                    throw new CustomerNotCompletedProcessException(CUSTOMER_ID_LOG + customerId);
+                    throw new CustomerNotCompletedProcessException(
+                            "customerId - " + customerEntity.getId());
                 }
             } else {
                 customerEntity = customerMapper.toCustomerEntity(request.getCustomerInfo());
