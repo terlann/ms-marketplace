@@ -55,19 +55,19 @@ public class LoanFormalizationService {
         if (operationOptional.isPresent()) {
             var operationEntity = operationOptional.get();
             if (fraudResultStatus == FraudResultStatus.BLACKLIST) {
-                log.warn("This operation was found in blacklist : trackId - {}", trackId);
+                log.info("This operation was found in blacklist : trackId - {}", trackId);
                 var umicoDecisionStatus = umicoService.sendRejectedDecision(trackId);
                 operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
                 operationEntity.setOperationRejectReason(
                         OperationRejectReason.BLACKLIST);
                 operationRepository.save(operationEntity);
             } else if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_TELESALES) {
-                log.warn("Fraud case was found and sent to Telesales : trackId - {}",
+                log.info("Fraud case was found and sent to Telesales : trackId - {}",
                         trackId);
                 leadService.sendLead(operationEntity, fraudCheckResultEvent.getTypes());
                 operationRepository.save(operationEntity);
             } else if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_UMICO) {
-                log.warn("Fraud case was found and sent to umico : trackId - {}", trackId);
+                log.info("Fraud case was found and sent to umico : trackId - {}", trackId);
                 var umicoDecisionStatus = umicoService.sendRejectedDecision(trackId);
                 operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
                 operationEntity.setOperationRejectReason(OperationRejectReason.FRAUD);
