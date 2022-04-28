@@ -49,7 +49,7 @@ public class LeadService {
             if (!responseCode.equals("0")) {
                 log.error("Send lead to telesales was failed : trackId - {}, exception - {}",
                         trackId, responseMessage);
-                operationEntity.setSendLeadTelesales(true);
+                operationEntity.setSendLeadTelesales(false);
                 return Optional.empty();
             }
             log.info("Send lead to telesales was finished :" + " trackId - {}, response - {}",
