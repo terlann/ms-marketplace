@@ -285,9 +285,11 @@ public class OrderService {
                     deliveredOrderAmount =
                             deliveredOrderAmount.add(productEntity.getProductAmount());
                     productEntity.setDeliveryStatus(true);
-                } else {
-                    productEntity.setDeliveryStatus(false);
+                    break;
                 }
+            }
+            if (productEntity.getDeliveryStatus() == null) {
+                productEntity.setDeliveryStatus(false);
             }
         }
         log.info("Delivered order amount is : {}, orderNo - {}", deliveredOrderAmount,

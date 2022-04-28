@@ -72,6 +72,13 @@ public class ConstantObject {
                 .build();
     }
 
+    public static ProductEntity getProductEntity2() {
+        return ProductEntity.builder()
+                .productId("p2")
+                .productAmount(BigDecimal.ONE)
+                .build();
+    }
+
     public static CardDetailResponse getCardDetailResponse() {
         return CardDetailResponse.builder()
                 .accounts(List.of(getAccountResponse()))
