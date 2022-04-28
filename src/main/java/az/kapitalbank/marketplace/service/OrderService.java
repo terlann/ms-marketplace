@@ -285,9 +285,11 @@ public class OrderService {
                     deliveredOrderAmount =
                             deliveredOrderAmount.add(productEntity.getProductAmount());
                     productEntity.setDeliveryStatus(true);
-                } else {
-                    productEntity.setDeliveryStatus(false);
+                    break;
                 }
+            }
+            if (productEntity.getDeliveryStatus() == null) {
+                productEntity.setDeliveryStatus(false);
             }
         }
         log.info("Delivered order amount is : {}, orderNo - {}", deliveredOrderAmount,
@@ -514,7 +516,7 @@ public class OrderService {
         var primaryAccount = cardDetailResponse.getAccounts().stream()
                 .filter(x -> x.getStatus() == AccountStatus.OPEN_PRIMARY).findFirst();
         if (primaryAccount.isEmpty()) {
-            log.warn("Account not found in open primary status.cardId - {}", cardId);
+            log.info("Account not found in open primary status.cardId - {}", cardId);
             return BigDecimal.ZERO;
         }
         return primaryAccount.get().getAvailableBalance();

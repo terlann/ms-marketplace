@@ -16,7 +16,10 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class BalanceResponseDto {
     LocalDateTime cardExpiryDate;
-    BigDecimal loanLimit;
-    BigDecimal loanUtilized;
-    BigDecimal availableBalance;
+    @Builder.Default
+    BigDecimal loanLimit = BigDecimal.ZERO;
+    @Builder.Default
+    BigDecimal loanUtilized = BigDecimal.ZERO;
+    @Builder.Default
+    BigDecimal availableBalance = BigDecimal.ZERO;
 }

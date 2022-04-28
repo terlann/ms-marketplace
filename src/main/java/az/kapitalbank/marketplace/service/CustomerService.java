@@ -11,7 +11,6 @@ import az.kapitalbank.marketplace.exception.PersonNotFoundException;
 import az.kapitalbank.marketplace.exception.UmicoUserNotFoundException;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import feign.FeignException;
-import java.math.BigDecimal;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -63,16 +62,14 @@ public class CustomerService {
             log.error("Open primary account not found : cardId - {}, primaryAccount - {}", cardId,
                     primaryAccount);
             return BalanceResponseDto.builder()
-                    .loanUtilized(BigDecimal.ZERO)
-                    .availableBalance(BigDecimal.ZERO)
-                    .loanLimit(BigDecimal.ZERO)
                     .cardExpiryDate(cardDetailResponse.getExpiryDate()).build();
         }
         var loanLimit = primaryAccount.get().getOverdraftLimit();
         var availableBalance = primaryAccount.get().getAvailableBalance();
+        var lastAvailableBalance = availableBalance.subtract(customerEntity.getLastTempAmount());
         return BalanceResponseDto.builder()
-                .loanUtilized(loanLimit.subtract(availableBalance))
-                .availableBalance(availableBalance.subtract(customerEntity.getLastTempAmount()))
+                .loanUtilized(loanLimit.subtract(lastAvailableBalance))
+                .availableBalance(lastAvailableBalance)
                 .loanLimit(loanLimit)
                 .cardExpiryDate(cardDetailResponse.getExpiryDate())
                 .build();
