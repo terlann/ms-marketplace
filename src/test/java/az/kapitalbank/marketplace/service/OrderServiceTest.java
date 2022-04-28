@@ -11,6 +11,7 @@ import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEn
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntityFirstCustomer;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOrderEntity;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getProductEntity;
+import static az.kapitalbank.marketplace.constants.ConstantObject.getProductEntity2;
 import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
 import static az.kapitalbank.marketplace.constants.TestConstants.CUSTOMER_ID;
 import static az.kapitalbank.marketplace.constants.TestConstants.TELESALES_ORDER_ID;
@@ -295,6 +296,34 @@ class OrderServiceTest {
                 .commission(BigDecimal.valueOf(12))
                 .operation(OperationEntity.builder().loanTerm(12).build())
                 .products(List.of(getProductEntity()))
+                .operation(OperationEntity.builder()
+                        .customer(CustomerEntity.builder().cardId(CARD_UID.getValue()).build())
+                        .build())
+                .build();
+        var purchaseCompleteResponse =
+                CompletePrePurchaseResponse.builder().build();
+        when(orderRepository.findByOrderNo("123")).thenReturn(Optional.of(orderEntity));
+        when(amountUtil.getCommissionByPercent(BigDecimal.ONE, null)).thenReturn(
+                BigDecimal.ONE);
+        when(atlasClient.completePrePurchase(any())).thenReturn(purchaseCompleteResponse);
+        var request = PurchaseRequestDto.builder()
+                .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
+                .orderNo("123")
+                .deliveryProducts(Set.of(DeliveryProductDto.builder().productId("p1").build()))
+                .build();
+        orderService.purchase(request);
+        verify(orderRepository).findByOrderNo("123");
+    }
+
+    @Test
+    void purchase_Partial_Success() {
+        OrderEntity orderEntity = OrderEntity.builder()
+                .transactionId("123245")
+                .transactionStatus(TransactionStatus.PRE_PURCHASE)
+                .totalAmount(BigDecimal.valueOf(50))
+                .commission(BigDecimal.valueOf(12))
+                .operation(OperationEntity.builder().loanTerm(12).build())
+                .products(List.of(getProductEntity(), getProductEntity2()))
                 .operation(OperationEntity.builder()
                         .customer(CustomerEntity.builder().cardId(CARD_UID.getValue()).build())
                         .build())
