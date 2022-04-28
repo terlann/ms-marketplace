@@ -7,6 +7,7 @@ import az.kapitalbank.marketplace.client.loan.LoanClient;
 import az.kapitalbank.marketplace.client.loan.model.LoanRequest;
 import az.kapitalbank.marketplace.client.loan.model.LoanResponse;
 import az.kapitalbank.marketplace.client.telesales.TelesalesClient;
+import az.kapitalbank.marketplace.client.telesales.model.CreateTelesalesOrderResponse;
 import az.kapitalbank.marketplace.constant.FraudType;
 import az.kapitalbank.marketplace.constant.ProductType;
 import az.kapitalbank.marketplace.constant.SubProductType;
@@ -14,6 +15,7 @@ import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.mapper.TelesalesMapper;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -31,6 +33,21 @@ public class LeadService {
     TelesalesClient telesalesClient;
     TelesalesMapper telesalesMapper;
 
+    private boolean checkTelesalesResponse(
+            CreateTelesalesOrderResponse createTelesalesOrderResponse, UUID trackId,
+            OperationEntity operationEntity) {
+        var responseMessage = createTelesalesOrderResponse.getResponse().getMessage();
+        var responseCode = createTelesalesOrderResponse.getResponse().getCode();
+        if (!responseCode.equals("0")) {
+            log.error("Send lead to telesales was failed : trackId - {}, exception - {}",
+                    trackId, responseMessage);
+            operationEntity.setSendLeadTelesales(false);
+            return false;
+        }
+        operationEntity.setSendLeadTelesales(true);
+        return true;
+    }
+
     private Optional<String> sendLeadTelesales(OperationEntity operationEntity,
                                                List<FraudType> fraudTypes) {
         var trackId = operationEntity.getId();
@@ -44,12 +61,7 @@ public class LeadService {
                     trackId, request);
             var createTelesalesOrderResponse =
                     telesalesClient.sendLead(request);
-            var responseMessage = createTelesalesOrderResponse.getResponse().getMessage();
-            var responseCode = createTelesalesOrderResponse.getResponse().getCode();
-            if (!responseCode.equals("0")) {
-                log.error("Send lead to telesales was failed : trackId - {}, exception - {}",
-                        trackId, responseMessage);
-                operationEntity.setSendLeadTelesales(false);
+            if (!checkTelesalesResponse(createTelesalesOrderResponse, trackId, operationEntity)) {
                 return Optional.empty();
             }
             log.info("Send lead to telesales was finished :" + " trackId - {}, response - {}",
