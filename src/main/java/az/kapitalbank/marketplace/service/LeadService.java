@@ -7,7 +7,7 @@ import az.kapitalbank.marketplace.client.loan.LoanClient;
 import az.kapitalbank.marketplace.client.loan.model.LoanRequest;
 import az.kapitalbank.marketplace.client.loan.model.LoanResponse;
 import az.kapitalbank.marketplace.client.telesales.TelesalesClient;
-import az.kapitalbank.marketplace.client.telesales.model.CreateTelesalesOrderResponse;
+import az.kapitalbank.marketplace.client.telesales.model.CreateTelesalesOrderRequest;
 import az.kapitalbank.marketplace.constant.FraudType;
 import az.kapitalbank.marketplace.constant.ProductType;
 import az.kapitalbank.marketplace.constant.SubProductType;
@@ -15,7 +15,6 @@ import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.mapper.TelesalesMapper;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -33,37 +32,25 @@ public class LeadService {
     TelesalesClient telesalesClient;
     TelesalesMapper telesalesMapper;
 
-    private boolean checkTelesalesResponse(
-            CreateTelesalesOrderResponse createTelesalesOrderResponse, UUID trackId,
-            OperationEntity operationEntity) {
-        var responseMessage = createTelesalesOrderResponse.getResponse().getMessage();
-        var responseCode = createTelesalesOrderResponse.getResponse().getCode();
-        if (!responseCode.equals("0")) {
-            log.error("Send lead to telesales was failed : trackId - {}, exception - {}",
-                    trackId, responseMessage);
-            operationEntity.setSendLeadTelesales(false);
-            return false;
-        }
-        operationEntity.setSendLeadTelesales(true);
-        return true;
-    }
-
     private Optional<String> sendLeadTelesales(OperationEntity operationEntity,
                                                List<FraudType> fraudTypes) {
         var trackId = operationEntity.getId();
         try {
-            var request = telesalesMapper.toTelesalesOrder(operationEntity, fraudTypes);
-            var orderComment = request.getOrderComment();
-            orderComment = orderComment == null ? CARD_PRODUCT_CODE :
-                    CARD_PRODUCT_CODE + ";" + orderComment;
-            request.setOrderComment(orderComment);
+            var request =
+                    getCreateTelesalesOrderRequest(operationEntity, fraudTypes);
             log.info("Send lead to telesales is started : trackId - {}, request - {}",
                     trackId, request);
             var createTelesalesOrderResponse =
                     telesalesClient.sendLead(request);
-            if (!checkTelesalesResponse(createTelesalesOrderResponse, trackId, operationEntity)) {
+            var responseMessage = createTelesalesOrderResponse.getResponse().getMessage();
+            var responseCode = createTelesalesOrderResponse.getResponse().getCode();
+            if (!responseCode.equals("0")) {
+                log.error("Send lead to telesales was failed : trackId - {}, exception - {}",
+                        trackId, responseMessage);
+                operationEntity.setSendLeadTelesales(false);
                 return Optional.empty();
             }
+            operationEntity.setSendLeadTelesales(true);
             log.info("Send lead to telesales was finished :" + " trackId - {}, response - {}",
                     trackId, createTelesalesOrderResponse);
             return Optional.of(createTelesalesOrderResponse.getOperationId());
@@ -75,6 +62,16 @@ public class LeadService {
         }
     }
 
+    private CreateTelesalesOrderRequest getCreateTelesalesOrderRequest(
+            OperationEntity operationEntity, List<FraudType> fraudTypes) {
+        var request = telesalesMapper.toTelesalesOrder(operationEntity, fraudTypes);
+        var orderComment = request.getOrderComment();
+        orderComment = orderComment == null ? CARD_PRODUCT_CODE :
+                CARD_PRODUCT_CODE + ";" + orderComment;
+        request.setOrderComment(orderComment);
+        return request;
+    }
+
     public Optional<String> sendLeadLoan(OperationEntity operationEntity) {
         var trackId = operationEntity.getId();
         try {
@@ -83,7 +80,8 @@ public class LeadService {
                     .phoneNumber(operationEntity.getMobileNumber())
                     .fullName(operationEntity.getFullName()).pinCode(operationEntity.getPin())
                     .productAmount(
-                            operationEntity.getTotalAmount().add(operationEntity.getCommission()))
+                            operationEntity.getTotalAmount()
+                                    .add(operationEntity.getCommission()))
                     .build();
             log.info("Send lead to loan is started : trackId - {}, request - {}",
                     trackId, loanRequest);
@@ -92,7 +90,8 @@ public class LeadService {
                     response);
             return Optional.of(response.getData().getLeadId());
         } catch (Exception e) {
-            log.error("Send lead to loan was failed : trackId - {}, exception - {}", trackId, e);
+            log.error("Send lead to loan was failed : trackId - {}, exception - {}", trackId,
+                    e);
             return Optional.empty();
         }
     }
