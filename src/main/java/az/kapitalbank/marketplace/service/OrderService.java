@@ -193,7 +193,7 @@ public class OrderService {
             } else {
                 customerEntity = customerMapper.toCustomerEntity(request.getCustomerInfo());
                 customerEntity = customerRepository.save(customerEntity);
-                log.info("New customer was created. customerId" + customerEntity.getId());
+                log.info("New customer was created. customerId - {}", customerEntity.getId());
             }
         } else {
             customerEntity = customerRepository.findById(customerId)
