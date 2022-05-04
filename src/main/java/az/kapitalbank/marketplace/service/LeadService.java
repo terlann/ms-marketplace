@@ -1,18 +1,17 @@
 package az.kapitalbank.marketplace.service;
 
-import static az.kapitalbank.marketplace.constant.OptimusConstant.CARD_PRODUCT_CODE;
 import static az.kapitalbank.marketplace.constant.TelesalesConstant.UMICO_SOURCE_CODE;
 
 import az.kapitalbank.marketplace.client.loan.LoanClient;
 import az.kapitalbank.marketplace.client.loan.model.LoanRequest;
 import az.kapitalbank.marketplace.client.loan.model.LoanResponse;
 import az.kapitalbank.marketplace.client.telesales.TelesalesClient;
-import az.kapitalbank.marketplace.client.telesales.model.CreateTelesalesOrderRequest;
 import az.kapitalbank.marketplace.constant.FraudType;
 import az.kapitalbank.marketplace.constant.ProductType;
 import az.kapitalbank.marketplace.constant.SubProductType;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.mapper.TelesalesMapper;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import lombok.AccessLevel;
@@ -36,8 +35,7 @@ public class LeadService {
                                                List<FraudType> fraudTypes) {
         var trackId = operationEntity.getId();
         try {
-            var request =
-                    getCreateTelesalesOrderRequest(operationEntity, fraudTypes);
+            var request = telesalesMapper.toTelesalesOrder(operationEntity, fraudTypes);
             log.info("Send lead to telesales is started : trackId - {}, request - {}",
                     trackId, request);
             var createTelesalesOrderResponse =
@@ -60,16 +58,6 @@ public class LeadService {
             operationEntity.setSendLeadTelesales(false);
             return Optional.empty();
         }
-    }
-
-    private CreateTelesalesOrderRequest getCreateTelesalesOrderRequest(
-            OperationEntity operationEntity, List<FraudType> fraudTypes) {
-        var request = telesalesMapper.toTelesalesOrder(operationEntity, fraudTypes);
-        var orderComment = request.getOrderComment();
-        orderComment = orderComment == null ? CARD_PRODUCT_CODE :
-                CARD_PRODUCT_CODE + ";" + orderComment;
-        request.setOrderComment(orderComment);
-        return request;
     }
 
     public Optional<String> sendLeadLoan(OperationEntity operationEntity) {
@@ -97,6 +85,9 @@ public class LeadService {
     }
 
     public void sendLead(OperationEntity operationEntity, List<FraudType> fraudTypes) {
+        if (fraudTypes == null) {
+            fraudTypes = new ArrayList<>();
+        }
         var telesalesOrderId = sendLeadTelesales(operationEntity, fraudTypes);
         telesalesOrderId.ifPresent(operationEntity::setTelesalesOrderId);
         var umicoDecisionStatus = umicoService.sendPendingDecision(operationEntity.getId());
