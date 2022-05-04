@@ -1,5 +1,7 @@
 package az.kapitalbank.marketplace.mapper.qualifier;
 
+import static az.kapitalbank.marketplace.constant.OptimusConstant.CARD_PRODUCT_CODE;
+
 import az.kapitalbank.marketplace.constant.FraudType;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import java.math.BigDecimal;
@@ -14,7 +16,8 @@ public class TelesalesQualifier {
 
     @Named("mapFraudTypes")
     public String mapFraudTypes(List<FraudType> fraudTypes) {
-        return fraudTypes.stream().map(Object::toString).collect(Collectors.joining(";"));
+        var frauds = fraudTypes.stream().map(Object::toString).collect(Collectors.joining(";"));
+        return frauds.isEmpty() ? CARD_PRODUCT_CODE : CARD_PRODUCT_CODE + ";" + frauds;
     }
 
     @Named("mapTotalAmount")
