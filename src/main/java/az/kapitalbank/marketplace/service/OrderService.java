@@ -420,7 +420,7 @@ public class OrderService {
             throw new RefundException(ORDER_NO_LOG + orderEntity.getOrderNo());
         }
         refundAmount(orderEntity);
-        log.info("Refund process was finished ");
+        log.info("Auto refund process was finished ");
     }
 
     @Transactional(dontRollbackOn = RefundException.class)

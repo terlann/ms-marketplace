@@ -30,7 +30,7 @@ public class RefundSchedule {
             try {
                 orderService.autoRefund(order);
             } catch (Exception ex) {
-                log.error("Exception : {}", ex);
+                log.error("Auto refund order failed : orderNo - ", order.getOrderNo());
             }
         }
         log.info("Auto refund process finished at {}", LocalDateTime.now());
