@@ -496,7 +496,7 @@ public class OrderService {
     private void validatePurchaseAmountLimit(CreateOrderRequestDto request) {
         var purchaseAmount = getPurchaseAmount(request);
         var minLimitDifference = purchaseAmount.compareTo(BigDecimal.valueOf(50));
-        var maxLimitDifference = purchaseAmount.compareTo(BigDecimal.valueOf(20000));
+        var maxLimitDifference = purchaseAmount.compareTo(BigDecimal.valueOf(15000));
         if (minLimitDifference < 0 || maxLimitDifference > 0) {
             throw new TotalAmountLimitException(purchaseAmount);
         }
