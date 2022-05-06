@@ -110,6 +110,7 @@ sonarqube {
                         "**/az/kapitalbank/marketplace/mapper/**," +
                         "**/az/kapitalbank/marketplace/messaging/**," +
                         "**/az/kapitalbank/marketplace/repository/**," +
+                        "**/az/kapitalbank/marketplace/scheduler/**," +
                         "**/az/kapitalbank/marketplace/util/**"
     }
 }
