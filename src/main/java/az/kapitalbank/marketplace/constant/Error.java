@@ -15,7 +15,7 @@ public enum Error {
     NO_MATCH_LOAN_AMOUNT_BY_ORDERS("E102", "Loan amount is not equal total order amount"),
     LOAN_TERM_NOT_FOUND("E103", "No such loan term"),
     PURCHASE_AMOUNT_LIMIT("E104",
-            "Purchase amount must be between 50 and 20000 in first transaction"),
+            "Purchase amount must be between 50 and 15000 in first transaction"),
     NO_ENOUGH_BALANCE("E105", "There is no enough amount in balance"),
     CUSTOMER_NOT_COMPLETED_PROCESS("E106", "Customer has not yet completed the process"),
     CUSTOMER_NOT_FOUND("E107", "Customer not found"),

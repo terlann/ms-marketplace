@@ -1,6 +1,7 @@
 package az.kapitalbank.marketplace.dto.request;
 
 import az.kapitalbank.marketplace.constant.ScoringStatus;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import javax.validation.constraints.NotBlank;
@@ -17,6 +18,7 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class TelesalesResultRequestDto {
     @NotBlank
     String telesalesOrderId;
@@ -27,4 +29,5 @@ public class TelesalesResultRequestDto {
     String uid;
     String pan;
     BigDecimal scoredAmount;
+    Long rejectReasonCode;
 }
