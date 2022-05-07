@@ -2,19 +2,27 @@ package az.kapitalbank.marketplace.service;
 
 import static az.kapitalbank.marketplace.constants.ConstantObject.getCustomerEntity;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntity;
+import static az.kapitalbank.marketplace.constants.ConstantObject.getProcessResponse;
 import static az.kapitalbank.marketplace.constants.TestConstants.BUSINESS_KEY;
 import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
+import static az.kapitalbank.marketplace.constants.TestConstants.MOBILE_NUMBER;
+import static az.kapitalbank.marketplace.constants.TestConstants.TASK_ID;
 import static az.kapitalbank.marketplace.constants.TestConstants.TRACK_ID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import az.kapitalbank.marketplace.client.common.CommonClient;
+import az.kapitalbank.marketplace.client.common.model.request.SendSmsRequest;
+import az.kapitalbank.marketplace.client.common.model.response.SendSmsResponse;
 import az.kapitalbank.marketplace.client.optimus.model.process.CreateCardCreditRequest;
 import az.kapitalbank.marketplace.client.optimus.model.process.Offer;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessData;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
 import az.kapitalbank.marketplace.client.optimus.model.process.SelectedOffer;
+import az.kapitalbank.marketplace.config.SmsProperties;
 import az.kapitalbank.marketplace.constant.FraudResultStatus;
 import az.kapitalbank.marketplace.constant.ProcessStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
@@ -26,6 +34,7 @@ import az.kapitalbank.marketplace.messaging.event.PrePurchaseEvent;
 import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
 import az.kapitalbank.marketplace.messaging.event.VerificationResultEvent;
 import az.kapitalbank.marketplace.repository.OperationRepository;
+import feign.FeignException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -53,6 +62,10 @@ class LoanFormalizationServiceTest {
     VerificationService verificationService;
     @Mock
     OperationRepository operationRepository;
+    @Mock
+    CommonClient commonClient;
+    @Mock
+    SmsProperties smsProperties;
     @InjectMocks
     private LoanFormalizationService loanFormalizationService;
 
@@ -121,42 +134,28 @@ class LoanFormalizationServiceTest {
 
     @Test
     void scoringResultProcess_InUserActivity_UserTaskSignDocuments() {
-        BusinessErrorData[] arr = new BusinessErrorData[] {
-                BusinessErrorData.builder().id("RULE_HAS_WRITTEN_OF_CREDIT").build()};
         var inUserActivityData = InUserActivityData.builder()
                 .taskDefinitionKey("USER_TASK_SIGN_DOCUMENTS").build();
         var request = ScoringResultEvent.builder()
                 .processStatus(ProcessStatus.IN_USER_ACTIVITY)
                 .data(inUserActivityData)
                 .businessKey(BUSINESS_KEY.getValue()).build();
-        var processResponse = ProcessResponse.builder()
-                .variables(ProcessData.builder()
-                        .dvsOrderId(12345L)
-                        .createCardCreditRequest(CreateCardCreditRequest.builder()
-                                .startDate(LocalDate.parse("2020-02-02"))
-                                .endDate(LocalDate.parse("2020-02-02"))
-                                .build())
-                        .selectedOffer(SelectedOffer.builder()
-                                .cardOffer(Offer.builder()
-                                        .availableLoanAmount(BigDecimal.ONE)
-                                        .build())
-                                .build()).build()).build();
         when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
                 Optional.of(getOperationEntity()));
         when(scoringService.getProcess(any(OperationEntity.class))).thenReturn(
-                Optional.of(processResponse));
+                Optional.of(getProcessResponse()));
         when(verificationService.getDvsUrl(getOperationEntity().getId(),
                 getOperationEntity().getDvsOrderId())).thenReturn(Optional.of("Https//dvs.com"));
-
+        when(commonClient.sendSms(new SendSmsRequest(any(), MOBILE_NUMBER.getValue()))).thenReturn(
+                new SendSmsResponse(UUID.fromString(TASK_ID.getValue())));
+        when(operationRepository.getByMobileNumber(
+                UUID.fromString(TRACK_ID.getValue()))).thenReturn(MOBILE_NUMBER.getValue());
         loanFormalizationService.scoringResultProcess(request);
-
         verify(operationRepository).findByBusinessKey(request.getBusinessKey());
     }
 
     @Test
     void scoringResultProcess_InUserActivity_UserTaskSignDocuments_NoDvsUrl() {
-        BusinessErrorData[] arr = new BusinessErrorData[] {
-                BusinessErrorData.builder().id("RULE_HAS_WRITTEN_OF_CREDIT").build()};
         var inUserActivityData = InUserActivityData.builder()
                 .taskDefinitionKey("USER_TASK_SIGN_DOCUMENTS").build();
         var request = ScoringResultEvent.builder()
@@ -326,5 +325,27 @@ class LoanFormalizationServiceTest {
                 eq(operationEntity.getCustomer().getCardId()))).thenReturn(BigDecimal.ZERO);
         loanFormalizationService.prePurchaseProcess(new PrePurchaseEvent(operationEntity.getId()));
         verify(operationRepository).findById(operationEntity.getId());
+    }
+
+    @Test
+    void scoringResultProcess_InUserActivity_UserTaskSignDocuments_Exception() {
+        var inUserActivityData = InUserActivityData.builder()
+                .taskDefinitionKey("USER_TASK_SIGN_DOCUMENTS").build();
+        var request = ScoringResultEvent.builder()
+                .processStatus(ProcessStatus.IN_USER_ACTIVITY)
+                .data(inUserActivityData)
+                .businessKey(BUSINESS_KEY.getValue()).build();
+        when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
+                Optional.of(getOperationEntity()));
+        when(scoringService.getProcess(any(OperationEntity.class))).thenReturn(
+                Optional.of(getProcessResponse()));
+        when(verificationService.getDvsUrl(getOperationEntity().getId(),
+                getOperationEntity().getDvsOrderId())).thenReturn(Optional.of("Https//dvs.com"));
+        doThrow(FeignException.class).when(commonClient)
+                .sendSms(any(SendSmsRequest.class));
+        when(operationRepository.getByMobileNumber(
+                UUID.fromString(TRACK_ID.getValue()))).thenReturn(MOBILE_NUMBER.getValue());
+        loanFormalizationService.scoringResultProcess(request);
+        verify(operationRepository).findByBusinessKey(request.getBusinessKey());
     }
 }

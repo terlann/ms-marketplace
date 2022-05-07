@@ -78,6 +78,8 @@ client:
     url: https://pre.ms-otp.kapitalbank.az/v1
   loan:
     url: https://dev.ms-loan.kapitalbank.az/v1
+  adp-common:
+    url: https://pre.adp-common.kapitalbank.az/api/v1
 feign:
   httpclient:
     disable-ssl-validation: true

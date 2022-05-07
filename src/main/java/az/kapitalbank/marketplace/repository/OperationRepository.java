@@ -26,4 +26,6 @@ public interface OperationRepository extends JpaRepository<OperationEntity, UUID
     boolean existsByCustomerIdAndUmicoDecisionStatuses(
             String customerId, List<UmicoDecisionStatus> decisions);
 
+    String getByMobileNumber(UUID trackId);
+
 }

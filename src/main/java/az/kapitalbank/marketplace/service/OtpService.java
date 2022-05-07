@@ -1,6 +1,6 @@
 package az.kapitalbank.marketplace.service;
 
-import static az.kapitalbank.marketplace.constant.OptimusConstant.SALES_SOURCE;
+import static az.kapitalbank.marketplace.constant.OptimusConstant.OTP_SOURCE;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.otp.OtpClient;
@@ -54,7 +54,7 @@ public class OtpService {
         String cardLinkedMobileNumber = getCardLinkedMobileNumber(cardId);
         SendOtpRequest sendOtpRequest = SendOtpRequest.builder().phoneNumber(cardLinkedMobileNumber)
                 .definitionId(UUID.fromString(OtpConstant.DEFINITION_ID.getValue()))
-                .data(new ChannelRequest(SALES_SOURCE)).build();
+                .data(new ChannelRequest(OTP_SOURCE)).build();
         log.info("Send otp client process is started : trackId - {}, request - {}", trackId,
                 sendOtpRequest);
         try {

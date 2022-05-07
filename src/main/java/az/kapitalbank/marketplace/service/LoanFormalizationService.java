@@ -3,7 +3,10 @@ package az.kapitalbank.marketplace.service;
 import static az.kapitalbank.marketplace.constant.AtlasConstant.UID;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PREAPPROVED;
 
+import az.kapitalbank.marketplace.client.common.CommonClient;
+import az.kapitalbank.marketplace.client.common.model.request.SendSmsRequest;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
+import az.kapitalbank.marketplace.config.SmsProperties;
 import az.kapitalbank.marketplace.constant.DvsStatus;
 import az.kapitalbank.marketplace.constant.FraudResultStatus;
 import az.kapitalbank.marketplace.constant.OperationRejectReason;
@@ -21,10 +24,12 @@ import az.kapitalbank.marketplace.messaging.event.PrePurchaseEvent;
 import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
 import az.kapitalbank.marketplace.messaging.event.VerificationResultEvent;
 import az.kapitalbank.marketplace.repository.OperationRepository;
+import feign.FeignException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.UUID;
 import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +50,8 @@ public class LoanFormalizationService {
     LeadService leadService;
     VerificationService verificationService;
     OperationRepository operationRepository;
+    CommonClient commonClient;
+    SmsProperties smsProperties;
 
     @Transactional
     public void fraudResultProcess(FraudCheckResultEvent fraudCheckResultEvent) {
@@ -222,12 +229,27 @@ public class LoanFormalizationService {
         if (dvsUrl.isPresent()) {
             var umicoDecisionStatus = umicoService.sendPreApprovedDecision(trackId, dvsUrl.get(),
                     UmicoDecisionStatus.PREAPPROVED);
+            var mobileNumber = operationRepository.getByMobileNumber(trackId);
+            String description = smsProperties.getValues().get("preapprove");
+            sendSms(trackId, mobileNumber, description);
             operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
         } else {
             operationEntity.setSendLeadReason(SendLeadReason.DVS_URL_FAIL);
             leadService.sendLead(operationEntity, null);
         }
         operationRepository.save(operationEntity);
+    }
+
+    private void sendSms(UUID trackId, String mobileNumber, String description) {
+        mobileNumber = mobileNumber.replace("+", "");
+        try {
+            var sendSmsResponse =
+                    commonClient.sendSms(new SendSmsRequest(description, mobileNumber));
+            log.info("Send sms : Response - {}, mobileNumber - {}", sendSmsResponse,
+                    mobileNumber);
+        } catch (FeignException ex) {
+            log.error("Send sms was failed : trackId - {}, exception - {}", trackId, ex);
+        }
     }
 
     private void scoringCompletedProcess(OperationEntity operationEntity) {
