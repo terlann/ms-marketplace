@@ -45,17 +45,17 @@ public class LeadService {
             if (!responseCode.equals("0")) {
                 log.error("Send lead to telesales was failed : trackId - {}, exception - {}",
                         trackId, responseMessage);
-                operationEntity.setSendLeadTelesales(false);
+                operationEntity.setIsSendLead(false);
                 return Optional.empty();
             }
-            operationEntity.setSendLeadTelesales(true);
+            operationEntity.setIsSendLead(true);
             log.info("Send lead to telesales was finished :" + " trackId - {}, response - {}",
                     trackId, createTelesalesOrderResponse);
             return Optional.of(createTelesalesOrderResponse.getOperationId());
         } catch (Exception e) {
             log.error("Send lead to telesales was failed :"
                     + " trackId - {}, exception - {}", trackId, e);
-            operationEntity.setSendLeadTelesales(false);
+            operationEntity.setIsSendLead(false);
             return Optional.empty();
         }
     }

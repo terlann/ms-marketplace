@@ -103,7 +103,7 @@ public class OrderService {
         } else {
             var umicoDecisionStatus = umicoService.sendRejectedDecision(operationEntity.getId());
             operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
-            operationEntity.setOperationRejectReason(OperationRejectReason.TELESALES);
+            operationEntity.setRejectReason(OperationRejectReason.TELESALES);
             operationEntity.setScoringStatus(ScoringStatus.REJECTED);
         }
         operationEntity.setScoringDate(LocalDateTime.now());
@@ -266,7 +266,7 @@ public class OrderService {
     private void verifyProductIdIsLinkedToOrderNo(PurchaseRequestDto request,
                                                   List<ProductEntity> productEntities) {
         var orderProductIdList =
-                productEntities.stream().map(ProductEntity::getProductId)
+                productEntities.stream().map(ProductEntity::getProductNo)
                         .collect(Collectors.toList());
         for (var deliveryProduct : request.getDeliveryProducts()) {
             if (!orderProductIdList.contains(deliveryProduct.getProductId())) {
@@ -281,9 +281,9 @@ public class OrderService {
         var deliveredOrderAmount = BigDecimal.ZERO;
         for (var productEntity : productEntities) {
             for (var deliveryProduct : request.getDeliveryProducts()) {
-                if (productEntity.getProductId().equals(deliveryProduct.getProductId())) {
+                if (productEntity.getProductNo().equals(deliveryProduct.getProductId())) {
                     deliveredOrderAmount =
-                            deliveredOrderAmount.add(productEntity.getProductAmount());
+                            deliveredOrderAmount.add(productEntity.getAmount());
                     productEntity.setDeliveryStatus(true);
                     break;
                 }
