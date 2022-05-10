@@ -307,6 +307,7 @@ public class OrderService {
             order.setTransactionId(transactionId);
             order.setRrn(completePrePurchaseRequest.getRrn());
             order.setTransactionStatus(TransactionStatus.COMPLETE_PRE_PURCHASE);
+            order.setTransactionDate(LocalDateTime.now());
         } catch (FeignException ex) {
             exception = ex;
             order.setTransactionStatus(TransactionStatus.FAIL_IN_COMPLETE_PRE_PURCHASE);
@@ -315,7 +316,6 @@ public class OrderService {
                             + "orderNo - {}, exception - {}",
                     order.getOrderNo(), ex);
         }
-        order.setTransactionDate(LocalDateTime.now());
         orderRepository.save(order);
         if (exception != null) {
             throw new CompletePrePurchaseException(ORDER_NO_LOG + order.getOrderNo());
@@ -346,12 +346,12 @@ public class OrderService {
                 .rrn(rrn).amount(totalOrderAmount).uid(cardId)
                 .description(PRE_PURCHASE_DESCRIPTION + orderEntity.getOrderNo()).build();
         try {
-            orderEntity.setTransactionDate(LocalDateTime.now());
             var purchaseResponse = atlasClient.prePurchase(prePurchaseRequest);
             orderEntity.setRrn(rrn);
             orderEntity.setTransactionId(purchaseResponse.getId());
             orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
             orderEntity.setTransactionStatus(TransactionStatus.PRE_PURCHASE);
+            orderEntity.setTransactionDate(LocalDateTime.now());
             return BigDecimal.ZERO;
         } catch (FeignException ex) {
             log.error("Atlas pre purchase process was failed : orderNo - {}, exception - {}",
@@ -466,13 +466,13 @@ public class OrderService {
             orderEntity.setRrn(rrn);
             orderEntity.setTransactionId(refundResponse.getId());
             orderEntity.setTransactionStatus(TransactionStatus.REFUND);
+            orderEntity.setTransactionDate(LocalDateTime.now());
         } catch (FeignException ex) {
             exception = ex;
             orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_REFUND);
             log.error("Atlas refund process was failed : orderNo - {}, AtlasClientException - {}",
                     orderEntity.getOrderNo(), ex);
         }
-        orderEntity.setTransactionDate(LocalDateTime.now());
         orderRepository.save(orderEntity);
         if (exception != null) {
             throw new RefundException(ORDER_NO_LOG + orderEntity.getOrderNo());
