@@ -36,5 +36,8 @@ public interface OrderMapper {
 
     OrderEntity toOrderEntity(OrderProductDeliveryInfo deliveryInfo, BigDecimal commission);
 
+    @Mapping(source = "productId", target = "productNo")
+    @Mapping(source = "productAmount", target = "amount")
+    @Mapping(source = "productName", target = "name")
     ProductEntity toProductEntity(OrderProductItem orderProductItem);
 }

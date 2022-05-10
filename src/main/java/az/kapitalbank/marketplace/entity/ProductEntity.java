@@ -25,9 +25,9 @@ import lombok.experimental.SuperBuilder;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ProductEntity extends BaseEntity {
     @Column(unique = true)
-    String productId;
-    BigDecimal productAmount;
-    String productName;
+    String productNo;
+    BigDecimal amount;
+    String name;
     String itemType;
     String partnerCmsId;
     Boolean deliveryStatus;
