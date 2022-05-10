@@ -67,15 +67,15 @@ public class ConstantObject {
 
     public static ProductEntity getProductEntity() {
         return ProductEntity.builder()
-                .productId("p1")
-                .productAmount(BigDecimal.ONE)
+                .productNo("p1")
+                .amount(BigDecimal.ONE)
                 .build();
     }
 
     public static ProductEntity getProductEntity2() {
         return ProductEntity.builder()
-                .productId("p2")
-                .productAmount(BigDecimal.ONE)
+                .productNo("p2")
+                .amount(BigDecimal.ONE)
                 .build();
     }
 
