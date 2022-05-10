@@ -29,10 +29,14 @@ public class RefundSchedule {
         for (var order : orders) {
             try {
                 orderService.autoRefund(order);
+                order.setTransactionStatus(TransactionStatus.AUTO_REFUND);
+                order.setTransactionDate(LocalDateTime.now());
             } catch (Exception ex) {
                 log.error("Auto refund order failed : orderNo - {}", order.getOrderNo());
+                order.setTransactionStatus(TransactionStatus.FAIL_IN_AUTO_REFUND);
             }
         }
+        orderRepository.saveAll(orders);
         log.info("Auto refund process finished at {}", LocalDateTime.now());
     }
 }
