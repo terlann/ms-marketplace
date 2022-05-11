@@ -17,13 +17,12 @@ public interface OperationRepository extends JpaRepository<OperationEntity, UUID
 
     Optional<OperationEntity> findByBusinessKey(String businessKey);
 
-    @Query(nativeQuery = true,
-            value = "select CASE WHEN (count(*) > 0) THEN 'true'  ELSE 'false' END "
+    @Query(nativeQuery = true, value =
+            "select CASE WHEN (count(*) > 0) THEN 'true'  ELSE 'false' END "
                     + "from KB_MARKETPLACE_OPERATION "
                     + "where CUSTOMER_ID = :customerId "
-                    + "AND (UMICO_DECISION_STATUS is null "
-                    + "or UMICO_DECISION_STATUS in (:decisions))")
+                    + "  and (UMICO_DECISION_STATUS is null "
+                    + "  or UMICO_DECISION_STATUS in (:decisions))")
     boolean existsByCustomerIdAndUmicoDecisionStatuses(
             String customerId, List<UmicoDecisionStatus> decisions);
-
 }
