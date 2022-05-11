@@ -1,5 +1,9 @@
 package az.kapitalbank.marketplace.service;
 
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PENDING;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PREAPPROVED;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PENDING;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PREAPPROVED;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getCardDetailResponse;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getCustomerEntity;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getCustomerEntity2;
@@ -190,7 +194,9 @@ class OrderServiceTest {
                 customerEntity2);
         when(operationRepository
                 .existsByCustomerIdAndUmicoDecisionStatuses(
-                        CUSTOMER_ID.getValue())).thenReturn(true);
+                        CUSTOMER_ID.getValue(),
+                        List.of(PENDING, FAIL_IN_PENDING, PREAPPROVED,
+                                FAIL_IN_PREAPPROVED))).thenReturn(true);
         assertThrows(CustomerNotCompletedProcessException.class,
                 () -> orderService.createOrder(request));
     }
