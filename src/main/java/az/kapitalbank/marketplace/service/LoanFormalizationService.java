@@ -63,7 +63,7 @@ public class LoanFormalizationService {
                 log.info("This operation was found in blacklist : trackId - {}", trackId);
                 var umicoDecisionStatus = umicoService.sendRejectedDecision(trackId);
                 operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
-                operationEntity.setOperationRejectReason(
+                operationEntity.setRejectReason(
                         OperationRejectReason.BLACKLIST);
                 operationRepository.save(operationEntity);
             } else if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_TELESALES) {
@@ -75,7 +75,7 @@ public class LoanFormalizationService {
                 log.info("Fraud case was found and sent to umico : trackId - {}", trackId);
                 var umicoDecisionStatus = umicoService.sendRejectedDecision(trackId);
                 operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
-                operationEntity.setOperationRejectReason(OperationRejectReason.FRAUD);
+                operationEntity.setRejectReason(OperationRejectReason.FRAUD);
                 operationRepository.save(operationEntity);
             } else {
                 noFraudProcess(operationEntity);
@@ -145,7 +145,7 @@ public class LoanFormalizationService {
         log.info("Verification status result rejected : trackId - {}", operationEntity.getId());
         var umicoDecisionStatus = umicoService.sendRejectedDecision(operationEntity.getId());
         operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
-        operationEntity.setOperationRejectReason(OperationRejectReason.DVS);
+        operationEntity.setRejectReason(OperationRejectReason.DVS);
         operationEntity.setDvsOrderStatus(DvsStatus.REJECTED);
         operationRepository.save(operationEntity);
     }
@@ -288,7 +288,7 @@ public class LoanFormalizationService {
         if (rejectedBusinessError.isPresent()) {
             var umicoDecisionStatus = umicoService.sendRejectedDecision(operationEntity.getId());
             operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
-            operationEntity.setOperationRejectReason(OperationRejectReason.BUSINESS_ERROR);
+            operationEntity.setRejectReason(OperationRejectReason.BUSINESS_ERROR);
         } else {
             leadService.sendLead(operationEntity, null);
             operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_BUSINESS_ERROR);

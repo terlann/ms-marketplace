@@ -64,6 +64,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -103,7 +104,7 @@ public class OrderService {
         } else {
             var umicoDecisionStatus = umicoService.sendRejectedDecision(operationEntity.getId());
             operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
-            operationEntity.setOperationRejectReason(OperationRejectReason.TELESALES);
+            operationEntity.setRejectReason(OperationRejectReason.TELESALES);
             operationEntity.setScoringStatus(ScoringStatus.REJECTED);
         }
         operationEntity.setScoringDate(LocalDateTime.now());
@@ -204,9 +205,12 @@ public class OrderService {
     }
 
     private void checkCustomerIncompleteProcess(CustomerEntity customerEntity) {
+        var decisions = Stream.of(PENDING, FAIL_IN_PENDING, PREAPPROVED, FAIL_IN_PREAPPROVED)
+                .map(Enum::name)
+                .collect(Collectors.toList());
         var isExistsCustomerByDecisionStatus = operationRepository
                 .existsByCustomerIdAndUmicoDecisionStatuses(customerEntity.getId().toString(),
-                        List.of(PENDING, FAIL_IN_PENDING, PREAPPROVED, FAIL_IN_PREAPPROVED));
+                        decisions);
         if (isExistsCustomerByDecisionStatus) {
             throw new CustomerNotCompletedProcessException(
                     "customerId - " + customerEntity.getId());
@@ -266,7 +270,7 @@ public class OrderService {
     private void verifyProductIdIsLinkedToOrderNo(PurchaseRequestDto request,
                                                   List<ProductEntity> productEntities) {
         var orderProductIdList =
-                productEntities.stream().map(ProductEntity::getProductId)
+                productEntities.stream().map(ProductEntity::getProductNo)
                         .collect(Collectors.toList());
         for (var deliveryProduct : request.getDeliveryProducts()) {
             if (!orderProductIdList.contains(deliveryProduct.getProductId())) {
@@ -281,9 +285,9 @@ public class OrderService {
         var deliveredOrderAmount = BigDecimal.ZERO;
         for (var productEntity : productEntities) {
             for (var deliveryProduct : request.getDeliveryProducts()) {
-                if (productEntity.getProductId().equals(deliveryProduct.getProductId())) {
+                if (productEntity.getProductNo().equals(deliveryProduct.getProductId())) {
                     deliveredOrderAmount =
-                            deliveredOrderAmount.add(productEntity.getProductAmount());
+                            deliveredOrderAmount.add(productEntity.getAmount());
                     productEntity.setDeliveryStatus(true);
                     break;
                 }
