@@ -6,17 +6,14 @@ import static az.kapitalbank.marketplace.constants.ConstantObject.getProcessResp
 import static az.kapitalbank.marketplace.constants.TestConstants.BUSINESS_KEY;
 import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
 import static az.kapitalbank.marketplace.constants.TestConstants.MOBILE_NUMBER;
-import static az.kapitalbank.marketplace.constants.TestConstants.TASK_ID;
 import static az.kapitalbank.marketplace.constants.TestConstants.TRACK_ID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import az.kapitalbank.marketplace.client.common.CommonClient;
 import az.kapitalbank.marketplace.client.common.model.request.SendSmsRequest;
-import az.kapitalbank.marketplace.client.common.model.response.SendSmsResponse;
 import az.kapitalbank.marketplace.client.optimus.model.process.CreateCardCreditRequest;
 import az.kapitalbank.marketplace.client.optimus.model.process.Offer;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessData;
@@ -34,7 +31,6 @@ import az.kapitalbank.marketplace.messaging.event.PrePurchaseEvent;
 import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
 import az.kapitalbank.marketplace.messaging.event.VerificationResultEvent;
 import az.kapitalbank.marketplace.repository.OperationRepository;
-import feign.FeignException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Optional;
@@ -66,6 +62,8 @@ class LoanFormalizationServiceTest {
     CommonClient commonClient;
     @Mock
     SmsProperties smsProperties;
+    @Mock
+    SmsService smsService;
     @InjectMocks
     private LoanFormalizationService loanFormalizationService;
 
@@ -140,16 +138,20 @@ class LoanFormalizationServiceTest {
                 .processStatus(ProcessStatus.IN_USER_ACTIVITY)
                 .data(inUserActivityData)
                 .businessKey(BUSINESS_KEY.getValue()).build();
+        var operationEntity = OperationEntity.builder()
+                .id(UUID.fromString(TRACK_ID.getValue()))
+                .mobileNumber(MOBILE_NUMBER.getValue())
+                .build();
+        var sendSmsRequest = SendSmsRequest.builder()
+                .body(any())
+                .phoneNumber(operationEntity.getMobileNumber())
+                .build();
         when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
                 Optional.of(getOperationEntity()));
         when(scoringService.getProcess(any(OperationEntity.class))).thenReturn(
                 Optional.of(getProcessResponse()));
         when(verificationService.getDvsUrl(getOperationEntity().getId(),
                 getOperationEntity().getDvsOrderId())).thenReturn(Optional.of("Https//dvs.com"));
-        when(commonClient.sendSms(new SendSmsRequest(any(), MOBILE_NUMBER.getValue()))).thenReturn(
-                new SendSmsResponse(UUID.fromString(TASK_ID.getValue())));
-        when(operationRepository.getByMobileNumber(
-                UUID.fromString(TRACK_ID.getValue()))).thenReturn(MOBILE_NUMBER.getValue());
         loanFormalizationService.scoringResultProcess(request);
         verify(operationRepository).findByBusinessKey(request.getBusinessKey());
     }
@@ -341,10 +343,6 @@ class LoanFormalizationServiceTest {
                 Optional.of(getProcessResponse()));
         when(verificationService.getDvsUrl(getOperationEntity().getId(),
                 getOperationEntity().getDvsOrderId())).thenReturn(Optional.of("Https//dvs.com"));
-        doThrow(FeignException.class).when(commonClient)
-                .sendSms(any(SendSmsRequest.class));
-        when(operationRepository.getByMobileNumber(
-                UUID.fromString(TRACK_ID.getValue()))).thenReturn(MOBILE_NUMBER.getValue());
         loanFormalizationService.scoringResultProcess(request);
         verify(operationRepository).findByBusinessKey(request.getBusinessKey());
     }

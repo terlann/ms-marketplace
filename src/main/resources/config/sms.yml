@@ -1,6 +1,6 @@
-descriptions:
-  values:
+sms:
+  text:
     preapprove: Kredit muracietiniz qeyde alinib. Uz tanima ile davam edin.
-    scoringCompleted: Kredit sorgunuz tesdiqlendi.
-    pre-purchase: manat bloklanib.
+    complete-scoring: Kredit sorgunuz tesdiqlendi.Kredit xetti %s manat.
+    pre-purchase: %s manat bloklanib.
     pending: Bank tezlikle sizinle elaqe saxlayacaq.

@@ -102,7 +102,7 @@ public class OtpService {
         return objectMapper.readValue(otpClientResponse, OtpClientErrorResponse.class);
     }
 
-    private String getCardLinkedMobileNumber(String cardId) {
+    public String getCardLinkedMobileNumber(String cardId) {
         log.info("Card linked mobile number process is started : cardId - {}", cardId);
         var subscriptionResponse = atlasClient.findAllByUid(cardId, "", "");
         log.info("AtlasClient subscriptionResponse : {}", subscriptionResponse);
