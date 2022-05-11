@@ -1,6 +1,5 @@
 package az.kapitalbank.marketplace.repository;
 
-import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import java.util.List;
 import java.util.Optional;
@@ -23,5 +22,5 @@ public interface OperationRepository extends JpaRepository<OperationEntity, UUID
                     + "AND (UMICO_DECISION_STATUS IS NULL "
                     + "OR UMICO_DECISION_STATUS IN :decisions)")
     boolean existsByCustomerIdAndUmicoDecisionStatuses(
-            String customerId, List<UmicoDecisionStatus> decisions);
+            String customerId, List<String> decisions);
 }
