@@ -3,9 +3,7 @@ package az.kapitalbank.marketplace.service;
 import static az.kapitalbank.marketplace.constant.AtlasConstant.UID;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PREAPPROVED;
 
-import az.kapitalbank.marketplace.client.common.CommonClient;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
-import az.kapitalbank.marketplace.config.SmsProperties;
 import az.kapitalbank.marketplace.constant.DvsStatus;
 import az.kapitalbank.marketplace.constant.FraudResultStatus;
 import az.kapitalbank.marketplace.constant.OperationRejectReason;
@@ -43,12 +41,9 @@ public class LoanFormalizationService {
     UmicoService umicoService;
     OrderService orderService;
     ScoringService scoringService;
-    CustomerService customerService;
     LeadService leadService;
     VerificationService verificationService;
     OperationRepository operationRepository;
-    CommonClient commonClient;
-    SmsProperties smsProperties;
     SmsService smsService;
 
     @Transactional

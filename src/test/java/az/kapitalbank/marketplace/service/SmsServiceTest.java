@@ -47,7 +47,7 @@ class SmsServiceTest {
     }
 
     @Test
-    void smsService_sendSmsPreapprove_Success() {
+    void sendSmsPreApprove_Success() {
         var operationEntity = OperationEntity.builder()
                 .id(UUID.fromString(TRACK_ID.getValue()))
                 .mobileNumber(MOBILE_NUMBER.getValue())
@@ -63,7 +63,19 @@ class SmsServiceTest {
     }
 
     @Test
-    void smsService_sendSmsCompleteScoring_Success() {
+    void sendSmsPreApprove_Exception() {
+        var operationEntity = OperationEntity.builder()
+                .id(UUID.fromString(TRACK_ID.getValue()))
+                .mobileNumber(MOBILE_NUMBER.getValue())
+                .build();
+        doThrow(FeignException.class).when(commonClient)
+                .sendSms(new SendSmsRequest(any(), MOBILE_NUMBER.getValue()));
+        smsService.sendSmsPreapprove(operationEntity);
+        verify(commonClient).sendSms(new SendSmsRequest(any(), MOBILE_NUMBER.getValue()));
+    }
+
+    @Test
+    void sendSmsCompleteScoring_Success() {
 
         var operationEntity = OperationEntity.builder()
                 .id(UUID.fromString(TRACK_ID.getValue()))
@@ -82,7 +94,7 @@ class SmsServiceTest {
     }
 
     @Test
-    void smsService_sendSmsPrePurchase_Success() {
+    void sendSmsPrePurchase_Success() {
         var customer = CustomerEntity.builder()
                 .cardId(CARD_UID.getValue())
                 .build();
@@ -90,6 +102,7 @@ class SmsServiceTest {
                 .id(UUID.fromString(TRACK_ID.getValue()))
                 .mobileNumber(MOBILE_NUMBER.getValue())
                 .totalAmount(BigDecimal.valueOf(55))
+                .commission(BigDecimal.valueOf(0))
                 .customer(customer)
                 .build();
         var sendSmsRequest = SendSmsRequest.builder()
@@ -105,7 +118,7 @@ class SmsServiceTest {
     }
 
     @Test
-    void smsService_sendSmsPending_Success() {
+    void sendSmsPending_Success() {
         var operationEntity = OperationEntity.builder()
                 .id(UUID.fromString(TRACK_ID.getValue()))
                 .mobileNumber(MOBILE_NUMBER.getValue())
@@ -118,17 +131,5 @@ class SmsServiceTest {
                 new SendSmsResponse(UUID.fromString(TRACK_ID.getValue())));
         smsService.sendSmsPending(operationEntity);
         verify(commonClient).sendSms(sendSmsRequest);
-    }
-
-    @Test
-    void sendSms_Exception() {
-        var operationEntity = OperationEntity.builder()
-                .id(UUID.fromString(TRACK_ID.getValue()))
-                .mobileNumber(MOBILE_NUMBER.getValue())
-                .build();
-        doThrow(FeignException.class).when(commonClient)
-                .sendSms(new SendSmsRequest(any(), MOBILE_NUMBER.getValue()));
-        smsService.sendSmsPreapprove(operationEntity);
-        verify(commonClient).sendSms(new SendSmsRequest(any(), MOBILE_NUMBER.getValue()));
     }
 }

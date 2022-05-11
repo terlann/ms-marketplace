@@ -5,7 +5,6 @@ import az.kapitalbank.marketplace.client.common.model.request.SendSmsRequest;
 import az.kapitalbank.marketplace.config.SmsProperties;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import feign.FeignException;
-import java.util.Map;
 import java.util.UUID;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -29,8 +28,7 @@ public class SmsService {
     }
 
     public void sendSmsCompleteScoring(OperationEntity operationEntity) {
-        Map<String, String> values = smsProperties.getValues();
-        String text = values.get("complete-scoring");
+        var text = smsProperties.getValues().get("complete-scoring");
         text = String.format(text, operationEntity.getScoredAmount());
         send(operationEntity.getId(), operationEntity.getMobileNumber(), text);
     }
@@ -39,7 +37,8 @@ public class SmsService {
         String mobileNumber =
                 otpService.getCardLinkedMobileNumber(operationEntity.getCustomer().getCardId());
         String text = smsProperties.getValues().get("pre-purchase");
-        text = String.format(text, operationEntity.getTotalAmount());
+        var purchasedAmount = operationEntity.getTotalAmount().add(operationEntity.getCommission());
+        text = String.format(text, purchasedAmount);
         send(operationEntity.getId(), mobileNumber, text);
     }
 

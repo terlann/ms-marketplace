@@ -5,8 +5,6 @@ import java.util.Map;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -21,8 +19,6 @@ import org.springframework.stereotype.Component;
 @Builder
 @RefreshScope
 @Component
-@Setter
-@NoArgsConstructor
 @ConfigurationProperties("sms")
 @PropertySource(value = "classpath:/config/sms.yml")
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
