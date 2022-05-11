@@ -67,8 +67,8 @@ public class OperationEntity extends BaseEntity {
     @Enumerated(EnumType.STRING)
     UmicoDecisionStatus umicoDecisionStatus;
     @Enumerated(EnumType.STRING)
-    OperationRejectReason operationRejectReason;
-    Boolean sendLeadTelesales;
+    OperationRejectReason rejectReason;
+    Boolean isSendLead;
     @Enumerated(EnumType.STRING)
     SendLeadReason sendLeadReason;
     BigDecimal scoredAmount;
