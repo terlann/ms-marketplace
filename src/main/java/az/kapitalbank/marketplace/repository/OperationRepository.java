@@ -1,8 +1,6 @@
 package az.kapitalbank.marketplace.repository;
 
-import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.entity.OperationEntity;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,13 +15,12 @@ public interface OperationRepository extends JpaRepository<OperationEntity, UUID
 
     Optional<OperationEntity> findByBusinessKey(String businessKey);
 
-    @Query(nativeQuery = true,
-            value = "select CASE WHEN (count(*) > 0) THEN 'true'  ELSE 'false' END "
+    @Query(nativeQuery = true, value =
+            "select CASE WHEN (count(*) > 0) THEN 'true'  ELSE 'false' END "
                     + "from KB_MARKETPLACE_OPERATION "
                     + "where CUSTOMER_ID = :customerId "
-                    + "AND (UMICO_DECISION_STATUS is null "
-                    + "or UMICO_DECISION_STATUS in (:decisions))")
-    boolean existsByCustomerIdAndUmicoDecisionStatuses(
-            String customerId, List<UmicoDecisionStatus> decisions);
-
+                    + "  and (UMICO_DECISION_STATUS is null "
+                    + "  or UMICO_DECISION_STATUS "
+                    + " in ('PENDING', 'FAIL_IN_PENDING', 'PREAPPROVED', 'FAIL_IN_PREAPPROVED'))")
+    boolean existsByCustomerIdAndUmicoDecisionStatuses(String customerId);
 }
