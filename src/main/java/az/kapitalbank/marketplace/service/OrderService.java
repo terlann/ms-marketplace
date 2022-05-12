@@ -411,6 +411,23 @@ public class OrderService {
     }
 
     @Transactional(dontRollbackOn = RefundException.class)
+    public void autoRefund(OrderEntity orderEntity) {
+        log.info("Auto refund process is started : orderNo - {}", orderEntity.getOrderNo());
+        var cardId = orderEntity.getOperation().getCustomer().getCardId();
+        var purchaseCompleteRequest =
+                getCompletePrePurchaseRequest(orderEntity, cardId);
+        try {
+            completePrePurchaseOrder(orderEntity, purchaseCompleteRequest);
+        } catch (CompletePrePurchaseException ex) {
+            log.error("Atlas complete pre purchase process for refund was failed : "
+                    + "orderNo - {}, AtlasClientException - {}", orderEntity.getOrderNo(), ex);
+            throw new RefundException(ORDER_NO_LOG + orderEntity.getOrderNo());
+        }
+        refundAmount(orderEntity);
+        log.info("Auto refund process was finished ");
+    }
+
+    @Transactional(dontRollbackOn = RefundException.class)
     public void refund(RefundRequestDto request) {
         log.info("Refund process is started : request - {}", request);
         var orderNo = request.getOrderNo();

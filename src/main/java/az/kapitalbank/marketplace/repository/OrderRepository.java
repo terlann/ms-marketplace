@@ -1,6 +1,8 @@
 package az.kapitalbank.marketplace.repository;
 
+import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.entity.OrderEntity;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -12,5 +14,8 @@ public interface OrderRepository extends JpaRepository<OrderEntity, UUID> {
 
     Optional<OrderEntity> findByOrderNo(String orderNo);
 
-    List<OrderEntity> findByOrderNoIn(List<String> orders);
+    List<OrderEntity> findByTransactionDateBeforeAndTransactionStatusIn(
+            LocalDateTime transactionDate,
+            List<TransactionStatus> transactionStatuses);
+
 }
