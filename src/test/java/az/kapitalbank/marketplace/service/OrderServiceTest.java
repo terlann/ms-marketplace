@@ -1,5 +1,9 @@
 package az.kapitalbank.marketplace.service;
 
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PENDING;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PREAPPROVED;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PENDING;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PREAPPROVED;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getCardDetailResponse;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getCustomerEntity;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getCustomerEntity2;
@@ -65,6 +69,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -190,7 +196,10 @@ class OrderServiceTest {
                 customerEntity2);
         when(operationRepository
                 .existsByCustomerIdAndUmicoDecisionStatuses(
-                        CUSTOMER_ID.getValue())).thenReturn(true);
+                        CUSTOMER_ID.getValue(),
+                        Stream.of(PENDING, FAIL_IN_PENDING, PREAPPROVED, FAIL_IN_PREAPPROVED)
+                                .map(Enum::name)
+                                .collect(Collectors.toList()))).thenReturn(true);
         assertThrows(CustomerNotCompletedProcessException.class,
                 () -> orderService.createOrder(request));
     }

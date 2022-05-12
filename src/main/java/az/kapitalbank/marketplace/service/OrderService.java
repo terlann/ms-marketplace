@@ -7,6 +7,9 @@ import static az.kapitalbank.marketplace.constant.CommonConstant.CUSTOMER_ID_LOG
 import static az.kapitalbank.marketplace.constant.CommonConstant.ORDER_NO_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.TELESALES_ORDER_ID_LOG;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.APPROVED;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PENDING;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PREAPPROVED;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PENDING;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PREAPPROVED;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
@@ -61,6 +64,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -201,8 +205,12 @@ public class OrderService {
     }
 
     private void checkCustomerIncompleteProcess(CustomerEntity customerEntity) {
+        var decisions = Stream.of(PENDING, FAIL_IN_PENDING, PREAPPROVED, FAIL_IN_PREAPPROVED)
+                .map(Enum::name)
+                .collect(Collectors.toList());
         var isExistsCustomerByDecisionStatus = operationRepository
-                .existsByCustomerIdAndUmicoDecisionStatuses(customerEntity.getId().toString());
+                .existsByCustomerIdAndUmicoDecisionStatuses(customerEntity.getId().toString(),
+                        decisions);
         if (isExistsCustomerByDecisionStatus) {
             throw new CustomerNotCompletedProcessException(
                     "customerId - " + customerEntity.getId());
@@ -303,6 +311,7 @@ public class OrderService {
             order.setTransactionId(transactionId);
             order.setRrn(completePrePurchaseRequest.getRrn());
             order.setTransactionStatus(TransactionStatus.COMPLETE_PRE_PURCHASE);
+            order.setTransactionDate(LocalDateTime.now());
         } catch (FeignException ex) {
             exception = ex;
             order.setTransactionStatus(TransactionStatus.FAIL_IN_COMPLETE_PRE_PURCHASE);
@@ -311,7 +320,6 @@ public class OrderService {
                             + "orderNo - {}, exception - {}",
                     order.getOrderNo(), ex);
         }
-        order.setTransactionDate(LocalDateTime.now());
         orderRepository.save(order);
         if (exception != null) {
             throw new CompletePrePurchaseException(ORDER_NO_LOG + order.getOrderNo());
@@ -342,12 +350,12 @@ public class OrderService {
                 .rrn(rrn).amount(totalOrderAmount).uid(cardId)
                 .description(PRE_PURCHASE_DESCRIPTION + orderEntity.getOrderNo()).build();
         try {
-            orderEntity.setTransactionDate(LocalDateTime.now());
             var purchaseResponse = atlasClient.prePurchase(prePurchaseRequest);
             orderEntity.setRrn(rrn);
             orderEntity.setTransactionId(purchaseResponse.getId());
             orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
             orderEntity.setTransactionStatus(TransactionStatus.PRE_PURCHASE);
+            orderEntity.setTransactionDate(LocalDateTime.now());
             return BigDecimal.ZERO;
         } catch (FeignException ex) {
             log.error("Atlas pre purchase process was failed : orderNo - {}, exception - {}",
@@ -445,13 +453,13 @@ public class OrderService {
             orderEntity.setRrn(rrn);
             orderEntity.setTransactionId(refundResponse.getId());
             orderEntity.setTransactionStatus(TransactionStatus.REFUND);
+            orderEntity.setTransactionDate(LocalDateTime.now());
         } catch (FeignException ex) {
             exception = ex;
             orderEntity.setTransactionStatus(TransactionStatus.FAIL_IN_REFUND);
             log.error("Atlas refund process was failed : orderNo - {}, AtlasClientException - {}",
                     orderEntity.getOrderNo(), ex);
         }
-        orderEntity.setTransactionDate(LocalDateTime.now());
         orderRepository.save(orderEntity);
         if (exception != null) {
             throw new RefundException(ORDER_NO_LOG + orderEntity.getOrderNo());
