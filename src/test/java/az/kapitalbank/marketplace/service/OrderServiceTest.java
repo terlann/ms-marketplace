@@ -69,6 +69,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -195,8 +197,9 @@ class OrderServiceTest {
         when(operationRepository
                 .existsByCustomerIdAndUmicoDecisionStatuses(
                         CUSTOMER_ID.getValue(),
-                        List.of(PENDING, FAIL_IN_PENDING, PREAPPROVED,
-                                FAIL_IN_PREAPPROVED))).thenReturn(true);
+                        Stream.of(PENDING, FAIL_IN_PENDING, PREAPPROVED, FAIL_IN_PREAPPROVED)
+                                .map(Enum::name)
+                                .collect(Collectors.toList()))).thenReturn(true);
         assertThrows(CustomerNotCompletedProcessException.class,
                 () -> orderService.createOrder(request));
     }
