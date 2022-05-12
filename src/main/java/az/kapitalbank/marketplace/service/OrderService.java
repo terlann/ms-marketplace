@@ -64,6 +64,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -204,9 +205,12 @@ public class OrderService {
     }
 
     private void checkCustomerIncompleteProcess(CustomerEntity customerEntity) {
+        var decisions = Stream.of(PENDING, FAIL_IN_PENDING, PREAPPROVED, FAIL_IN_PREAPPROVED)
+                .map(Enum::name)
+                .collect(Collectors.toList());
         var isExistsCustomerByDecisionStatus = operationRepository
                 .existsByCustomerIdAndUmicoDecisionStatuses(customerEntity.getId().toString(),
-                        List.of(PENDING, FAIL_IN_PENDING, PREAPPROVED, FAIL_IN_PREAPPROVED));
+                        decisions);
         if (isExistsCustomerByDecisionStatus) {
             throw new CustomerNotCompletedProcessException(
                     "customerId - " + customerEntity.getId());
