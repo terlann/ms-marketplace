@@ -99,3 +99,10 @@ commission:
     12: 13.50
     18: 18.50
     24: 23.50
+
+sms:
+  text:
+    preapprove: Kredit muracietiniz qeyde alinib. Uz tanima ile davam edin.
+    complete-scoring: Kredit sorgunuz tesdiqlendi.Kredit xetti %s manat.
+    pre-purchase: %s manat bloklanib.
+    pending: Bank tezlikle sizinle elaqe saxlayacaq.
