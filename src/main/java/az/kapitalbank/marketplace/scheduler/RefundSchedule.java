@@ -19,7 +19,7 @@ public class RefundSchedule {
     private final OrderService orderService;
 
     @Scheduled(cron = "0 22 * * * ?", zone = "Asia/Baku")
-    public void refundOrdersOver20Day() {
+    public void autoRefundOrders() {
         log.info("Auto refund process started at {}", LocalDateTime.now());
         var purchaseDate = LocalDateTime.now().minusDays(21);
         var orders =
