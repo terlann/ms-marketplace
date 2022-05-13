@@ -41,10 +41,10 @@ public class LoanFormalizationService {
     UmicoService umicoService;
     OrderService orderService;
     ScoringService scoringService;
-    CustomerService customerService;
     LeadService leadService;
     VerificationService verificationService;
     OperationRepository operationRepository;
+    SmsService smsService;
 
     @Transactional
     public void fraudResultProcess(FraudCheckResultEvent fraudCheckResultEvent) {
@@ -222,6 +222,7 @@ public class LoanFormalizationService {
         if (dvsUrl.isPresent()) {
             var umicoDecisionStatus = umicoService.sendPreApprovedDecision(trackId, dvsUrl.get(),
                     UmicoDecisionStatus.PREAPPROVED);
+            smsService.sendSmsPreapprove(operationEntity);
             operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
         } else {
             operationEntity.setSendLeadReason(SendLeadReason.DVS_URL_FAIL);
