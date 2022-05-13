@@ -42,8 +42,10 @@ class SmsServiceTest {
     @BeforeEach
     void start() {
         ReflectionTestUtils.setField(this.smsProperties, "values",
-                Map.of("complete-scoring", "Kredit sorgunuz tesdiqlendi.Kredit xetti %s manat.",
-                        "pre-purchase", "%s manat bloklanib."));
+                Map.of("complete-scoring",
+                        "Kredit sorgunuz testiqlendi. Kredit xetti {amount} AZN teshkil edir.",
+                        "pre-purchase",
+                        "Marketplace kredit xetti uzre {amount} AZN odenis ugurla tamamlandi."));
     }
 
     @Test
@@ -83,7 +85,7 @@ class SmsServiceTest {
                 .scoredAmount(BigDecimal.valueOf(55))
                 .build();
         var sendSmsRequest = SendSmsRequest.builder()
-                .body("Kredit sorgunuz tesdiqlendi.Kredit xetti 55 manat.")
+                .body("Kredit sorgunuz testiqlendi. Kredit xetti 55 AZN teshkil edir.")
                 .phoneNumber(operationEntity.getMobileNumber())
                 .build();
 
@@ -106,7 +108,7 @@ class SmsServiceTest {
                 .customer(customer)
                 .build();
         var sendSmsRequest = SendSmsRequest.builder()
-                .body("55 manat bloklanib.")
+                .body("Marketplace kredit xetti uzre 55 AZN odenis ugurla tamamlandi.")
                 .phoneNumber(operationEntity.getMobileNumber())
                 .build();
         when(commonClient.sendSms(sendSmsRequest)).thenReturn(

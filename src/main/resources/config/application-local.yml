@@ -97,12 +97,12 @@ commission:
     3: 5.00
     6: 7.50
     12: 13.50
-    18: 18.50
+    18: 18.50x
     24: 23.50
 
 sms:
   text:
-    preapprove: Kredit muracietiniz qeyde alinib. Uz tanima ile davam edin.
-    complete-scoring: Kredit sorgunuz tesdiqlendi.Kredit xetti %s manat.
-    pre-purchase: %s manat bloklanib.
-    pending: Bank tezlikle sizinle elaqe saxlayacaq.
+    preapprove: Kredit muracietiniz qeyde alindi. Shexsiyyetin eynileshdirilmesi ucun Uz tanima prosesi ile davam edin.
+    complete-scoring: Kredit sorgunuz testiqlendi. Kredit xetti {amount} AZN teshkil edir.
+    pre-purchase: Marketplace kredit xetti uzre {amount} AZN odenis ugurla tamamlandi.
+    pending: Sizinle tezlikle elaqe saxlanilacaq.

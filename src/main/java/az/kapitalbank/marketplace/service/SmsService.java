@@ -28,8 +28,8 @@ public class SmsService {
     }
 
     public void sendSmsCompleteScoring(OperationEntity operationEntity) {
-        var text = smsProperties.getValues().get("complete-scoring");
-        text = String.format(text, operationEntity.getScoredAmount());
+        var text = smsProperties.getValues().get("complete-scoring")
+                .replace("{amount}", operationEntity.getScoredAmount().toString());
         send(operationEntity.getId(), operationEntity.getMobileNumber(), text);
     }
 
@@ -38,7 +38,7 @@ public class SmsService {
                 otpService.getCardLinkedMobileNumber(operationEntity.getCustomer().getCardId());
         String text = smsProperties.getValues().get("pre-purchase");
         var purchasedAmount = operationEntity.getTotalAmount().add(operationEntity.getCommission());
-        text = String.format(text, purchasedAmount);
+        text = text.replace("{amount}", purchasedAmount.toString());
         send(operationEntity.getId(), mobileNumber, text);
     }
 
