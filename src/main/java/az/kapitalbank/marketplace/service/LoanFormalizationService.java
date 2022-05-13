@@ -12,6 +12,7 @@ import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.SendLeadReason;
 import az.kapitalbank.marketplace.constant.TaskDefinitionKey;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
+import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.messaging.event.BusinessErrorData;
@@ -25,6 +26,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.UUID;
 import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -247,19 +249,27 @@ public class LoanFormalizationService {
         customerEntity.setCardId(cardId.get());
         var lastTempAmount = orderService.prePurchaseOrders(operationEntity, cardId.get());
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
-            var umicoDecisionStatus =
-                    umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
-            operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
-            log.info("Scoring complete result : Pre purchase was finished : "
-                    + "trackId - {}", trackId);
+            scoringCompleteSuccessSuccessPrePurchaseProcess(operationEntity, trackId,
+                    customerEntity);
         } else {
             operationEntity.setUmicoDecisionStatus(PREAPPROVED);
             log.info("Scoring complete result : Pre purchase was unfinished : trackId - {}",
                     trackId);
         }
         operationRepository.save(operationEntity);
+        smsService.sendSmsCompleteScoring(operationEntity);
         log.info("Scoring complete result : Customer was finished end-to-end process : "
                 + "trackId - {} , customerId - {}", trackId, customerEntity.getId());
+    }
+
+    private void scoringCompleteSuccessSuccessPrePurchaseProcess(OperationEntity operationEntity,
+                                                                 UUID trackId,
+                                                                 CustomerEntity customerEntity) {
+        var umicoDecisionStatus =
+                umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
+        operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+        log.info("Scoring complete result : Pre purchase was finished : "
+                + "trackId - {}", trackId);
     }
 
     private void noFraudProcess(OperationEntity operationEntity) {

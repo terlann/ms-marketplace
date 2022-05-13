@@ -130,6 +130,7 @@ public class OrderService {
         } else {
             operationEntity.setUmicoDecisionStatus(PREAPPROVED);
         }
+        smsService.sendSmsCompleteScoring(operationEntity);
     }
 
     @Transactional
@@ -341,7 +342,6 @@ public class OrderService {
         }
         log.info("Orders pre purchase process was finished : trackId - {}, lastTempAmount - {}",
                 operationEntity.getId(), lastTempAmount);
-        smsService.sendSmsCompleteScoring(operationEntity);
         smsService.sendSmsPrePurchase(operationEntity);
 
         return lastTempAmount;
