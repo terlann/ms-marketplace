@@ -154,6 +154,8 @@ public class OrderService {
                                                 CustomerEntity customerEntity) {
         var operationEntity = operationMapper.toOperationEntity(request);
         operationEntity.setCustomer(customerEntity);
+        operationEntity.setIsOtpOperation(request.getCustomerInfo().getCustomerId() != null
+                && customerEntity.getCardId() != null);
         var operationCommission = BigDecimal.ZERO;
         var orderEntities = new ArrayList<OrderEntity>();
         var productEntities = new ArrayList<ProductEntity>();
