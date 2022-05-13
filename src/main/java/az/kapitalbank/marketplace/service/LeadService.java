@@ -30,6 +30,7 @@ public class LeadService {
     UmicoService umicoService;
     TelesalesClient telesalesClient;
     TelesalesMapper telesalesMapper;
+    SmsService smsService;
 
     private Optional<String> sendLeadTelesales(OperationEntity operationEntity,
                                                List<FraudType> fraudTypes) {
@@ -91,6 +92,7 @@ public class LeadService {
         var telesalesOrderId = sendLeadTelesales(operationEntity, fraudTypes);
         telesalesOrderId.ifPresent(operationEntity::setTelesalesOrderId);
         var umicoDecisionStatus = umicoService.sendPendingDecision(operationEntity.getId());
+        smsService.sendSmsPending(operationEntity);
         operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
     }
 }

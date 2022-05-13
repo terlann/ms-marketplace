@@ -34,6 +34,8 @@ class LeadServiceTest {
     TelesalesClient telesalesClient;
     @Mock
     TelesalesMapper telesalesMapper;
+    @Mock
+    SmsService smsService;
     @InjectMocks
     private LeadService leadService;
 

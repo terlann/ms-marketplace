@@ -79,6 +79,7 @@ import org.springframework.stereotype.Service;
 public class OrderService {
 
     AmountUtil amountUtil;
+    SmsService smsService;
     OrderMapper orderMapper;
     AtlasClient atlasClient;
     UmicoService umicoService;
@@ -340,6 +341,9 @@ public class OrderService {
         }
         log.info("Orders pre purchase process was finished : trackId - {}, lastTempAmount - {}",
                 operationEntity.getId(), lastTempAmount);
+        smsService.sendSmsCompleteScoring(operationEntity);
+        smsService.sendSmsPrePurchase(operationEntity);
+
         return lastTempAmount;
     }
 
