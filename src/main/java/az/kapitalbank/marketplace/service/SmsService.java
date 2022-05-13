@@ -50,13 +50,12 @@ public class SmsService {
     private void send(UUID trackId, String mobileNumber, String text) {
         mobileNumber = mobileNumber.replace("+", "");
         try {
-            var sendSmsResponse =
-                    commonClient.sendSms(new SendSmsRequest(text, mobileNumber));
-            log.info("Send sms : Response - {}, mobileNumber - {}", sendSmsResponse,
-                    mobileNumber);
+            commonClient.sendSms(new SendSmsRequest(text, mobileNumber));
+            log.info("Send sms : text - {}, mobileNumber - {} , trackId - {}", text,
+                    mobileNumber, trackId);
         } catch (FeignException ex) {
-            log.error("Send sms was failed : trackId - {}, exception - {}", trackId,
-                    ex);
+            log.error("Send sms was failed : text - {} , mobileNumber - {} , exception - {} ", text,
+                    mobileNumber, ex);
         }
     }
 }
