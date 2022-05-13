@@ -102,7 +102,7 @@ commission:
 
 sms:
   text:
-    preapprove: Kredit muracietiniz qeyde alindi. Shexsiyyetin eynileshdirilmesi ucun Uz tanima prosesi ile davam edin.
+    preapprove: Kredit muracietiniz qeyde alindi. Shexsiyyetin eynileshdirilmesi ucun uz tanima prosesi ile davam edin.
     complete-scoring: Kredit sorgunuz testiqlendi. Kredit xetti {amount} AZN teshkil edir.
     pre-purchase: Marketplace kredit xetti uzre {amount} AZN odenis ugurla tamamlandi.
     pending: Sizinle tezlikle elaqe saxlanilacaq.
