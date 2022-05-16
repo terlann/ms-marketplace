@@ -421,21 +421,36 @@ public class OrderService {
                 .build();
     }
 
-    @Transactional(dontRollbackOn = RefundException.class)
-    public void autoRefund(OrderEntity orderEntity) {
-        log.info("Auto refund process is started : orderNo - {}", orderEntity.getOrderNo());
-        var cardId = orderEntity.getOperation().getCustomer().getCardId();
-        var purchaseCompleteRequest =
-                getCompletePrePurchaseRequest(orderEntity, cardId);
-        try {
-            completePrePurchaseOrder(orderEntity, purchaseCompleteRequest);
-        } catch (CompletePrePurchaseException ex) {
-            log.error("Atlas complete pre purchase process for refund was failed : "
-                    + "orderNo - {}, AtlasClientException - {}", orderEntity.getOrderNo(), ex);
-            throw new RefundException(ORDER_NO_LOG + orderEntity.getOrderNo());
-        }
-        refundAmount(orderEntity);
-        log.info("Auto refund process was finished : orderNo - {}", orderEntity.getOrderNo());
+    @Transactional
+    public void autoRefundOrderSchedule() {
+        var transactionDate = LocalDateTime.now().minusDays(21);
+        var orders =
+                orderRepository.findByTransactionDateBeforeAndTransactionStatus(transactionDate,
+                        TransactionStatus.PRE_PURCHASE);
+        orders.forEach(order -> {
+            var orderNo = order.getOrderNo();
+            try {
+                log.info("Auto refund process is started : orderNo - {}", orderNo);
+                var cardId = order.getOperation().getCustomer().getCardId();
+                var purchaseCompleteRequest =
+                        getCompletePrePurchaseRequest(order, cardId);
+                completePrePurchaseOrder(order, purchaseCompleteRequest);
+                refundOrder(order);
+                order.setTransactionStatus(TransactionStatus.AUTO_REFUND);
+                order.setTransactionDate(LocalDateTime.now());
+                log.info("Auto refund process was finished : orderNo - {}", orderNo);
+            } catch (CompletePrePurchaseException | RefundException ex) {
+                if (ex instanceof CompletePrePurchaseException) {
+                    log.error("AutoRefund complete pre purchase order was failed : orderNo - {}",
+                            orderNo);
+                } else {
+                    log.error("AutoRefund refund order was failed : orderNo - {}", orderNo);
+                }
+                log.error("Auto refund schedule order failed : orderNo - {}", orderNo);
+                order.setTransactionStatus(TransactionStatus.FAIL_IN_AUTO_REFUND);
+            }
+        });
+        orderRepository.saveAll(orders);
     }
 
     @Transactional(dontRollbackOn = RefundException.class)
@@ -460,7 +475,7 @@ public class OrderService {
                         + "orderNo - {}, AtlasClientException - {}", orderNo, ex);
                 throw new RefundException(ORDER_NO_LOG + orderNo);
             }
-            refundAmount(orderEntity);
+            refundOrder(orderEntity);
             log.info("Refund process was finished : orderNo - {}, customerId - {}",
                     orderNo, request.getCustomerId());
         } else {
@@ -469,7 +484,7 @@ public class OrderService {
         }
     }
 
-    private void refundAmount(OrderEntity orderEntity) {
+    private void refundOrder(OrderEntity orderEntity) {
         FeignException exception = null;
         var rrn = GenerateUtil.rrn();
         var amountWithCommission =

@@ -31,7 +31,6 @@ import az.kapitalbank.marketplace.client.atlas.model.request.PrePurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.RefundRequest;
 import az.kapitalbank.marketplace.client.atlas.model.response.CompletePrePurchaseResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.PrePurchaseResponse;
-import az.kapitalbank.marketplace.client.atlas.model.response.RefundResponse;
 import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
@@ -234,78 +233,6 @@ class OrderServiceTest {
                 getCreateOrderRequestDtoFailInProductAmount(null);
         assertThrows(NoMatchOrderAmountByProductException.class,
                 () -> orderService.createOrder(request));
-    }
-
-    @Test
-    void autoRefund_Success() {
-        var orderEntity = OrderEntity.builder()
-                .commission(BigDecimal.ONE)
-                .totalAmount(BigDecimal.ONE)
-                .transactionStatus(TransactionStatus.PRE_PURCHASE)
-                .transactionId("1231564")
-                .operation(OperationEntity.builder()
-                        .customer(CustomerEntity.builder()
-                                .id(UUID.fromString(CUSTOMER_ID.getValue()))
-                                .build())
-                        .build())
-                .build();
-        var refundResponse = RefundResponse.builder().build();
-
-        when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class))).thenReturn(
-                CompletePrePurchaseResponse.builder().build());
-        when(atlasClient.refund(eq(null), any(RefundRequest.class)))
-                .thenReturn(refundResponse);
-
-        orderService.autoRefund(orderEntity);
-        verify(atlasClient).completePrePurchase(any(CompletePrePurchaseRequest.class));
-    }
-
-    @Test
-    void autoRefund_AtlasClientException_InComplete() {
-        var orderEntity = OrderEntity.builder()
-                .commission(BigDecimal.ONE)
-                .totalAmount(BigDecimal.ONE)
-                .transactionStatus(TransactionStatus.PRE_PURCHASE)
-                .transactionId("1231564")
-                .operation(OperationEntity.builder()
-                        .customer(CustomerEntity.builder()
-                                .id(UUID.fromString(CUSTOMER_ID.getValue()))
-                                .build())
-                        .build())
-                .build();
-        when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class)))
-                .thenThrow(FeignException.class);
-        assertThrows(RefundException.class, () -> orderService.autoRefund(orderEntity));
-    }
-
-    @Test
-    void refund_Success() {
-        var refundRequestDto = RefundRequestDto.builder()
-                .orderNo("12345")
-                .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
-                .build();
-        var orderEntity = OrderEntity.builder()
-                .commission(BigDecimal.ONE)
-                .totalAmount(BigDecimal.ONE)
-                .transactionStatus(TransactionStatus.PRE_PURCHASE)
-                .transactionId("1231564")
-                .operation(OperationEntity.builder()
-                        .customer(CustomerEntity.builder()
-                                .id(UUID.fromString(CUSTOMER_ID.getValue()))
-                                .build())
-                        .build())
-                .build();
-        var refundResponse = RefundResponse.builder().build();
-
-        when(orderRepository.findByOrderNo(refundRequestDto.getOrderNo()))
-                .thenReturn(Optional.of(orderEntity));
-        when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class))).thenReturn(
-                CompletePrePurchaseResponse.builder().build());
-        when(atlasClient.refund(eq(null), any(RefundRequest.class)))
-                .thenReturn(refundResponse);
-
-        orderService.refund(refundRequestDto);
-        verify(orderRepository).findByOrderNo(refundRequestDto.getOrderNo());
     }
 
     @Test
