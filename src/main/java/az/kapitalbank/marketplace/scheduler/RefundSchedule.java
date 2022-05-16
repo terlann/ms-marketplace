@@ -4,7 +4,6 @@ import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.repository.OrderRepository;
 import az.kapitalbank.marketplace.service.OrderService;
 import java.time.LocalDateTime;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -23,9 +22,8 @@ public class RefundSchedule {
         log.info("Auto refund process started at {}", LocalDateTime.now());
         var purchaseDate = LocalDateTime.now().minusDays(21);
         var orders =
-                orderRepository.findByTransactionDateBeforeAndTransactionStatusIn(purchaseDate,
-                        List.of(TransactionStatus.PRE_PURCHASE,
-                                TransactionStatus.FAIL_IN_COMPLETE_PRE_PURCHASE));
+                orderRepository.findByTransactionDateBeforeAndTransactionStatus(purchaseDate,
+                        TransactionStatus.PRE_PURCHASE);
         for (var order : orders) {
             try {
                 orderService.autoRefund(order);

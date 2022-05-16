@@ -14,8 +14,8 @@ public interface OrderRepository extends JpaRepository<OrderEntity, UUID> {
 
     Optional<OrderEntity> findByOrderNo(String orderNo);
 
-    List<OrderEntity> findByTransactionDateBeforeAndTransactionStatusIn(
+    List<OrderEntity> findByTransactionDateBeforeAndTransactionStatus(
             LocalDateTime transactionDate,
-            List<TransactionStatus> transactionStatuses);
+            TransactionStatus transactionStatus);
 
 }
