@@ -130,6 +130,8 @@ public class OrderService {
         var lastTempAmount = prePurchaseOrders(operationEntity, cardId);
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
             log.info("Telesales result : Pre purchase was finished : trackId - {}", trackId);
+            smsService.sendCompleteScoringSms(operationEntity);
+            smsService.sendPrePurchaseSms(operationEntity);
         } else {
             log.info("Telesales result : Pre purchase was failed : trackId - {}", trackId);
         }
@@ -139,7 +141,6 @@ public class OrderService {
         operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
         log.info("Telesales result : Customer was finished telesales process : "
                 + "trackId - {} , customerId - {}", trackId, customerId);
-        smsService.sendSmsCompleteScoring(operationEntity);
     }
 
     @Transactional
@@ -353,8 +354,6 @@ public class OrderService {
         }
         log.info("Orders pre purchase process was finished : trackId - {}, lastTempAmount - {}",
                 operationEntity.getId(), lastTempAmount);
-        smsService.sendSmsPrePurchase(operationEntity);
-
         return lastTempAmount;
     }
 

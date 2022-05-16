@@ -77,7 +77,7 @@ public class UmicoService {
                         .trackId(operationEntity.getId())
                         .commission(operationEntity.getCommission())
                         .customerId(customerId)
-                        .decisionStatus(UmicoDecisionStatus.APPROVED)
+                        .decisionStatus(operationEntity.getUmicoDecisionStatus())
                         .loanTerm(operationEntity.getLoanTerm())
                         .loanLimit(operationEntity.getScoredAmount())
                         .loanContractStartDate(operationEntity.getLoanContractStartDate())

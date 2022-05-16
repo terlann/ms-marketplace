@@ -22,18 +22,18 @@ public class SmsService {
     SmsProperties smsProperties;
     OtpService otpService;
 
-    public void sendSmsPreapprove(OperationEntity operationEntity) {
+    public void sendPreapproveSms(OperationEntity operationEntity) {
         String text = smsProperties.getValues().get("preapprove");
         send(operationEntity.getId(), operationEntity.getMobileNumber(), text);
     }
 
-    public void sendSmsCompleteScoring(OperationEntity operationEntity) {
+    public void sendCompleteScoringSms(OperationEntity operationEntity) {
         var text = smsProperties.getValues().get("complete-scoring")
                 .replace("{amount}", operationEntity.getScoredAmount().toString());
         send(operationEntity.getId(), operationEntity.getMobileNumber(), text);
     }
 
-    public void sendSmsPrePurchase(OperationEntity operationEntity) {
+    public void sendPrePurchaseSms(OperationEntity operationEntity) {
         String mobileNumber =
                 otpService.getCardLinkedMobileNumber(operationEntity.getCustomer().getCardId());
         String text = smsProperties.getValues().get("pre-purchase");
@@ -42,7 +42,7 @@ public class SmsService {
         send(operationEntity.getId(), mobileNumber, text);
     }
 
-    public void sendSmsPending(OperationEntity operationEntity) {
+    public void sendPendingSms(OperationEntity operationEntity) {
         String text = smsProperties.getValues().get("pending");
         send(operationEntity.getId(), operationEntity.getMobileNumber(), text);
     }

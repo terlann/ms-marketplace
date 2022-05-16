@@ -60,7 +60,7 @@ class SmsServiceTest {
                 .build();
         when(commonClient.sendSms(sendSmsRequest)).thenReturn(
                 new SendSmsResponse(UUID.fromString(TRACK_ID.getValue())));
-        smsService.sendSmsPreapprove(operationEntity);
+        smsService.sendPreapproveSms(operationEntity);
         verify(commonClient).sendSms(sendSmsRequest);
     }
 
@@ -72,7 +72,7 @@ class SmsServiceTest {
                 .build();
         doThrow(FeignException.class).when(commonClient)
                 .sendSms(new SendSmsRequest(any(), MOBILE_NUMBER.getValue()));
-        smsService.sendSmsPreapprove(operationEntity);
+        smsService.sendPreapproveSms(operationEntity);
         verify(commonClient).sendSms(new SendSmsRequest(any(), MOBILE_NUMBER.getValue()));
     }
 
@@ -91,7 +91,7 @@ class SmsServiceTest {
 
         when(commonClient.sendSms(sendSmsRequest)).thenReturn(
                 new SendSmsResponse(UUID.fromString(TRACK_ID.getValue())));
-        smsService.sendSmsCompleteScoring(operationEntity);
+        smsService.sendCompleteScoringSms(operationEntity);
         verify(commonClient).sendSms(sendSmsRequest);
     }
 
@@ -115,7 +115,7 @@ class SmsServiceTest {
                 new SendSmsResponse(UUID.fromString(TRACK_ID.getValue())));
         when(otpService.getCardLinkedMobileNumber(operationEntity.getCustomer().getCardId()))
                 .thenReturn(MOBILE_NUMBER.getValue());
-        smsService.sendSmsPrePurchase(operationEntity);
+        smsService.sendPrePurchaseSms(operationEntity);
         verify(commonClient).sendSms(sendSmsRequest);
     }
 
@@ -131,7 +131,7 @@ class SmsServiceTest {
                 .build();
         when(commonClient.sendSms(sendSmsRequest)).thenReturn(
                 new SendSmsResponse(UUID.fromString(TRACK_ID.getValue())));
-        smsService.sendSmsPending(operationEntity);
+        smsService.sendPendingSms(operationEntity);
         verify(commonClient).sendSms(sendSmsRequest);
     }
 }
