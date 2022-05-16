@@ -41,7 +41,7 @@ class SmsServiceTest {
 
     @BeforeEach
     void start() {
-        ReflectionTestUtils.setField(this.smsProperties, "values",
+        ReflectionTestUtils.setField(this.smsProperties, "text",
                 Map.of("complete-scoring",
                         "Kredit sorgunuz testiqlendi. Kredit xetti {amount} AZN teshkil edir.",
                         "pre-purchase",
@@ -49,7 +49,7 @@ class SmsServiceTest {
     }
 
     @Test
-    void sendSmsPreApprove_Success() {
+    void sendPreApproveSms_Success() {
         var operationEntity = OperationEntity.builder()
                 .id(UUID.fromString(TRACK_ID.getValue()))
                 .mobileNumber(MOBILE_NUMBER.getValue())
@@ -65,7 +65,7 @@ class SmsServiceTest {
     }
 
     @Test
-    void sendSmsPreApprove_Exception() {
+    void sendPreApproveSms_Exception() {
         var operationEntity = OperationEntity.builder()
                 .id(UUID.fromString(TRACK_ID.getValue()))
                 .mobileNumber(MOBILE_NUMBER.getValue())
@@ -77,8 +77,7 @@ class SmsServiceTest {
     }
 
     @Test
-    void sendSmsCompleteScoring_Success() {
-
+    void sendCompleteScoringSms_Success() {
         var operationEntity = OperationEntity.builder()
                 .id(UUID.fromString(TRACK_ID.getValue()))
                 .mobileNumber(MOBILE_NUMBER.getValue())
@@ -96,7 +95,7 @@ class SmsServiceTest {
     }
 
     @Test
-    void sendSmsPrePurchase_Success() {
+    void sendPrePurchaseSms_Success() {
         var customer = CustomerEntity.builder()
                 .cardId(CARD_UID.getValue())
                 .build();
@@ -120,7 +119,7 @@ class SmsServiceTest {
     }
 
     @Test
-    void sendSmsPending_Success() {
+    void sendPendingSms_Success() {
         var operationEntity = OperationEntity.builder()
                 .id(UUID.fromString(TRACK_ID.getValue()))
                 .mobileNumber(MOBILE_NUMBER.getValue())
