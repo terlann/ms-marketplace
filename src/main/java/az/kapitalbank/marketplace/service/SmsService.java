@@ -23,12 +23,12 @@ public class SmsService {
     OtpService otpService;
 
     public void sendPreapproveSms(OperationEntity operationEntity) {
-        String text = smsProperties.getValues().get("preapprove");
+        String text = smsProperties.getText().get("preapprove");
         send(operationEntity.getId(), operationEntity.getMobileNumber(), text);
     }
 
     public void sendCompleteScoringSms(OperationEntity operationEntity) {
-        var text = smsProperties.getValues().get("complete-scoring")
+        var text = smsProperties.getText().get("complete-scoring")
                 .replace("{amount}", operationEntity.getScoredAmount().toString());
         send(operationEntity.getId(), operationEntity.getMobileNumber(), text);
     }
@@ -36,14 +36,14 @@ public class SmsService {
     public void sendPrePurchaseSms(OperationEntity operationEntity) {
         String mobileNumber =
                 otpService.getCardLinkedMobileNumber(operationEntity.getCustomer().getCardId());
-        String text = smsProperties.getValues().get("pre-purchase");
+        String text = smsProperties.getText().get("pre-purchase");
         var purchasedAmount = operationEntity.getTotalAmount().add(operationEntity.getCommission());
         text = text.replace("{amount}", purchasedAmount.toString());
         send(operationEntity.getId(), mobileNumber, text);
     }
 
     public void sendPendingSms(OperationEntity operationEntity) {
-        String text = smsProperties.getValues().get("pending");
+        String text = smsProperties.getText().get("pending");
         send(operationEntity.getId(), operationEntity.getMobileNumber(), text);
     }
 

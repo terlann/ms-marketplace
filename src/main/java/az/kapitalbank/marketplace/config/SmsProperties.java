@@ -19,7 +19,7 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties("sms")
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class SmsProperties {
-    Map<String, String> values = new HashMap<>();
+    Map<String, String> text = new HashMap<>();
 
     @EventListener(RefreshScopeRefreshedEvent.class)
     public void onRefresh(RefreshScopeRefreshedEvent event) {
