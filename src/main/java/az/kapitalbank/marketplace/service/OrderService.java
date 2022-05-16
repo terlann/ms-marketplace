@@ -261,8 +261,7 @@ public class OrderService {
         var transactionStatus = orderEntity.getTransactionStatus();
         var productEntities = orderEntity.getProducts();
         verifyProductIdIsLinkedToOrderNo(request, productEntities);
-        if (transactionStatus == TransactionStatus.PRE_PURCHASE
-                || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE_PRE_PURCHASE) {
+        if (transactionStatus == TransactionStatus.PRE_PURCHASE) {
             var deliveredOrderAmount = getDeliveredOrderAmount(request, productEntities);
             if (deliveredOrderAmount.compareTo(BigDecimal.ZERO) > 0) {
                 var purchaseCompleteRequest =
@@ -381,9 +380,7 @@ public class OrderService {
 
     private void validateOrdersForPrePurchase(List<OrderEntity> orders, UUID trackId) {
         var isPrePurchasable = orders.stream()
-                .allMatch(order -> order.getTransactionStatus() == null
-                        || order.getTransactionStatus()
-                        == TransactionStatus.FAIL_IN_PRE_PURCHASE);
+                .allMatch(order -> order.getTransactionStatus() == null);
         if (!isPrePurchasable) {
             log.error("No Permission for pre purchase. trackId - {}", trackId);
             throw new NoPermissionForTransaction("trackId - " + trackId);
@@ -438,7 +435,7 @@ public class OrderService {
             throw new RefundException(ORDER_NO_LOG + orderEntity.getOrderNo());
         }
         refundAmount(orderEntity);
-        log.info("Auto refund process was finished ");
+        log.info("Auto refund process was finished : orderNo - {}", orderEntity.getOrderNo());
     }
 
     @Transactional(dontRollbackOn = RefundException.class)
@@ -448,8 +445,7 @@ public class OrderService {
         var orderEntity = orderRepository.findByOrderNo(orderNo)
                 .orElseThrow(() -> new OrderNotFoundException(ORDER_NO_LOG + orderNo));
         var transactionStatus = orderEntity.getTransactionStatus();
-        if (transactionStatus == TransactionStatus.PRE_PURCHASE
-                || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE_PRE_PURCHASE) {
+        if (transactionStatus == TransactionStatus.PRE_PURCHASE) {
             var customerEntity = orderEntity.getOperation().getCustomer();
             if (!customerEntity.getId().equals(request.getCustomerId())) {
                 throw new OrderNotLinkedToCustomer(

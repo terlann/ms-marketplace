@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class SchedulerController {
 
-    private final RefundSchedule refundSchedule;
+    RefundSchedule refundSchedule;
 
     @PostMapping("/refund")
     public ResponseEntity<Void> autoRefundOrders() {
