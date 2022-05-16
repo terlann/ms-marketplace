@@ -1,7 +1,6 @@
 package az.kapitalbank.marketplace.service;
 
 import static az.kapitalbank.marketplace.constant.AtlasConstant.UID;
-import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PREAPPROVED;
 
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
 import az.kapitalbank.marketplace.constant.DvsStatus;
@@ -12,7 +11,6 @@ import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.SendLeadReason;
 import az.kapitalbank.marketplace.constant.TaskDefinitionKey;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
-import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.messaging.event.BusinessErrorData;
@@ -26,7 +24,6 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.UUID;
 import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -60,8 +57,7 @@ public class LoanFormalizationService {
                 log.info("This operation was found in blacklist : trackId - {}", trackId);
                 var umicoDecisionStatus = umicoService.sendRejectedDecision(trackId);
                 operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
-                operationEntity.setRejectReason(
-                        OperationRejectReason.BLACKLIST);
+                operationEntity.setRejectReason(OperationRejectReason.BLACKLIST);
                 operationRepository.save(operationEntity);
             } else if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_TELESALES) {
                 log.info("Fraud case was found and sent to Telesales : trackId - {}",
@@ -249,27 +245,18 @@ public class LoanFormalizationService {
         customerEntity.setCardId(cardId.get());
         var lastTempAmount = orderService.prePurchaseOrders(operationEntity, cardId.get());
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
-            scoringCompleteSuccessSuccessPrePurchaseProcess(operationEntity, trackId,
-                    customerEntity);
+            log.info("Scoring complete result : Pre purchase was finished : trackId - {}", trackId);
         } else {
-            operationEntity.setUmicoDecisionStatus(PREAPPROVED);
-            log.info("Scoring complete result : Pre purchase was unfinished : trackId - {}",
-                    trackId);
+            log.info("Scoring complete result : Pre purchase was failed : trackId - {}", trackId);
         }
+        var customerId = customerEntity.getId();
+        var umicoDecisionStatus =
+                umicoService.sendApprovedDecision(operationEntity, customerId);
+        operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
         operationRepository.save(operationEntity);
         smsService.sendSmsCompleteScoring(operationEntity);
         log.info("Scoring complete result : Customer was finished end-to-end process : "
-                + "trackId - {} , customerId - {}", trackId, customerEntity.getId());
-    }
-
-    private void scoringCompleteSuccessSuccessPrePurchaseProcess(OperationEntity operationEntity,
-                                                                 UUID trackId,
-                                                                 CustomerEntity customerEntity) {
-        var umicoDecisionStatus =
-                umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
-        operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
-        log.info("Scoring complete result : Pre purchase was finished : "
-                + "trackId - {}", trackId);
+                + "trackId - {} , customerId - {}", trackId, customerId);
     }
 
     private void noFraudProcess(OperationEntity operationEntity) {

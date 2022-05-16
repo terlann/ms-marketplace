@@ -97,18 +97,22 @@ public class OrderService {
         var operationEntity = operationRepository.findByTelesalesOrderId(telesalesOrderId)
                 .orElseThrow(() -> new OperationNotFoundException(
                         TELESALES_ORDER_ID_LOG + telesalesOrderId));
+        var trackId = operationEntity.getId();
         if (operationEntity.getScoringStatus() != null) {
             throw new OperationAlreadyScoredException(TELESALES_ORDER_ID_LOG + telesalesOrderId);
         }
-        if (request.getScoringStatus() == ScoringStatus.APPROVED) {
-            telesalesResultApproveProcess(request, operationEntity);
-        } else {
+        operationEntity.setScoringDate(LocalDateTime.now());
+        if (request.getScoringStatus() == ScoringStatus.REJECTED) {
             var umicoDecisionStatus = umicoService.sendRejectedDecision(operationEntity.getId());
             operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
             operationEntity.setRejectReason(OperationRejectReason.TELESALES);
             operationEntity.setScoringStatus(ScoringStatus.REJECTED);
+            operationRepository.save(operationEntity);
+            log.info("Telesales result : Customer was failed telesales process : "
+                    + "trackId - {} , scoringStatus - {}", trackId, request.getScoringStatus());
+            return;
         }
-        operationEntity.setScoringDate(LocalDateTime.now());
+        telesalesResultApproveProcess(request, operationEntity);
         operationRepository.save(operationEntity);
     }
 
@@ -122,14 +126,19 @@ public class OrderService {
         var customerEntity = operationEntity.getCustomer();
         var cardId = request.getUid();
         customerEntity.setCardId(cardId);
+        var trackId = operationEntity.getId();
         var lastTempAmount = prePurchaseOrders(operationEntity, cardId);
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
-            var umicoDecisionStatus =
-                    umicoService.sendApprovedDecision(operationEntity, customerEntity.getId());
-            operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+            log.info("Telesales result : Pre purchase was finished : trackId - {}", trackId);
         } else {
-            operationEntity.setUmicoDecisionStatus(PREAPPROVED);
+            log.info("Telesales result : Pre purchase was failed : trackId - {}", trackId);
         }
+        var customerId = customerEntity.getId();
+        var umicoDecisionStatus =
+                umicoService.sendApprovedDecision(operationEntity, customerId);
+        operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+        log.info("Telesales result : Customer was finished telesales process : "
+                + "trackId - {} , customerId - {}", trackId, customerId);
         smsService.sendSmsCompleteScoring(operationEntity);
     }
 
@@ -156,6 +165,8 @@ public class OrderService {
                                                 CustomerEntity customerEntity) {
         var operationEntity = operationMapper.toOperationEntity(request);
         operationEntity.setCustomer(customerEntity);
+        operationEntity.setIsOtpOperation(request.getCustomerInfo().getCustomerId() != null
+                && customerEntity.getCardId() != null);
         var operationCommission = BigDecimal.ZERO;
         var orderEntities = new ArrayList<OrderEntity>();
         var productEntities = new ArrayList<ProductEntity>();
@@ -311,7 +322,6 @@ public class OrderService {
                     atlasClient.completePrePurchase(completePrePurchaseRequest);
             var transactionId = purchaseCompleteResponse.getId();
             order.setTransactionId(transactionId);
-            order.setRrn(completePrePurchaseRequest.getRrn());
             order.setTransactionStatus(TransactionStatus.COMPLETE_PRE_PURCHASE);
             order.setTransactionDate(LocalDateTime.now());
         } catch (FeignException ex) {
@@ -322,6 +332,7 @@ public class OrderService {
                             + "orderNo - {}, exception - {}",
                     order.getOrderNo(), ex);
         }
+        order.setRrn(completePrePurchaseRequest.getRrn());
         orderRepository.save(order);
         if (exception != null) {
             throw new CompletePrePurchaseException(ORDER_NO_LOG + order.getOrderNo());
@@ -353,9 +364,9 @@ public class OrderService {
         var prePurchaseRequest = PrePurchaseRequest.builder()
                 .rrn(rrn).amount(totalOrderAmount).uid(cardId)
                 .description(PRE_PURCHASE_DESCRIPTION + orderEntity.getOrderNo()).build();
+        orderEntity.setRrn(rrn);
         try {
             var purchaseResponse = atlasClient.prePurchase(prePurchaseRequest);
-            orderEntity.setRrn(rrn);
             orderEntity.setTransactionId(purchaseResponse.getId());
             orderEntity.setApprovalCode(purchaseResponse.getApprovalCode());
             orderEntity.setTransactionStatus(TransactionStatus.PRE_PURCHASE);
@@ -415,6 +426,23 @@ public class OrderService {
     }
 
     @Transactional(dontRollbackOn = RefundException.class)
+    public void autoRefund(OrderEntity orderEntity) {
+        log.info("Auto refund process is started : orderNo - {}", orderEntity.getOrderNo());
+        var cardId = orderEntity.getOperation().getCustomer().getCardId();
+        var purchaseCompleteRequest =
+                getCompletePrePurchaseRequest(orderEntity, cardId);
+        try {
+            completePrePurchaseOrder(orderEntity, purchaseCompleteRequest);
+        } catch (CompletePrePurchaseException ex) {
+            log.error("Atlas complete pre purchase process for refund was failed : "
+                    + "orderNo - {}, AtlasClientException - {}", orderEntity.getOrderNo(), ex);
+            throw new RefundException(ORDER_NO_LOG + orderEntity.getOrderNo());
+        }
+        refundAmount(orderEntity);
+        log.info("Auto refund process was finished ");
+    }
+
+    @Transactional(dontRollbackOn = RefundException.class)
     public void refund(RefundRequestDto request) {
         log.info("Refund process is started : request - {}", request);
         var orderNo = request.getOrderNo();
@@ -454,7 +482,6 @@ public class OrderService {
         try {
             var refundResponse = atlasClient.refund(orderEntity.getTransactionId(),
                     new RefundRequest(amountWithCommission, rrn));
-            orderEntity.setRrn(rrn);
             orderEntity.setTransactionId(refundResponse.getId());
             orderEntity.setTransactionStatus(TransactionStatus.REFUND);
             orderEntity.setTransactionDate(LocalDateTime.now());
@@ -464,6 +491,7 @@ public class OrderService {
             log.error("Atlas refund process was failed : orderNo - {}, AtlasClientException - {}",
                     orderEntity.getOrderNo(), ex);
         }
+        orderEntity.setRrn(rrn);
         orderRepository.save(orderEntity);
         if (exception != null) {
             throw new RefundException(ORDER_NO_LOG + orderEntity.getOrderNo());
