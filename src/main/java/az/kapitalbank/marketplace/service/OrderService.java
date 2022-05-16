@@ -79,6 +79,7 @@ import org.springframework.stereotype.Service;
 public class OrderService {
 
     AmountUtil amountUtil;
+    SmsService smsService;
     OrderMapper orderMapper;
     AtlasClient atlasClient;
     UmicoService umicoService;
@@ -129,6 +130,8 @@ public class OrderService {
         var lastTempAmount = prePurchaseOrders(operationEntity, cardId);
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
             log.info("Telesales result : Pre purchase was finished : trackId - {}", trackId);
+            smsService.sendCompleteScoringSms(operationEntity);
+            smsService.sendPrePurchaseSms(operationEntity);
         } else {
             log.info("Telesales result : Pre purchase was failed : trackId - {}", trackId);
         }
@@ -258,8 +261,7 @@ public class OrderService {
         var transactionStatus = orderEntity.getTransactionStatus();
         var productEntities = orderEntity.getProducts();
         verifyProductIdIsLinkedToOrderNo(request, productEntities);
-        if (transactionStatus == TransactionStatus.PRE_PURCHASE
-                || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE_PRE_PURCHASE) {
+        if (transactionStatus == TransactionStatus.PRE_PURCHASE) {
             var deliveredOrderAmount = getDeliveredOrderAmount(request, productEntities);
             if (deliveredOrderAmount.compareTo(BigDecimal.ZERO) > 0) {
                 var purchaseCompleteRequest =
@@ -378,9 +380,7 @@ public class OrderService {
 
     private void validateOrdersForPrePurchase(List<OrderEntity> orders, UUID trackId) {
         var isPrePurchasable = orders.stream()
-                .allMatch(order -> order.getTransactionStatus() == null
-                        || order.getTransactionStatus()
-                        == TransactionStatus.FAIL_IN_PRE_PURCHASE);
+                .allMatch(order -> order.getTransactionStatus() == null);
         if (!isPrePurchasable) {
             log.error("No Permission for pre purchase. trackId - {}", trackId);
             throw new NoPermissionForTransaction("trackId - " + trackId);
@@ -422,14 +422,30 @@ public class OrderService {
     }
 
     @Transactional(dontRollbackOn = RefundException.class)
+    public void autoRefund(OrderEntity orderEntity) {
+        log.info("Auto refund process is started : orderNo - {}", orderEntity.getOrderNo());
+        var cardId = orderEntity.getOperation().getCustomer().getCardId();
+        var purchaseCompleteRequest =
+                getCompletePrePurchaseRequest(orderEntity, cardId);
+        try {
+            completePrePurchaseOrder(orderEntity, purchaseCompleteRequest);
+        } catch (CompletePrePurchaseException ex) {
+            log.error("Atlas complete pre purchase process for refund was failed : "
+                    + "orderNo - {}, AtlasClientException - {}", orderEntity.getOrderNo(), ex);
+            throw new RefundException(ORDER_NO_LOG + orderEntity.getOrderNo());
+        }
+        refundAmount(orderEntity);
+        log.info("Auto refund process was finished : orderNo - {}", orderEntity.getOrderNo());
+    }
+
+    @Transactional(dontRollbackOn = RefundException.class)
     public void refund(RefundRequestDto request) {
         log.info("Refund process is started : request - {}", request);
         var orderNo = request.getOrderNo();
         var orderEntity = orderRepository.findByOrderNo(orderNo)
                 .orElseThrow(() -> new OrderNotFoundException(ORDER_NO_LOG + orderNo));
         var transactionStatus = orderEntity.getTransactionStatus();
-        if (transactionStatus == TransactionStatus.PRE_PURCHASE
-                || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE_PRE_PURCHASE) {
+        if (transactionStatus == TransactionStatus.PRE_PURCHASE) {
             var customerEntity = orderEntity.getOperation().getCustomer();
             if (!customerEntity.getId().equals(request.getCustomerId())) {
                 throw new OrderNotLinkedToCustomer(

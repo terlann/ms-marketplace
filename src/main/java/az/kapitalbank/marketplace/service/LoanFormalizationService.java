@@ -40,10 +40,10 @@ public class LoanFormalizationService {
     UmicoService umicoService;
     OrderService orderService;
     ScoringService scoringService;
-    CustomerService customerService;
     LeadService leadService;
     VerificationService verificationService;
     OperationRepository operationRepository;
+    SmsService smsService;
 
     @Transactional
     public void fraudResultProcess(FraudCheckResultEvent fraudCheckResultEvent) {
@@ -220,6 +220,7 @@ public class LoanFormalizationService {
         if (dvsUrl.isPresent()) {
             var umicoDecisionStatus = umicoService.sendPreApprovedDecision(trackId, dvsUrl.get(),
                     UmicoDecisionStatus.PREAPPROVED);
+            smsService.sendPreapproveSms(operationEntity);
             operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
         } else {
             operationEntity.setSendLeadReason(SendLeadReason.DVS_URL_FAIL);
@@ -245,6 +246,8 @@ public class LoanFormalizationService {
         var lastTempAmount = orderService.prePurchaseOrders(operationEntity, cardId.get());
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
             log.info("Scoring complete result : Pre purchase was finished : trackId - {}", trackId);
+            smsService.sendCompleteScoringSms(operationEntity);
+            smsService.sendPrePurchaseSms(operationEntity);
         } else {
             log.info("Scoring complete result : Pre purchase was failed : trackId - {}", trackId);
         }
@@ -321,6 +324,7 @@ public class LoanFormalizationService {
                 operationEntity.getCustomer().getCardId());
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
             umicoService.sendPrePurchaseResult(trackId);
+            smsService.sendPrePurchaseSms(operationEntity);
             log.info("Pre purchase result was sent to umico : trackId - {}", trackId);
         }
         operationRepository.save(operationEntity);

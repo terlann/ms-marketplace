@@ -78,6 +78,8 @@ client:
     url: https://pre.ms-otp.kapitalbank.az/v1
   loan:
     url: https://dev.ms-loan.kapitalbank.az/v1
+  adp-common:
+    url: https://pre.adp-common.kapitalbank.az/api/v1
 feign:
   httpclient:
     disable-ssl-validation: true
@@ -97,3 +99,10 @@ commission:
     12: 13.50
     18: 18.50
     24: 23.50
+
+sms:
+  text:
+    preapprove: Kredit muracietiniz qeyde alindi. Shexsiyyetin eynileshdirilmesi ucun uz tanima prosesi ile davam edin.
+    complete-scoring: Kredit sorgunuz testiqlendi. Kredit xetti {amount} AZN teshkil edir.
+    pre-purchase: Marketplace kredit xetti uzre {amount} AZN odenis ugurla tamamlandi.
+    pending: Sizinle tezlikle elaqe saxlanilacaq.

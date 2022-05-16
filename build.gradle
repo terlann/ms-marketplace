@@ -50,7 +50,7 @@ dependencies {
     implementation "io.github.openfeign:feign-jackson:$openFeignVersion"
     implementation "io.github.openfeign:feign-annotation-error-decoder:$openFeignVersion"
     implementation "org.mapstruct:mapstruct:$mapStructversion"
-    implementation 'org.junit.jupiter:junit-jupiter:5.7.0'
+    implementation "org.junit.jupiter:junit-jupiter:$junitVersion"
     annotationProcessor "org.mapstruct:mapstruct-processor:$mapStructversion"
     compileOnly "org.projectlombok:lombok:$lombokVersion"
     annotationProcessor "org.projectlombok:lombok:$lombokVersion"
@@ -110,6 +110,7 @@ sonarqube {
                         "**/az/kapitalbank/marketplace/mapper/**," +
                         "**/az/kapitalbank/marketplace/messaging/**," +
                         "**/az/kapitalbank/marketplace/repository/**," +
+                        "**/az/kapitalbank/marketplace/scheduler/**," +
                         "**/az/kapitalbank/marketplace/util/**"
     }
 }

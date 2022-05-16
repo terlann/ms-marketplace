@@ -26,6 +26,7 @@ import org.springframework.stereotype.Service;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class LeadService {
 
+    SmsService smsService;
     LoanClient loanClient;
     UmicoService umicoService;
     TelesalesClient telesalesClient;
@@ -91,6 +92,7 @@ public class LeadService {
         var telesalesOrderId = sendLeadTelesales(operationEntity, fraudTypes);
         telesalesOrderId.ifPresent(operationEntity::setTelesalesOrderId);
         var umicoDecisionStatus = umicoService.sendPendingDecision(operationEntity.getId());
+        smsService.sendPendingSms(operationEntity);
         operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
     }
 }
