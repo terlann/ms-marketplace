@@ -26,11 +26,11 @@ import org.springframework.stereotype.Service;
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class LeadService {
 
+    SmsService smsService;
     LoanClient loanClient;
     UmicoService umicoService;
     TelesalesClient telesalesClient;
     TelesalesMapper telesalesMapper;
-    SmsService smsService;
 
     private Optional<String> sendLeadTelesales(OperationEntity operationEntity,
                                                List<FraudType> fraudTypes) {
