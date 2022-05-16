@@ -102,6 +102,8 @@ class OrderServiceTest {
     FraudCheckPublisher fraudCheckPublisher;
     @Mock
     OperationRepository operationRepository;
+    @Mock
+    SmsService smsService;
     @InjectMocks
     OrderService orderService;
 

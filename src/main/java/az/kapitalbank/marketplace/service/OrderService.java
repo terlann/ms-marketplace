@@ -79,6 +79,7 @@ import org.springframework.stereotype.Service;
 public class OrderService {
 
     AmountUtil amountUtil;
+    SmsService smsService;
     OrderMapper orderMapper;
     AtlasClient atlasClient;
     UmicoService umicoService;
@@ -129,6 +130,8 @@ public class OrderService {
         var lastTempAmount = prePurchaseOrders(operationEntity, cardId);
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
             log.info("Telesales result : Pre purchase was finished : trackId - {}", trackId);
+            smsService.sendCompleteScoringSms(operationEntity);
+            smsService.sendPrePurchaseSms(operationEntity);
         } else {
             log.info("Telesales result : Pre purchase was failed : trackId - {}", trackId);
         }
