@@ -16,7 +16,7 @@ import org.springframework.stereotype.Component;
 public class LeadSchedule {
     LeadService leadService;
 
-    @Scheduled(cron = "0 22 * * * ?", zone = "Asia/Baku")
+    @Scheduled(initialDelay = 15 * 1000, fixedDelay = 59 * 60 * 1000, zone = "Asia/Baku")
     public void sendLead() {
         log.info("Send lead schedule started at {}", LocalDateTime.now());
         leadService.sendLeadSchedule();
