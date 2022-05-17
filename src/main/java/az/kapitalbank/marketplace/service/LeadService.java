@@ -1,6 +1,8 @@
 package az.kapitalbank.marketplace.service;
 
 import static az.kapitalbank.marketplace.constant.TelesalesConstant.UMICO_SOURCE_CODE;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PREAPPROVED;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PREAPPROVED;
 
 import az.kapitalbank.marketplace.client.loan.LoanClient;
 import az.kapitalbank.marketplace.client.loan.model.LoanRequest;
@@ -11,9 +13,12 @@ import az.kapitalbank.marketplace.constant.ProductType;
 import az.kapitalbank.marketplace.constant.SubProductType;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.mapper.TelesalesMapper;
+import az.kapitalbank.marketplace.repository.OperationRepository;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -31,6 +36,7 @@ public class LeadService {
     UmicoService umicoService;
     TelesalesClient telesalesClient;
     TelesalesMapper telesalesMapper;
+    OperationRepository operationRepository;
 
     private Optional<String> sendLeadTelesales(OperationEntity operationEntity,
                                                List<FraudType> fraudTypes) {
@@ -94,5 +100,17 @@ public class LeadService {
         var umicoDecisionStatus = umicoService.sendPendingDecision(operationEntity.getId());
         smsService.sendPendingSms(operationEntity);
         operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+    }
+
+    public void sendLeadSchedule() {
+        var operations = operationRepository.findByUpdatedAtBeforeAndUmicoDecisionStatusIn(
+                OffsetDateTime.now().minusMinutes(20),
+                Set.of(PREAPPROVED, FAIL_IN_PREAPPROVED));
+        operations.forEach(operation -> {
+            var trackId = operation.getId();
+            sendLead(operation, null);
+            log.info("Send lead schedule process was finished : trackId - {}", trackId);
+        });
+        operationRepository.saveAll(operations);
     }
 }
