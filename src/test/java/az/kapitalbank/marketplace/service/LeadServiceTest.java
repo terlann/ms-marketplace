@@ -1,5 +1,7 @@
 package az.kapitalbank.marketplace.service;
 
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PREAPPROVED;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PREAPPROVED;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntity;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -16,7 +18,10 @@ import az.kapitalbank.marketplace.client.telesales.model.CreateTelesalesOrderRes
 import az.kapitalbank.marketplace.constant.FraudType;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.mapper.TelesalesMapper;
+import az.kapitalbank.marketplace.repository.OperationRepository;
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -29,13 +34,15 @@ class LeadServiceTest {
     @Mock
     LoanClient loanClient;
     @Mock
-    UmicoService umicoService;
+    SmsService smsService;
     @Mock
-    TelesalesClient telesalesClient;
+    UmicoService umicoService;
     @Mock
     TelesalesMapper telesalesMapper;
     @Mock
-    SmsService smsService;
+    TelesalesClient telesalesClient;
+    @Mock
+    OperationRepository operationRepository;
     @InjectMocks
     private LeadService leadService;
 
@@ -98,5 +105,17 @@ class LeadServiceTest {
         verify(telesalesMapper).toTelesalesOrder(any(OperationEntity.class),
                 eq(List.of(FraudType.PIN)));
 
+    }
+
+    @Test
+    void sendLeadSchedule_Success() {
+        when(operationRepository.findByUpdatedAtBeforeAndUmicoDecisionStatusIn(
+                any(OffsetDateTime.class),
+                eq(Set.of(PREAPPROVED, FAIL_IN_PREAPPROVED)))).thenReturn(
+                List.of(getOperationEntity()));
+        leadService.sendLeadSchedule();
+        verify(operationRepository).findByUpdatedAtBeforeAndUmicoDecisionStatusIn(
+                any(OffsetDateTime.class),
+                eq(Set.of(PREAPPROVED, FAIL_IN_PREAPPROVED)));
     }
 }

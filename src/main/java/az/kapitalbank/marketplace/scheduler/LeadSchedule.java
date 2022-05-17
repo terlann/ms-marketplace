@@ -1,6 +1,6 @@
 package az.kapitalbank.marketplace.scheduler;
 
-import az.kapitalbank.marketplace.service.OrderService;
+import az.kapitalbank.marketplace.service.LeadService;
 import java.time.LocalDateTime;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -13,13 +13,14 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class RefundSchedule {
-    OrderService orderService;
+public class LeadSchedule {
+    LeadService leadService;
 
-    @Scheduled(cron = "0 22 * * * ?", zone = "Asia/Baku")
-    public void autoRefundOrder() {
-        log.info("Auto refund schedule started at {}", LocalDateTime.now());
-        orderService.autoRefundOrderSchedule();
-        log.info("Auto refund schedule finished at {}", LocalDateTime.now());
+    @Scheduled(initialDelay = 15 * 1000, fixedDelay = 59 * 60 * 1000, zone = "Asia/Baku")
+    public void sendLead() {
+        log.info("Send lead schedule started at {}", LocalDateTime.now());
+        leadService.sendLeadSchedule();
+        log.info("Send lead schedule finished at {}", LocalDateTime.now());
     }
 }
+
