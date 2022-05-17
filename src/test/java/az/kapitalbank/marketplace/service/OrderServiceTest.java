@@ -10,6 +10,7 @@ import static az.kapitalbank.marketplace.constants.ConstantObject.getCustomerEnt
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntity;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntityFirstCustomer;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOrderEntity;
+import static az.kapitalbank.marketplace.constants.ConstantObject.getOrderEntityAutoRefund;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getProductEntity;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getProductEntity2;
 import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
@@ -31,6 +32,7 @@ import az.kapitalbank.marketplace.client.atlas.model.request.PrePurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.RefundRequest;
 import az.kapitalbank.marketplace.client.atlas.model.response.CompletePrePurchaseResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.PrePurchaseResponse;
+import az.kapitalbank.marketplace.client.atlas.model.response.RefundResponse;
 import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
@@ -233,6 +235,34 @@ class OrderServiceTest {
                 getCreateOrderRequestDtoFailInProductAmount(null);
         assertThrows(NoMatchOrderAmountByProductException.class,
                 () -> orderService.createOrder(request));
+    }
+
+    @Test
+    void autoRefundOrderSchedule_Success() {
+        when(orderRepository.findByTransactionDateBeforeAndTransactionStatus(any(),
+                eq(TransactionStatus.PRE_PURCHASE))).thenReturn(
+                List.of(getOrderEntityAutoRefund()));
+        when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class))).thenReturn(
+                CompletePrePurchaseResponse.builder().build());
+        when(atlasClient.refund(eq(getOrderEntity().getTransactionId()), any(RefundRequest.class)))
+                .thenReturn(RefundResponse.builder().build());
+        orderService.autoRefundOrderSchedule();
+        verify(orderRepository).findByTransactionDateBeforeAndTransactionStatus(any(),
+                eq(TransactionStatus.PRE_PURCHASE));
+    }
+
+    @Test
+    void autoRefundOrderSchedule_Exception() {
+        when(orderRepository.findByTransactionDateBeforeAndTransactionStatus(any(),
+                eq(TransactionStatus.PRE_PURCHASE))).thenReturn(
+                List.of(getOrderEntityAutoRefund()));
+        when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class))).thenReturn(
+                CompletePrePurchaseResponse.builder().build());
+        when(atlasClient.refund(eq(getOrderEntity().getTransactionId()), any(RefundRequest.class)))
+                .thenThrow(new RefundException("salam"));
+        orderService.autoRefundOrderSchedule();
+        verify(orderRepository).findByTransactionDateBeforeAndTransactionStatus(any(),
+                eq(TransactionStatus.PRE_PURCHASE));
     }
 
     @Test

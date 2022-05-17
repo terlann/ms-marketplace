@@ -50,6 +50,19 @@ public class ConstantObject {
                 .build();
     }
 
+    public static OperationEntity getOperationEntityAutoRefund() {
+        return OperationEntity.builder()
+                .id(UUID.fromString(TRACK_ID.getValue()))
+                .commission(BigDecimal.valueOf(12))
+                .customer(getCustomerEntity())
+                .totalAmount(BigDecimal.ONE)
+                .dvsOrderId(12345L)
+                .taskId(TASK_ID.getValue())
+                .businessKey(BUSINESS_KEY.getValue())
+                .scoredAmount(BigDecimal.ONE)
+                .build();
+    }
+
     public static ProcessResponse getProcessResponse() {
         return ProcessResponse.builder()
                 .variables(ProcessData.builder()
@@ -83,6 +96,15 @@ public class ConstantObject {
                 .products(List.of(getProductEntity()))
                 .totalAmount(BigDecimal.ONE)
                 .commission(BigDecimal.ONE)
+                .build();
+    }
+
+    public static OrderEntity getOrderEntityAutoRefund() {
+        return OrderEntity.builder()
+                .totalAmount(BigDecimal.ONE)
+                .commission(BigDecimal.ONE)
+                .transactionId("123456")
+                .operation(getOperationEntityAutoRefund())
                 .build();
     }
 
