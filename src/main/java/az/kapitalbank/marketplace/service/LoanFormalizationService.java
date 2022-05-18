@@ -80,7 +80,9 @@ public class LoanFormalizationService {
     public void scoringResultProcess(ScoringResultEvent scoringResultEvent) {
         var businessKey = scoringResultEvent.getBusinessKey();
         var operation = operationRepository.findByBusinessKey(businessKey);
-        if (operation.isPresent() && operation.get().getScoringStatus() == null) {
+        if (operation.isPresent()
+                && operation.get().getScoringStatus() == null
+                && operation.get().getIsSendLead() == null) {
             switch (scoringResultEvent.getProcessStatus()) {
                 case IN_USER_ACTIVITY:
                     inUserActivityProcess(scoringResultEvent, operation.get());
@@ -103,7 +105,7 @@ public class LoanFormalizationService {
     public void verificationResultProcess(VerificationResultEvent verificationResultEvent) {
         var trackId = verificationResultEvent.getTrackId();
         var operationOptional = operationRepository.findById(trackId);
-        if (operationOptional.isPresent()) {
+        if (operationOptional.isPresent() && operationOptional.get().getIsSendLead() == null) {
             var operation = operationOptional.get();
             var dvsOrderStatus = operation.getDvsOrderStatus();
             if (dvsOrderStatus == null || dvsOrderStatus == DvsStatus.PENDING) {
