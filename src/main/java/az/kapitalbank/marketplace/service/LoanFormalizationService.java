@@ -79,22 +79,23 @@ public class LoanFormalizationService {
     @Transactional
     public void scoringResultProcess(ScoringResultEvent scoringResultEvent) {
         var businessKey = scoringResultEvent.getBusinessKey();
-        var operationEntity = operationRepository.findByBusinessKey(businessKey)
-                .orElseThrow(() -> new OperationNotFoundException("businessKey - " + businessKey));
-        switch (scoringResultEvent.getProcessStatus()) {
-            case IN_USER_ACTIVITY:
-                inUserActivityProcess(scoringResultEvent, operationEntity);
-                break;
-            case COMPLETED:
-                scoringCompletedProcess(operationEntity);
-                break;
-            case BUSINESS_ERROR:
-                scoringBusinessErrorProcess(scoringResultEvent, operationEntity);
-                break;
-            case INCIDENT_HAPPENED:
-                scoringIncidentProcess(scoringResultEvent, operationEntity);
-                break;
-            default:
+        var operation = operationRepository.findByBusinessKey(businessKey);
+        if (operation.isPresent() && operation.get().getScoringStatus() == null) {
+            switch (scoringResultEvent.getProcessStatus()) {
+                case IN_USER_ACTIVITY:
+                    inUserActivityProcess(scoringResultEvent, operation.get());
+                    break;
+                case COMPLETED:
+                    scoringCompletedProcess(operation.get());
+                    break;
+                case BUSINESS_ERROR:
+                    scoringBusinessErrorProcess(scoringResultEvent, operation.get());
+                    break;
+                case INCIDENT_HAPPENED:
+                    scoringIncidentProcess(scoringResultEvent, operation.get());
+                    break;
+                default:
+            }
         }
     }
 
@@ -104,21 +105,24 @@ public class LoanFormalizationService {
         var operationOptional = operationRepository.findById(trackId);
         if (operationOptional.isPresent()) {
             var operation = operationOptional.get();
-            var verificationStatus = verificationResultEvent.getStatus();
-            switch (verificationStatus) {
-                case "confirmed":
-                    onVerificationConfirmed(operation);
-                    break;
-                case "pending":
-                    onVerificationPending(operation);
-                    break;
-                case "rejected":
-                    onVerificationRejected(operation);
-                    break;
-                default:
+            var dvsOrderStatus = operation.getDvsOrderStatus();
+            if (dvsOrderStatus == null || dvsOrderStatus == DvsStatus.PENDING) {
+                var verificationStatus = verificationResultEvent.getStatus();
+                switch (verificationStatus) {
+                    case "confirmed":
+                        onVerificationConfirmed(operation);
+                        break;
+                    case "pending":
+                        if (dvsOrderStatus != DvsStatus.PENDING) {
+                            onVerificationPending(operation);
+                        }
+                        break;
+                    case "rejected":
+                        onVerificationRejected(operation);
+                        break;
+                    default:
+                }
             }
-        } else {
-            log.error("Verification status result : Operation not found : trackId - {}", trackId);
         }
     }
 
