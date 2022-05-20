@@ -154,7 +154,7 @@ public class OrderService {
         if (customerId == null && customerEntity.getCardId() == null) {
             log.info("First transaction process is started : customerId - {}, trackId - {}",
                     customerEntity.getId(), trackId);
-            var fraudCheckEvent = orderMapper.toOrderEvent(request);
+            var fraudCheckEvent = orderMapper.toFraudCheckEvent(request);
             fraudCheckEvent.setTrackId(trackId);
             fraudCheckPublisher.sendEvent(fraudCheckEvent);
         }
@@ -248,7 +248,7 @@ public class OrderService {
         if (scoringStatus != null) {
             throw new OperationAlreadyScoredException(TELESALES_ORDER_ID_LOG + telesalesOrderId);
         }
-        var orderResponseDto = orderMapper.entityToDto(operationEntity);
+        var orderResponseDto = orderMapper.toCheckOrderResponseDto(operationEntity);
         log.info("Check order was finished : telesalesOrderId - {}", telesalesOrderId);
         return orderResponseDto;
     }
