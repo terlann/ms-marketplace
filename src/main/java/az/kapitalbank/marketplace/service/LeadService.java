@@ -111,13 +111,14 @@ public class LeadService {
         }
     }
 
-    public void sendLeadSchedule() {
+    public void sendLeadNoActionDvs() {
         var operations = operationRepository.findByUpdatedAtBeforeAndUmicoDecisionStatusIn(
                 OffsetDateTime.now().minusMinutes(20),
                 Set.of(PREAPPROVED, FAIL_IN_PREAPPROVED));
         operations.forEach(operation -> {
             var trackId = operation.getId();
             sendLead(operation, null);
+            operation.setSendLeadReason(SendLeadReason.NO_ACTION_DVS);
             log.info("Send lead schedule process was finished : trackId - {}", trackId);
         });
         operationRepository.saveAll(operations);

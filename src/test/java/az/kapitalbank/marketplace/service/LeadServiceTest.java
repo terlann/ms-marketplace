@@ -119,7 +119,7 @@ class LeadServiceTest {
                 any(OffsetDateTime.class),
                 eq(Set.of(PREAPPROVED, FAIL_IN_PREAPPROVED)))).thenReturn(
                 List.of(getOperationEntity()));
-        leadService.sendLeadSchedule();
+        leadService.sendLeadNoActionDvs();
         verify(operationRepository).findByUpdatedAtBeforeAndUmicoDecisionStatusIn(
                 any(OffsetDateTime.class), eq(Set.of(PREAPPROVED, FAIL_IN_PREAPPROVED)));
     }
