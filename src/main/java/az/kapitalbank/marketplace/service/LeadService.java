@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -111,6 +112,7 @@ public class LeadService {
         }
     }
 
+    @Transactional
     public void sendLeadNoActionDvs() {
         var operations = operationRepository.findByUpdatedAtBeforeAndUmicoDecisionStatusIn(
                 OffsetDateTime.now().minusMinutes(20),
@@ -124,6 +126,7 @@ public class LeadService {
         operationRepository.saveAll(operations);
     }
 
+    @Transactional
     public void retrySendLead() {
         List<OperationEntity> operationEntities = operationRepository
                 .findByUmicoDecisionStatusAndIsSendLeadIsFalse(UmicoDecisionStatus.PENDING);
@@ -132,9 +135,9 @@ public class LeadService {
                 var fraudCheckEvent = orderMapper.toFraudCheckEvent(operationEntity);
                 fraudCheckPublisher.sendEvent(fraudCheckEvent);
             } else {
-                var telesalesOrderId = sendLeadTelesales(operationEntity, null);
-                telesalesOrderId.ifPresent(operationEntity::setTelesalesOrderId);
+                sendLead(operationEntity, null);
             }
         });
+        operationRepository.saveAll(operationEntities);
     }
 }
