@@ -176,7 +176,7 @@ class OrderServiceTest {
                 getProductEntity());
         when(operationRepository.save(any(OperationEntity.class))).thenReturn(
                 getOperationEntityFirstCustomer());
-        when(orderMapper.toOrderEvent(request)).thenReturn(FraudCheckEvent.builder().build());
+        when(orderMapper.toFraudCheckEvent(request)).thenReturn(FraudCheckEvent.builder().build());
 
         var actual = orderService.createOrder(request);
         var expected = CreateOrderResponse.of(UUID.fromString(TRACK_ID.getValue()));
@@ -426,7 +426,7 @@ class OrderServiceTest {
         var expected = CheckOrderResponseDto.builder().build();
         when(operationRepository.findByTelesalesOrderId(telesalesOrderId))
                 .thenReturn(Optional.of(operationEntity));
-        when(orderMapper.entityToDto(operationEntity)).thenReturn(expected);
+        when(orderMapper.toCheckOrderResponseDto(operationEntity)).thenReturn(expected);
         var actual = orderService.checkOrder(telesalesOrderId);
         assertEquals(expected, actual);
     }

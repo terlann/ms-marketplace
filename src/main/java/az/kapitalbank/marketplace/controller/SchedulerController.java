@@ -25,9 +25,15 @@ public class SchedulerController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/send-lead")
-    public ResponseEntity<Void> sendLead() {
-        leadSchedule.sendLead();
+    @PostMapping("/send-lead/dvs")
+    public ResponseEntity<Void> sendLeadNoActionDvs() {
+        leadSchedule.sendLeadNoActionDvs();
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/send-lead/retry")
+    public ResponseEntity<Void> retrySendLead() {
+        leadSchedule.retrySendLead();
         return ResponseEntity.ok().build();
     }
 }

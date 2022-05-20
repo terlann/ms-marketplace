@@ -29,10 +29,14 @@ public interface OrderMapper {
     @Mapping(source = "customerInfo.mobileNumber", target = "mobileNumber")
     @Mapping(source = "request.deliveryInfo", target = "deliveryAddresses",
             qualifiedByName = "mapDeliveryAddresses")
-    FraudCheckEvent toOrderEvent(CreateOrderRequestDto request);
+    FraudCheckEvent toFraudCheckEvent(CreateOrderRequestDto request);
+
+    @Mapping(target = "trackId", source = "id")
+    @Mapping(target = "umicoUserId", source = "customer.umicoUserId")
+    FraudCheckEvent toFraudCheckEvent(OperationEntity operationEntity);
 
     @Mapping(source = "id", target = "trackId")
-    CheckOrderResponseDto entityToDto(OperationEntity source);
+    CheckOrderResponseDto toCheckOrderResponseDto(OperationEntity source);
 
     OrderEntity toOrderEntity(OrderProductDeliveryInfo deliveryInfo, BigDecimal commission);
 
