@@ -22,5 +22,14 @@ public class LeadSchedule {
         leadService.sendLeadSchedule();
         log.info("Send lead schedule finished at {}", LocalDateTime.now());
     }
+
+    @Scheduled(initialDelay = 10 * 1000, fixedDelay = 60 * 60 * 1000, zone = "Asia/Baku")
+    public void retrySendLead() {
+        log.info("Retry send lead schedule started at {}", LocalDateTime.now());
+        leadService.retrySendLead();
+        log.info("Retry send lead schedule finished at {}", LocalDateTime.now());
+
+    }
+
 }
 

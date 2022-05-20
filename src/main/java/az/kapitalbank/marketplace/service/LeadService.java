@@ -2,6 +2,7 @@ package az.kapitalbank.marketplace.service;
 
 import static az.kapitalbank.marketplace.constant.TelesalesConstant.UMICO_SOURCE_CODE;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PREAPPROVED;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PENDING;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PREAPPROVED;
 
 import az.kapitalbank.marketplace.client.loan.LoanClient;
@@ -10,9 +11,13 @@ import az.kapitalbank.marketplace.client.loan.model.LoanResponse;
 import az.kapitalbank.marketplace.client.telesales.TelesalesClient;
 import az.kapitalbank.marketplace.constant.FraudType;
 import az.kapitalbank.marketplace.constant.ProductType;
+import az.kapitalbank.marketplace.constant.SendLeadReason;
 import az.kapitalbank.marketplace.constant.SubProductType;
+import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.entity.OperationEntity;
+import az.kapitalbank.marketplace.mapper.OrderMapper;
 import az.kapitalbank.marketplace.mapper.TelesalesMapper;
+import az.kapitalbank.marketplace.messaging.publisher.FraudCheckPublisher;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -33,10 +38,12 @@ public class LeadService {
 
     SmsService smsService;
     LoanClient loanClient;
+    OrderMapper orderMapper;
     UmicoService umicoService;
     TelesalesClient telesalesClient;
     TelesalesMapper telesalesMapper;
     OperationRepository operationRepository;
+    FraudCheckPublisher fraudCheckPublisher;
 
     private Optional<String> sendLeadTelesales(OperationEntity operationEntity,
                                                List<FraudType> fraudTypes) {
@@ -97,9 +104,11 @@ public class LeadService {
         }
         var telesalesOrderId = sendLeadTelesales(operationEntity, fraudTypes);
         telesalesOrderId.ifPresent(operationEntity::setTelesalesOrderId);
-        var umicoDecisionStatus = umicoService.sendPendingDecision(operationEntity.getId());
-        smsService.sendPendingSms(operationEntity);
-        operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+        if (operationEntity.getUmicoDecisionStatus() != PENDING) {
+            var umicoDecisionStatus = umicoService.sendPendingDecision(operationEntity.getId());
+            smsService.sendPendingSms(operationEntity);
+            operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+        }
     }
 
     public void sendLeadSchedule() {
@@ -112,5 +121,19 @@ public class LeadService {
             log.info("Send lead schedule process was finished : trackId - {}", trackId);
         });
         operationRepository.saveAll(operations);
+    }
+
+    public void retrySendLead() {
+        List<OperationEntity> operationEntities = operationRepository
+                .findByUmicoDecisionStatusAndIsSendLeadIsFalse(UmicoDecisionStatus.PENDING);
+        operationEntities.forEach(operationEntity -> {
+            if (operationEntity.getSendLeadReason().equals(SendLeadReason.FRAUD_LIST)) {
+                var fraudCheckEvent = orderMapper.toFraudCheckEvent(operationEntity);
+                fraudCheckPublisher.sendEvent(fraudCheckEvent);
+            } else {
+                var telesalesOrderId = sendLeadTelesales(operationEntity, null);
+                telesalesOrderId.ifPresent(operationEntity::setTelesalesOrderId);
+            }
+        });
     }
 }

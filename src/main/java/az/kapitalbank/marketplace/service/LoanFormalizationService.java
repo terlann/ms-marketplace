@@ -62,13 +62,14 @@ public class LoanFormalizationService {
             } else if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_TELESALES) {
                 log.info("Fraud case was found and sent to Telesales : trackId - {}",
                         trackId);
+                operationEntity.setSendLeadReason(SendLeadReason.FRAUD_LIST);
                 leadService.sendLead(operationEntity, fraudCheckResultEvent.getTypes());
                 operationRepository.save(operationEntity);
             } else if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_UMICO) {
                 log.info("Fraud case was found and sent to umico : trackId - {}", trackId);
                 var umicoDecisionStatus = umicoService.sendRejectedDecision(trackId);
                 operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
-                operationEntity.setRejectReason(OperationRejectReason.FRAUD);
+                operationEntity.setRejectReason(OperationRejectReason.FRAUD_RULE);
                 operationRepository.save(operationEntity);
             } else {
                 noFraudProcess(operationEntity);

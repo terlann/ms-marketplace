@@ -29,4 +29,7 @@ public interface OperationRepository extends JpaRepository<OperationEntity, UUID
 
     List<OperationEntity> findByUpdatedAtBeforeAndUmicoDecisionStatusIn(
             OffsetDateTime updateAt, Set<UmicoDecisionStatus> umicoDecisionStatuses);
+
+    List<OperationEntity> findByUmicoDecisionStatusAndIsSendLeadIsFalse(
+            UmicoDecisionStatus decisionStatus);
 }
