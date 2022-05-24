@@ -10,5 +10,6 @@ public enum SendLeadReason {
     DVS_URL_FAIL,
     OPTIMUS_NO_ENOUGH_AMOUNT,
     FRAUD_LIST,
-    NO_ACTION_DVS
+    NO_ACTION_DVS,
+    SCORED_AMOUNT_ZERO
 }
