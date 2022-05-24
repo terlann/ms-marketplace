@@ -192,6 +192,7 @@ public class LoanFormalizationService {
         if (scoredAmount.compareTo(BigDecimal.ZERO) == 0) {
             log.info("Start scoring result - Scoring amount is zero : trackId - {}",
                     operationEntity.getId());
+            leadService.sendLead(operationEntity, null);
             var umicoDecisionStatus = umicoService.sendRejectedDecision(operationEntity.getId());
             operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
         } else if (scoredAmount.compareTo(selectedAmount) < 0) {

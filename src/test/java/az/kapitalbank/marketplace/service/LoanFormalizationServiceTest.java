@@ -213,6 +213,33 @@ class LoanFormalizationServiceTest {
     }
 
     @Test
+    void scoringResultProcess_InUserActivity_UserTaskScoring_ScoringAmount_Is_Zero() {
+        BusinessErrorData[] arr = new BusinessErrorData[] {
+                BusinessErrorData.builder().id("RULE_HAS_WRITTEN_OF_CREDIT").build()};
+        var inUserActivityData = InUserActivityData.builder()
+                .taskDefinitionKey("USER_TASK_SCORING").build();
+        var request = ScoringResultEvent.builder()
+                .processStatus(ProcessStatus.IN_USER_ACTIVITY)
+                .data(inUserActivityData)
+                .businessKey(BUSINESS_KEY.getValue()).build();
+        var processResponse = ProcessResponse.builder()
+                .variables(ProcessData.builder()
+                        .selectedOffer(SelectedOffer.builder()
+                                .cardOffer(Offer.builder()
+                                        .availableLoanAmount(BigDecimal.ZERO)
+                                        .build())
+                                .build())
+                        .build())
+                .build();
+        when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
+                Optional.of(getOperationEntity()));
+        when(scoringService.getProcess(any(OperationEntity.class))).thenReturn(
+                Optional.of(processResponse));
+        loanFormalizationService.scoringResultProcess(request);
+        verify(operationRepository).findByBusinessKey(request.getBusinessKey());
+    }
+
+    @Test
     void scoringResultProcess_Completed() {
         BusinessErrorData[] arr = new BusinessErrorData[] {
                 BusinessErrorData.builder().id("RULE_HAS_WRITTEN_OF_CREDIT").build()};
