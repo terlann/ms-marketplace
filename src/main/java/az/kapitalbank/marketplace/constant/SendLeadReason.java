@@ -11,5 +11,5 @@ public enum SendLeadReason {
     OPTIMUS_NO_ENOUGH_AMOUNT,
     FRAUD_LIST,
     NO_ACTION_DVS,
-    SCORED_AMOUNT_IS_ZERO
+    SCORED_AMOUNT_ZERO
 }

@@ -193,9 +193,7 @@ public class LoanFormalizationService {
             log.info("Start scoring result - Scoring amount is zero : trackId - {}",
                     operationEntity.getId());
             leadService.sendLead(operationEntity, null);
-            var umicoDecisionStatus = umicoService.sendPendingDecision(operationEntity.getId());
-            operationEntity.setSendLeadReason(SendLeadReason.SCORED_AMOUNT_IS_ZERO);
-            operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+            operationEntity.setSendLeadReason(SendLeadReason.SCORED_AMOUNT_ZERO);
         } else if (scoredAmount.compareTo(selectedAmount) < 0) {
             log.info("Start scoring result - No enough amount : selectedAmount - {},"
                             + " scoredAmount - {}, trackId - {}", selectedAmount, scoredAmount,
