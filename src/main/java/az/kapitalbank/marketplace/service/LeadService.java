@@ -12,6 +12,7 @@ import az.kapitalbank.marketplace.client.telesales.TelesalesClient;
 import az.kapitalbank.marketplace.constant.FraudType;
 import az.kapitalbank.marketplace.constant.ProductType;
 import az.kapitalbank.marketplace.constant.SendLeadReason;
+import az.kapitalbank.marketplace.constant.SendLeadType;
 import az.kapitalbank.marketplace.constant.SubProductType;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.entity.OperationEntity;
@@ -139,5 +140,16 @@ public class LeadService {
             }
         });
         operationRepository.saveAll(operationEntities);
+    }
+
+    @Transactional
+    public void sendLeadManual(SendLeadType sendLeadType) {
+        log.info("Send lead manual process is started : sendLeadType - {}", sendLeadType);
+        if (sendLeadType == SendLeadType.SEND_LEAD_FAILED) {
+            retrySendLead();
+        } else if (sendLeadType == SendLeadType.NO_ACTION_DVS) {
+            sendLeadNoActionDvs();
+        }
+        log.info("Send lead manual process was finished : sendLeadType - {}", sendLeadType);
     }
 }

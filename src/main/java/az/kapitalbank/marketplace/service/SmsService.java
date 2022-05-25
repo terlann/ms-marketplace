@@ -51,11 +51,11 @@ public class SmsService {
         mobileNumber = mobileNumber.replace("+", "");
         try {
             commonClient.sendSms(new SendSmsRequest(text, mobileNumber));
-            log.info("Send sms : text - {}, mobileNumber - {} , trackId - {}", text,
-                    mobileNumber, trackId);
+            log.info("Send sms : trackId - {}, text - {}, mobileNumber - {} ",
+                    trackId, text, mobileNumber);
         } catch (FeignException ex) {
-            log.error("Send sms was failed : text - {} , mobileNumber - {} , exception - {} ", text,
-                    mobileNumber, ex);
+            log.error("Send sms was failed : trackId - {}, text - {} , mobileNumber - {} "
+                    + ", exception - {} ", trackId, text, mobileNumber, ex);
         }
     }
 }

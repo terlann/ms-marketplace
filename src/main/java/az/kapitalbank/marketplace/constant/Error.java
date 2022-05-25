@@ -38,7 +38,8 @@ public enum Error {
     NO_MATCH_ORDER_AMOUNT_BY_PRODUCTS("E124", "Order amount is not equal total products amount"),
     PRODUCT_NOT_LINKED_TO_ORDER("E125", "Product is not linked to order"),
     REFUND_FAILED("E126", "Refund operation couldn't finished"),
-    COMPLETE_PRE_PURCHASE_FAILED("E127", "Purchase operation couldn't finished");
+    COMPLETE_PRE_PURCHASE_FAILED("E127", "Purchase operation couldn't finished"),
+    CUSTOMER_ID_SKIPPED("E128", "Customer id must not be null");
 
     String code;
     String message;
