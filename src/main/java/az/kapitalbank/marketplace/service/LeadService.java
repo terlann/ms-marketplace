@@ -132,7 +132,7 @@ public class LeadService {
         List<OperationEntity> operationEntities = operationRepository
                 .findByUmicoDecisionStatusAndIsSendLeadIsFalse(UmicoDecisionStatus.PENDING);
         operationEntities.forEach(operationEntity -> {
-            if (operationEntity.getSendLeadReason().equals(SendLeadReason.FRAUD_LIST)) {
+            if (operationEntity.getSendLeadReason() == SendLeadReason.FRAUD_LIST) {
                 var fraudCheckEvent = orderMapper.toFraudCheckEvent(operationEntity);
                 fraudCheckPublisher.sendEvent(fraudCheckEvent);
             } else {
