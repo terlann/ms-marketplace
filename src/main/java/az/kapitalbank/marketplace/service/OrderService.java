@@ -34,6 +34,7 @@ import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.entity.ProductEntity;
 import az.kapitalbank.marketplace.exception.CompletePrePurchaseException;
+import az.kapitalbank.marketplace.exception.CustomerIdSkippedException;
 import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
 import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
 import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
@@ -198,11 +199,15 @@ public class OrderService {
         CustomerEntity customerEntity;
         if (customerId == null) {
             log.info("First order create process is started...");
+            var umicoUserId = request.getCustomerInfo().getUmicoUserId();
             checkAdditionalPhoneNumbersEquals(request);
             validatePurchaseAmountLimit(request);
-            var customerByUmicoUserId = customerRepository.findByUmicoUserId(
-                    request.getCustomerInfo().getUmicoUserId());
+            var customerByUmicoUserId = customerRepository
+                    .findByUmicoUserId(umicoUserId);
             if (customerByUmicoUserId.isPresent()) {
+                if (customerByUmicoUserId.get().getCardId() != null) {
+                    throw new CustomerIdSkippedException(umicoUserId);
+                }
                 customerEntity = customerByUmicoUserId.get();
                 checkCustomerIncompleteProcess(customerEntity);
             } else {
