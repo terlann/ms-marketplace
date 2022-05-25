@@ -12,6 +12,7 @@ public final class OptimusConstant {
     public static final String ADDITIONAL_NAME_1 = "A";
     public static final String ADDITIONAL_NAME_2 = "B";
     public static final String SALES_SOURCE = "umico_marketplace";
+    public static final String OTP_SOURCE = "umico marketplace";
     public static final String NAME_ON_CARD = "empty";
     public static final String OPTIMUS_CLIENT_EXCEPTION =
             "trackId - {}, businessKey - {}, exception - {}";

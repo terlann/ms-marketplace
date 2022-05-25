@@ -34,6 +34,7 @@ import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.entity.ProductEntity;
 import az.kapitalbank.marketplace.exception.CompletePrePurchaseException;
+import az.kapitalbank.marketplace.exception.CustomerIdSkippedException;
 import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
 import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
 import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
@@ -79,6 +80,7 @@ import org.springframework.stereotype.Service;
 public class OrderService {
 
     AmountUtil amountUtil;
+    SmsService smsService;
     OrderMapper orderMapper;
     AtlasClient atlasClient;
     UmicoService umicoService;
@@ -129,6 +131,8 @@ public class OrderService {
         var lastTempAmount = prePurchaseOrders(operationEntity, cardId);
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
             log.info("Telesales result : Pre purchase was finished : trackId - {}", trackId);
+            smsService.sendCompleteScoringSms(operationEntity);
+            smsService.sendPrePurchaseSms(operationEntity);
         } else {
             log.info("Telesales result : Pre purchase was failed : trackId - {}", trackId);
         }
@@ -151,7 +155,7 @@ public class OrderService {
         if (customerId == null && customerEntity.getCardId() == null) {
             log.info("First transaction process is started : customerId - {}, trackId - {}",
                     customerEntity.getId(), trackId);
-            var fraudCheckEvent = orderMapper.toOrderEvent(request);
+            var fraudCheckEvent = orderMapper.toFraudCheckEvent(request);
             fraudCheckEvent.setTrackId(trackId);
             fraudCheckPublisher.sendEvent(fraudCheckEvent);
         }
@@ -195,11 +199,15 @@ public class OrderService {
         CustomerEntity customerEntity;
         if (customerId == null) {
             log.info("First order create process is started...");
+            var umicoUserId = request.getCustomerInfo().getUmicoUserId();
             checkAdditionalPhoneNumbersEquals(request);
             validatePurchaseAmountLimit(request);
-            var customerByUmicoUserId = customerRepository.findByUmicoUserId(
-                    request.getCustomerInfo().getUmicoUserId());
+            var customerByUmicoUserId = customerRepository
+                    .findByUmicoUserId(umicoUserId);
             if (customerByUmicoUserId.isPresent()) {
+                if (customerByUmicoUserId.get().getCardId() != null) {
+                    throw new CustomerIdSkippedException(umicoUserId);
+                }
                 customerEntity = customerByUmicoUserId.get();
                 checkCustomerIncompleteProcess(customerEntity);
             } else {
@@ -245,7 +253,7 @@ public class OrderService {
         if (scoringStatus != null) {
             throw new OperationAlreadyScoredException(TELESALES_ORDER_ID_LOG + telesalesOrderId);
         }
-        var orderResponseDto = orderMapper.entityToDto(operationEntity);
+        var orderResponseDto = orderMapper.toCheckOrderResponseDto(operationEntity);
         log.info("Check order was finished : telesalesOrderId - {}", telesalesOrderId);
         return orderResponseDto;
     }
@@ -258,8 +266,7 @@ public class OrderService {
         var transactionStatus = orderEntity.getTransactionStatus();
         var productEntities = orderEntity.getProducts();
         verifyProductIdIsLinkedToOrderNo(request, productEntities);
-        if (transactionStatus == TransactionStatus.PRE_PURCHASE
-                || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE_PRE_PURCHASE) {
+        if (transactionStatus == TransactionStatus.PRE_PURCHASE) {
             var deliveredOrderAmount = getDeliveredOrderAmount(request, productEntities);
             if (deliveredOrderAmount.compareTo(BigDecimal.ZERO) > 0) {
                 var purchaseCompleteRequest =
@@ -386,9 +393,7 @@ public class OrderService {
 
     private void validateOrdersForPrePurchase(List<OrderEntity> orders, UUID trackId) {
         var isPrePurchasable = orders.stream()
-                .allMatch(order -> order.getTransactionStatus() == null
-                        || order.getTransactionStatus()
-                        == TransactionStatus.FAIL_IN_PRE_PURCHASE);
+                .allMatch(order -> order.getTransactionStatus() == null);
         if (!isPrePurchasable) {
             log.error("No Permission for pre purchase. trackId - {}", trackId);
             throw new NoPermissionForTransaction("trackId - " + trackId);
@@ -429,6 +434,38 @@ public class OrderService {
                 .build();
     }
 
+    @Transactional
+    public void autoRefundOrderSchedule() {
+        var transactionDate = LocalDateTime.now().minusDays(21);
+        var orders =
+                orderRepository.findByTransactionDateBeforeAndTransactionStatus(transactionDate,
+                        TransactionStatus.PRE_PURCHASE);
+        orders.forEach(order -> {
+            var orderNo = order.getOrderNo();
+            try {
+                log.info("Auto refund process is started : orderNo - {}", orderNo);
+                var cardId = order.getOperation().getCustomer().getCardId();
+                var purchaseCompleteRequest =
+                        getCompletePrePurchaseRequest(order, cardId);
+                completePrePurchaseOrder(order, purchaseCompleteRequest);
+                refundOrder(order);
+                order.setTransactionStatus(TransactionStatus.AUTO_REFUND);
+                order.setTransactionDate(LocalDateTime.now());
+                log.info("Auto refund process was finished : orderNo - {}", orderNo);
+            } catch (CompletePrePurchaseException | RefundException ex) {
+                if (ex instanceof CompletePrePurchaseException) {
+                    log.error("AutoRefund complete pre purchase order was failed : orderNo - {}",
+                            orderNo);
+                } else {
+                    log.error("AutoRefund refund order was failed : orderNo - {}", orderNo);
+                }
+                log.error("Auto refund schedule order failed : orderNo - {}", orderNo);
+                order.setTransactionStatus(TransactionStatus.FAIL_IN_AUTO_REFUND);
+            }
+        });
+        orderRepository.saveAll(orders);
+    }
+
     @Transactional(dontRollbackOn = RefundException.class)
     public void refund(RefundRequestDto request) {
         log.info("Refund process is started : request - {}", request);
@@ -436,8 +473,7 @@ public class OrderService {
         var orderEntity = orderRepository.findByOrderNo(orderNo)
                 .orElseThrow(() -> new OrderNotFoundException(ORDER_NO_LOG + orderNo));
         var transactionStatus = orderEntity.getTransactionStatus();
-        if (transactionStatus == TransactionStatus.PRE_PURCHASE
-                || transactionStatus == TransactionStatus.FAIL_IN_COMPLETE_PRE_PURCHASE) {
+        if (transactionStatus == TransactionStatus.PRE_PURCHASE) {
             var customerEntity = orderEntity.getOperation().getCustomer();
             if (!customerEntity.getId().equals(request.getCustomerId())) {
                 throw new OrderNotLinkedToCustomer(
@@ -452,7 +488,7 @@ public class OrderService {
                         + "orderNo - {}, AtlasClientException - {}", orderNo, ex);
                 throw new RefundException(ORDER_NO_LOG + orderNo);
             }
-            refundAmount(orderEntity);
+            refundOrder(orderEntity);
             log.info("Refund process was finished : orderNo - {}, customerId - {}",
                     orderNo, request.getCustomerId());
         } else {
@@ -461,7 +497,7 @@ public class OrderService {
         }
     }
 
-    private void refundAmount(OrderEntity orderEntity) {
+    private void refundOrder(OrderEntity orderEntity) {
         FeignException exception = null;
         var rrn = GenerateUtil.rrn();
         var orderNo = orderEntity.getOrderNo();

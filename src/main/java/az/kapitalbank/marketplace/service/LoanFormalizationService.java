@@ -40,10 +40,10 @@ public class LoanFormalizationService {
     UmicoService umicoService;
     OrderService orderService;
     ScoringService scoringService;
-    CustomerService customerService;
     LeadService leadService;
     VerificationService verificationService;
     OperationRepository operationRepository;
+    SmsService smsService;
 
     @Transactional
     public void fraudResultProcess(FraudCheckResultEvent fraudCheckResultEvent) {
@@ -62,13 +62,14 @@ public class LoanFormalizationService {
             } else if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_TELESALES) {
                 log.info("Fraud case was found and sent to Telesales : trackId - {}",
                         trackId);
+                operationEntity.setSendLeadReason(SendLeadReason.FRAUD_LIST);
                 leadService.sendLead(operationEntity, fraudCheckResultEvent.getTypes());
                 operationRepository.save(operationEntity);
             } else if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_UMICO) {
                 log.info("Fraud case was found and sent to umico : trackId - {}", trackId);
                 var umicoDecisionStatus = umicoService.sendRejectedDecision(trackId);
                 operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
-                operationEntity.setRejectReason(OperationRejectReason.FRAUD);
+                operationEntity.setRejectReason(OperationRejectReason.FRAUD_RULE);
                 operationRepository.save(operationEntity);
             } else {
                 noFraudProcess(operationEntity);
@@ -191,8 +192,8 @@ public class LoanFormalizationService {
         if (scoredAmount.compareTo(BigDecimal.ZERO) == 0) {
             log.info("Start scoring result - Scoring amount is zero : trackId - {}",
                     operationEntity.getId());
-            var umicoDecisionStatus = umicoService.sendRejectedDecision(operationEntity.getId());
-            operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+            leadService.sendLead(operationEntity, null);
+            operationEntity.setSendLeadReason(SendLeadReason.SCORED_AMOUNT_ZERO);
         } else if (scoredAmount.compareTo(selectedAmount) < 0) {
             log.info("Start scoring result - No enough amount : selectedAmount - {},"
                             + " scoredAmount - {}, trackId - {}", selectedAmount, scoredAmount,
@@ -226,6 +227,7 @@ public class LoanFormalizationService {
         if (dvsUrl.isPresent()) {
             var umicoDecisionStatus = umicoService.sendPreApprovedDecision(trackId, dvsUrl.get(),
                     UmicoDecisionStatus.PREAPPROVED);
+            smsService.sendPreapproveSms(operationEntity);
             operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
         } else {
             operationEntity.setSendLeadReason(SendLeadReason.DVS_URL_FAIL);
@@ -251,6 +253,8 @@ public class LoanFormalizationService {
         var lastTempAmount = orderService.prePurchaseOrders(operationEntity, cardId.get());
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
             log.info("Scoring complete result : Pre purchase was finished : trackId - {}", trackId);
+            smsService.sendCompleteScoringSms(operationEntity);
+            smsService.sendPrePurchaseSms(operationEntity);
         } else {
             log.info("Scoring complete result : Pre purchase was failed : trackId - {}", trackId);
         }
@@ -327,6 +331,7 @@ public class LoanFormalizationService {
                 operationEntity.getCustomer().getCardId());
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
             umicoService.sendPrePurchaseResult(trackId);
+            smsService.sendPrePurchaseSms(operationEntity);
             log.info("Pre purchase result was sent to umico : trackId - {}", trackId);
         }
         operationRepository.save(operationEntity);

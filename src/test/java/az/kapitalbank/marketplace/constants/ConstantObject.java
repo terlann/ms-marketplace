@@ -8,12 +8,18 @@ import static az.kapitalbank.marketplace.constants.TestConstants.TRACK_ID;
 
 import az.kapitalbank.marketplace.client.atlas.model.response.AccountResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.CardDetailResponse;
+import az.kapitalbank.marketplace.client.optimus.model.process.CreateCardCreditRequest;
+import az.kapitalbank.marketplace.client.optimus.model.process.Offer;
+import az.kapitalbank.marketplace.client.optimus.model.process.ProcessData;
+import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
+import az.kapitalbank.marketplace.client.optimus.model.process.SelectedOffer;
 import az.kapitalbank.marketplace.constant.AccountStatus;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.entity.ProductEntity;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -44,6 +50,34 @@ public class ConstantObject {
                 .build();
     }
 
+    public static OperationEntity getOperationEntityAutoRefund() {
+        return OperationEntity.builder()
+                .id(UUID.fromString(TRACK_ID.getValue()))
+                .commission(BigDecimal.valueOf(12))
+                .customer(getCustomerEntity())
+                .totalAmount(BigDecimal.ONE)
+                .dvsOrderId(12345L)
+                .taskId(TASK_ID.getValue())
+                .businessKey(BUSINESS_KEY.getValue())
+                .scoredAmount(BigDecimal.ONE)
+                .build();
+    }
+
+    public static ProcessResponse getProcessResponse() {
+        return ProcessResponse.builder()
+                .variables(ProcessData.builder()
+                        .dvsOrderId(12345L)
+                        .createCardCreditRequest(CreateCardCreditRequest.builder()
+                                .startDate(LocalDate.parse("2020-02-02"))
+                                .endDate(LocalDate.parse("2020-02-02"))
+                                .build())
+                        .selectedOffer(SelectedOffer.builder()
+                                .cardOffer(Offer.builder()
+                                        .availableLoanAmount(BigDecimal.ONE)
+                                        .build())
+                                .build()).build()).build();
+    }
+
     public static OperationEntity getOperationEntityFirstCustomer() {
         return OperationEntity.builder()
                 .id(UUID.fromString(TRACK_ID.getValue()))
@@ -62,6 +96,15 @@ public class ConstantObject {
                 .products(List.of(getProductEntity()))
                 .totalAmount(BigDecimal.ONE)
                 .commission(BigDecimal.ONE)
+                .build();
+    }
+
+    public static OrderEntity getOrderEntityAutoRefund() {
+        return OrderEntity.builder()
+                .totalAmount(BigDecimal.ONE)
+                .commission(BigDecimal.ONE)
+                .transactionId("123456")
+                .operation(getOperationEntityAutoRefund())
                 .build();
     }
 

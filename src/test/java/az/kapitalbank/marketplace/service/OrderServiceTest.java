@@ -10,6 +10,7 @@ import static az.kapitalbank.marketplace.constants.ConstantObject.getCustomerEnt
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntity;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntityFirstCustomer;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOrderEntity;
+import static az.kapitalbank.marketplace.constants.ConstantObject.getOrderEntityAutoRefund;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getProductEntity;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getProductEntity2;
 import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
@@ -102,6 +103,8 @@ class OrderServiceTest {
     FraudCheckPublisher fraudCheckPublisher;
     @Mock
     OperationRepository operationRepository;
+    @Mock
+    SmsService smsService;
     @InjectMocks
     OrderService orderService;
 
@@ -173,7 +176,7 @@ class OrderServiceTest {
                 getProductEntity());
         when(operationRepository.save(any(OperationEntity.class))).thenReturn(
                 getOperationEntityFirstCustomer());
-        when(orderMapper.toOrderEvent(request)).thenReturn(FraudCheckEvent.builder().build());
+        when(orderMapper.toFraudCheckEvent(request)).thenReturn(FraudCheckEvent.builder().build());
 
         var actual = orderService.createOrder(request);
         var expected = CreateOrderResponse.of(UUID.fromString(TRACK_ID.getValue()));
@@ -235,33 +238,31 @@ class OrderServiceTest {
     }
 
     @Test
-    void refund_Success() {
-        var refundRequestDto = RefundRequestDto.builder()
-                .orderNo("12345")
-                .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
-                .build();
-        var orderEntity = OrderEntity.builder()
-                .commission(BigDecimal.ONE)
-                .totalAmount(BigDecimal.ONE)
-                .transactionStatus(TransactionStatus.PRE_PURCHASE)
-                .transactionId("1231564")
-                .operation(OperationEntity.builder()
-                        .customer(CustomerEntity.builder()
-                                .id(UUID.fromString(CUSTOMER_ID.getValue()))
-                                .build())
-                        .build())
-                .build();
-        var refundResponse = RefundResponse.builder().build();
-
-        when(orderRepository.findByOrderNo(refundRequestDto.getOrderNo()))
-                .thenReturn(Optional.of(orderEntity));
+    void autoRefundOrderSchedule_Success() {
+        when(orderRepository.findByTransactionDateBeforeAndTransactionStatus(any(),
+                eq(TransactionStatus.PRE_PURCHASE))).thenReturn(
+                List.of(getOrderEntityAutoRefund()));
         when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class))).thenReturn(
                 CompletePrePurchaseResponse.builder().build());
-        when(atlasClient.refund(eq(null), any(RefundRequest.class)))
-                .thenReturn(refundResponse);
+        when(atlasClient.refund(eq(getOrderEntity().getTransactionId()), any(RefundRequest.class)))
+                .thenReturn(RefundResponse.builder().build());
+        orderService.autoRefundOrderSchedule();
+        verify(orderRepository).findByTransactionDateBeforeAndTransactionStatus(any(),
+                eq(TransactionStatus.PRE_PURCHASE));
+    }
 
-        orderService.refund(refundRequestDto);
-        verify(orderRepository).findByOrderNo(refundRequestDto.getOrderNo());
+    @Test
+    void autoRefundOrderSchedule_Exception() {
+        when(orderRepository.findByTransactionDateBeforeAndTransactionStatus(any(),
+                eq(TransactionStatus.PRE_PURCHASE))).thenReturn(
+                List.of(getOrderEntityAutoRefund()));
+        when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class))).thenReturn(
+                CompletePrePurchaseResponse.builder().build());
+        when(atlasClient.refund(eq(getOrderEntity().getTransactionId()), any(RefundRequest.class)))
+                .thenThrow(new RefundException("salam"));
+        orderService.autoRefundOrderSchedule();
+        verify(orderRepository).findByTransactionDateBeforeAndTransactionStatus(any(),
+                eq(TransactionStatus.PRE_PURCHASE));
     }
 
     @Test
@@ -286,6 +287,30 @@ class OrderServiceTest {
         when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class))).thenReturn(
                 CompletePrePurchaseResponse.builder().build());
         when(atlasClient.refund(eq(null), any(RefundRequest.class)))
+                .thenThrow(FeignException.class);
+        assertThrows(RefundException.class, () -> orderService.refund(refundRequestDto));
+    }
+
+    @Test
+    void refund_AtlasClientException_InComplete() {
+        var refundRequestDto = RefundRequestDto.builder()
+                .orderNo("12345")
+                .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
+                .build();
+        var orderEntity = OrderEntity.builder()
+                .commission(BigDecimal.ONE)
+                .totalAmount(BigDecimal.ONE)
+                .transactionStatus(TransactionStatus.PRE_PURCHASE)
+                .transactionId("1231564")
+                .operation(OperationEntity.builder()
+                        .customer(CustomerEntity.builder()
+                                .id(UUID.fromString(CUSTOMER_ID.getValue()))
+                                .build())
+                        .build())
+                .build();
+        when(orderRepository.findByOrderNo(refundRequestDto.getOrderNo()))
+                .thenReturn(Optional.of(orderEntity));
+        when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class)))
                 .thenThrow(FeignException.class);
         assertThrows(RefundException.class, () -> orderService.refund(refundRequestDto));
     }
@@ -401,7 +426,7 @@ class OrderServiceTest {
         var expected = CheckOrderResponseDto.builder().build();
         when(operationRepository.findByTelesalesOrderId(telesalesOrderId))
                 .thenReturn(Optional.of(operationEntity));
-        when(orderMapper.entityToDto(operationEntity)).thenReturn(expected);
+        when(orderMapper.toCheckOrderResponseDto(operationEntity)).thenReturn(expected);
         var actual = orderService.checkOrder(telesalesOrderId);
         assertEquals(expected, actual);
     }
