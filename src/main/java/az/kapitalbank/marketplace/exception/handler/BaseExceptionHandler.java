@@ -3,6 +3,7 @@ package az.kapitalbank.marketplace.exception.handler;
 import az.kapitalbank.marketplace.constant.Error;
 import az.kapitalbank.marketplace.dto.ErrorResponseDto;
 import az.kapitalbank.marketplace.exception.CompletePrePurchaseException;
+import az.kapitalbank.marketplace.exception.CustomerIdSkippedException;
 import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
 import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
 import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
@@ -197,6 +198,14 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
             SubscriptionNotFoundException ex) {
         log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.SUBSCRIPTION_NOT_FOUND);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(CustomerIdSkippedException.class)
+    public ResponseEntity<ErrorResponseDto> customerIdSkippedException(
+            CustomerIdSkippedException ex) {
+        log.error(EXCEPTION, ex);
+        var errorResponseDto = new ErrorResponseDto(Error.CUSTOMER_ID_SKIPPED);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 

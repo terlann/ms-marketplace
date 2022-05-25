@@ -1,6 +1,7 @@
 package az.kapitalbank.marketplace.service;
 
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PREAPPROVED;
+import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PENDING;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PREAPPROVED;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntity;
 import static az.kapitalbank.marketplace.constants.TestConstants.BUSINESS_KEY;
@@ -20,6 +21,7 @@ import az.kapitalbank.marketplace.client.telesales.model.CreateTelesalesOrderReq
 import az.kapitalbank.marketplace.client.telesales.model.CreateTelesalesOrderResponse;
 import az.kapitalbank.marketplace.constant.FraudType;
 import az.kapitalbank.marketplace.constant.SendLeadReason;
+import az.kapitalbank.marketplace.constant.SendLeadType;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.mapper.OrderMapper;
@@ -67,7 +69,7 @@ class LeadServiceTest {
             "1, 100",
             "0, hello"
     })
-    void sendLead_Success(String code,String message) {
+    void sendLead_Success(String code, String message) {
         var createTelesalesOrderRequest = CreateTelesalesOrderRequest.builder().build();
         var createTelesalesOrderResponse = CreateTelesalesOrderResponse.builder()
                 .response(new CreateTelesalesOrderResponse.Response(code, message)).build();
@@ -148,5 +150,17 @@ class LeadServiceTest {
         leadService.retrySendLead();
         verify(operationRepository).findByUmicoDecisionStatusAndIsSendLeadIsFalse(
                 UmicoDecisionStatus.PENDING);
+    }
+
+    @Test
+    void sendLeadManual_send_lead_failed() {
+        leadService.sendLeadManual(SendLeadType.SEND_LEAD_FAILED);
+        verify(operationRepository).findByUmicoDecisionStatusAndIsSendLeadIsFalse(PENDING);
+    }
+
+    @Test
+    void sendLeadManual_no_action_dvs() {
+        leadService.sendLeadManual(SendLeadType.NO_ACTION_DVS);
+        verify(operationRepository).findByUpdatedAtBeforeAndUmicoDecisionStatusIn(any(), any());
     }
 }
