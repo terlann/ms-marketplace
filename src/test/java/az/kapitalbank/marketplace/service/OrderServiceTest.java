@@ -29,10 +29,8 @@ import static org.mockito.Mockito.when;
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.model.request.CompletePrePurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.PrePurchaseRequest;
-import az.kapitalbank.marketplace.client.atlas.model.request.RefundRequest;
 import az.kapitalbank.marketplace.client.atlas.model.response.CompletePrePurchaseResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.PrePurchaseResponse;
-import az.kapitalbank.marketplace.client.atlas.model.response.RefundResponse;
 import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
@@ -51,10 +49,9 @@ import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
-import az.kapitalbank.marketplace.exception.DeliveryException;
+import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
 import az.kapitalbank.marketplace.exception.NoMatchOrderAmountByProductException;
 import az.kapitalbank.marketplace.exception.NoPermissionForTransaction;
-import az.kapitalbank.marketplace.exception.PaybackException;
 import az.kapitalbank.marketplace.mapper.CustomerMapper;
 import az.kapitalbank.marketplace.mapper.OperationMapper;
 import az.kapitalbank.marketplace.mapper.OrderMapper;
@@ -244,22 +241,18 @@ class OrderServiceTest {
                 List.of(getOrderEntityAutoRefund()));
         when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class))).thenReturn(
                 CompletePrePurchaseResponse.builder().build());
-        when(atlasClient.refund(eq(getOrderEntity().getTransactionId()), any(RefundRequest.class)))
-                .thenReturn(RefundResponse.builder().build());
         orderService.autoPayback();
         verify(orderRepository).findByTransactionDateBeforeAndTransactionStatus(any(),
                 eq(TransactionStatus.PRE_PURCHASE));
     }
 
     @Test
-    void autoRefundOrderSchedule_Exception() {
+    void autoPayback_TransactionStatus_Fail() {
         when(orderRepository.findByTransactionDateBeforeAndTransactionStatus(any(),
                 eq(TransactionStatus.PRE_PURCHASE))).thenReturn(
                 List.of(getOrderEntityAutoRefund()));
         when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class))).thenReturn(
                 CompletePrePurchaseResponse.builder().build());
-        when(atlasClient.refund(eq(getOrderEntity().getTransactionId()), any(RefundRequest.class)))
-                .thenThrow(new PaybackException("salam"));
         orderService.autoPayback();
         verify(orderRepository).findByTransactionDateBeforeAndTransactionStatus(any(),
                 eq(TransactionStatus.PRE_PURCHASE));
@@ -284,11 +277,7 @@ class OrderServiceTest {
                 .build();
         when(orderRepository.findByOrderNo(refundRequestDto.getOrderNo()))
                 .thenReturn(Optional.of(orderEntity));
-        when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class))).thenReturn(
-                CompletePrePurchaseResponse.builder().build());
-        when(atlasClient.refund(eq(null), any(RefundRequest.class)))
-                .thenThrow(FeignException.class);
-        assertThrows(PaybackException.class, () -> orderService.payback(refundRequestDto));
+        assertThrows(CustomerNotFoundException.class, () -> orderService.payback(refundRequestDto));
     }
 
     @Test
@@ -310,18 +299,14 @@ class OrderServiceTest {
                 .build();
         when(orderRepository.findByOrderNo(refundRequestDto.getOrderNo()))
                 .thenReturn(Optional.of(orderEntity));
-        when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class)))
-                .thenThrow(FeignException.class);
-        assertThrows(PaybackException.class, () -> orderService.payback(refundRequestDto));
+        assertThrows(CustomerNotFoundException.class, () -> orderService.payback(refundRequestDto));
     }
 
     @Test
     void purchase_Success() {
-        OrderEntity orderEntity = OrderEntity.builder()
-                .transactionId("123245")
+        OrderEntity orderEntity = OrderEntity.builder().transactionId("123245")
                 .transactionStatus(TransactionStatus.PRE_PURCHASE)
-                .totalAmount(BigDecimal.valueOf(50))
-                .commission(BigDecimal.valueOf(12))
+                .totalAmount(BigDecimal.valueOf(50)).commission(BigDecimal.valueOf(12))
                 .operation(OperationEntity.builder().loanTerm(12).build())
                 .products(List.of(getProductEntity()))
                 .operation(OperationEntity.builder()
@@ -330,10 +315,15 @@ class OrderServiceTest {
                 .build();
         var purchaseCompleteResponse =
                 CompletePrePurchaseResponse.builder().build();
+        var deliveryRequestDto = DeliveryRequestDto.builder()
+                .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
+                .build();
         when(orderRepository.findByOrderNo("123")).thenReturn(Optional.of(orderEntity));
         when(amountUtil.getCommissionByPercent(BigDecimal.ONE, null)).thenReturn(
                 BigDecimal.ONE);
         when(atlasClient.completePrePurchase(any())).thenReturn(purchaseCompleteResponse);
+        when(customerRepository.findById(deliveryRequestDto.getCustomerId())).thenReturn(
+                Optional.ofNullable(getCustomerEntity()));
         var request = DeliveryRequestDto.builder()
                 .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
                 .orderNo("123")
@@ -348,8 +338,7 @@ class OrderServiceTest {
         OrderEntity orderEntity = OrderEntity.builder()
                 .transactionId("123245")
                 .transactionStatus(TransactionStatus.PRE_PURCHASE)
-                .totalAmount(BigDecimal.valueOf(50))
-                .commission(BigDecimal.valueOf(12))
+                .totalAmount(BigDecimal.valueOf(50)).commission(BigDecimal.valueOf(12))
                 .operation(OperationEntity.builder().loanTerm(12).build())
                 .products(List.of(getProductEntity(), getProductEntity2()))
                 .operation(OperationEntity.builder()
@@ -358,10 +347,15 @@ class OrderServiceTest {
                 .build();
         var purchaseCompleteResponse =
                 CompletePrePurchaseResponse.builder().build();
+        var deliveryRequestDto = DeliveryRequestDto.builder()
+                .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
+                .build();
         when(orderRepository.findByOrderNo("123")).thenReturn(Optional.of(orderEntity));
         when(amountUtil.getCommissionByPercent(BigDecimal.ONE, null)).thenReturn(
                 BigDecimal.ONE);
         when(atlasClient.completePrePurchase(any())).thenReturn(purchaseCompleteResponse);
+        when(customerRepository.findById(deliveryRequestDto.getCustomerId())).thenReturn(
+                Optional.ofNullable(getCustomerEntity()));
         var request = DeliveryRequestDto.builder()
                 .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
                 .orderNo("123")
@@ -407,15 +401,12 @@ class OrderServiceTest {
                 .build();
 
         when(orderRepository.findByOrderNo("123")).thenReturn(Optional.of(orderEntity));
-        when(amountUtil.getCommissionByPercent(BigDecimal.ONE, null)).thenReturn(BigDecimal.ONE);
-        when(atlasClient.completePrePurchase(any())).thenThrow(
-                new DeliveryException(null));
         var request = DeliveryRequestDto.builder()
                 .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
                 .orderNo("123")
                 .deliveryProducts(Set.of(DeliveryProductDto.builder().productId("p1").build()))
                 .build();
-        assertThrows(DeliveryException.class, () -> orderService.delivery(request));
+        assertThrows(CustomerNotFoundException.class, () -> orderService.delivery(request));
     }
 
     @Test

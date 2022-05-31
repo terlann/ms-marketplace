@@ -14,6 +14,7 @@ import az.kapitalbank.marketplace.client.optimus.model.process.ProcessData;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
 import az.kapitalbank.marketplace.client.optimus.model.process.SelectedOffer;
 import az.kapitalbank.marketplace.constant.AccountStatus;
+import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
@@ -105,6 +106,7 @@ public class ConstantObject {
                 .commission(BigDecimal.ONE)
                 .transactionId("123456")
                 .operation(getOperationEntityAutoRefund())
+                .transactionStatus(TransactionStatus.FAIL_IN_COMPLETE_REFUND)
                 .build();
     }
 
