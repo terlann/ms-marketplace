@@ -45,6 +45,7 @@ public class OrderEntity extends BaseEntity {
     String approvalCode;
     @Enumerated(EnumType.STRING)
     TransactionStatus transactionStatus;
+    Boolean isAutoPayback;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "operation_id", nullable = false, updatable = false)

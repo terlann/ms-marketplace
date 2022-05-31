@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RefundRequestDto {
+public class PaybackRequestDto {
     private String umicoUserId;
     private UUID customerId;
     @NotBlank

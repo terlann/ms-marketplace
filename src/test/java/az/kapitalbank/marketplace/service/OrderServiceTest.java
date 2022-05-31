@@ -1,5 +1,6 @@
 package az.kapitalbank.marketplace.service;
 
+import static az.kapitalbank.marketplace.constant.TransactionStatus.FAIL_IN_COMPLETE_REFUND;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PENDING;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PREAPPROVED;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PENDING;
@@ -8,6 +9,7 @@ import static az.kapitalbank.marketplace.constants.ConstantObject.getCardDetailR
 import static az.kapitalbank.marketplace.constants.ConstantObject.getCustomerEntity;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getCustomerEntity2;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntity;
+import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntityAutoRefund;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntityFirstCustomer;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOrderEntity;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOrderEntityAutoRefund;
@@ -42,19 +44,18 @@ import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
 import az.kapitalbank.marketplace.dto.OrderProductItem;
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
 import az.kapitalbank.marketplace.dto.request.CustomerInfo;
-import az.kapitalbank.marketplace.dto.request.PurchaseRequestDto;
-import az.kapitalbank.marketplace.dto.request.RefundRequestDto;
+import az.kapitalbank.marketplace.dto.request.DeliveryRequestDto;
+import az.kapitalbank.marketplace.dto.request.PaybackRequestDto;
 import az.kapitalbank.marketplace.dto.request.TelesalesResultRequestDto;
 import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
 import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
-import az.kapitalbank.marketplace.exception.CompletePrePurchaseException;
 import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
+import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
 import az.kapitalbank.marketplace.exception.NoMatchOrderAmountByProductException;
 import az.kapitalbank.marketplace.exception.NoPermissionForTransaction;
-import az.kapitalbank.marketplace.exception.RefundException;
 import az.kapitalbank.marketplace.mapper.CustomerMapper;
 import az.kapitalbank.marketplace.mapper.OperationMapper;
 import az.kapitalbank.marketplace.mapper.OrderMapper;
@@ -238,36 +239,56 @@ class OrderServiceTest {
     }
 
     @Test
-    void autoRefundOrderSchedule_Success() {
+    void autoPayback_Success() {
         when(orderRepository.findByTransactionDateBeforeAndTransactionStatus(any(),
                 eq(TransactionStatus.PRE_PURCHASE))).thenReturn(
                 List.of(getOrderEntityAutoRefund()));
         when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class))).thenReturn(
                 CompletePrePurchaseResponse.builder().build());
-        when(atlasClient.refund(eq(getOrderEntity().getTransactionId()), any(RefundRequest.class)))
-                .thenReturn(RefundResponse.builder().build());
-        orderService.autoRefundOrderSchedule();
+        when(atlasClient.refund(eq(null), any(RefundRequest.class))).thenReturn(
+                RefundResponse.builder().build());
+        orderService.autoPayback();
         verify(orderRepository).findByTransactionDateBeforeAndTransactionStatus(any(),
                 eq(TransactionStatus.PRE_PURCHASE));
     }
 
     @Test
-    void autoRefundOrderSchedule_Exception() {
+    void autoPayback_Fail_In_Complete_Refund() {
+        OrderEntity orderEntity = OrderEntity.builder()
+                .totalAmount(BigDecimal.ONE)
+                .commission(BigDecimal.ONE)
+                .transactionId("123456")
+                .operation(getOperationEntityAutoRefund())
+                .transactionStatus(FAIL_IN_COMPLETE_REFUND)
+                .build();
+
+        when(orderRepository.findByTransactionDateBeforeAndTransactionStatus(any(),
+                eq(TransactionStatus.PRE_PURCHASE))).thenReturn(
+                List.of(orderEntity));
+        when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class))).thenReturn(
+                CompletePrePurchaseResponse.builder().build());
+        orderService.autoPayback();
+        verify(orderRepository).findByTransactionDateBeforeAndTransactionStatus(any(),
+                eq(TransactionStatus.PRE_PURCHASE));
+    }
+
+    @Test
+    void autoPayback_Fail_In_Refund() {
         when(orderRepository.findByTransactionDateBeforeAndTransactionStatus(any(),
                 eq(TransactionStatus.PRE_PURCHASE))).thenReturn(
                 List.of(getOrderEntityAutoRefund()));
         when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class))).thenReturn(
                 CompletePrePurchaseResponse.builder().build());
-        when(atlasClient.refund(eq(getOrderEntity().getTransactionId()), any(RefundRequest.class)))
-                .thenThrow(new RefundException("salam"));
-        orderService.autoRefundOrderSchedule();
+        when(atlasClient.refund(eq(null), any(RefundRequest.class))).thenThrow(
+                FeignException.class);
+        orderService.autoPayback();
         verify(orderRepository).findByTransactionDateBeforeAndTransactionStatus(any(),
                 eq(TransactionStatus.PRE_PURCHASE));
     }
 
     @Test
     void refund_AtlasClientException() {
-        var refundRequestDto = RefundRequestDto.builder()
+        var refundRequestDto = PaybackRequestDto.builder()
                 .orderNo("12345")
                 .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
                 .build();
@@ -284,16 +305,13 @@ class OrderServiceTest {
                 .build();
         when(orderRepository.findByOrderNo(refundRequestDto.getOrderNo()))
                 .thenReturn(Optional.of(orderEntity));
-        when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class))).thenReturn(
-                CompletePrePurchaseResponse.builder().build());
-        when(atlasClient.refund(eq(null), any(RefundRequest.class)))
-                .thenThrow(FeignException.class);
-        assertThrows(RefundException.class, () -> orderService.refund(refundRequestDto));
+        assertThrows(CustomerNotFoundException.class, () -> orderService.payback(refundRequestDto));
     }
+
 
     @Test
     void refund_AtlasClientException_InComplete() {
-        var refundRequestDto = RefundRequestDto.builder()
+        var refundRequestDto = PaybackRequestDto.builder()
                 .orderNo("12345")
                 .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
                 .build();
@@ -310,18 +328,14 @@ class OrderServiceTest {
                 .build();
         when(orderRepository.findByOrderNo(refundRequestDto.getOrderNo()))
                 .thenReturn(Optional.of(orderEntity));
-        when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class)))
-                .thenThrow(FeignException.class);
-        assertThrows(RefundException.class, () -> orderService.refund(refundRequestDto));
+        assertThrows(CustomerNotFoundException.class, () -> orderService.payback(refundRequestDto));
     }
 
     @Test
     void purchase_Success() {
-        OrderEntity orderEntity = OrderEntity.builder()
-                .transactionId("123245")
+        OrderEntity orderEntity = OrderEntity.builder().transactionId("123245")
                 .transactionStatus(TransactionStatus.PRE_PURCHASE)
-                .totalAmount(BigDecimal.valueOf(50))
-                .commission(BigDecimal.valueOf(12))
+                .totalAmount(BigDecimal.valueOf(50)).commission(BigDecimal.valueOf(12))
                 .operation(OperationEntity.builder().loanTerm(12).build())
                 .products(List.of(getProductEntity()))
                 .operation(OperationEntity.builder()
@@ -330,16 +344,21 @@ class OrderServiceTest {
                 .build();
         var purchaseCompleteResponse =
                 CompletePrePurchaseResponse.builder().build();
+        var deliveryRequestDto = DeliveryRequestDto.builder()
+                .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
+                .build();
         when(orderRepository.findByOrderNo("123")).thenReturn(Optional.of(orderEntity));
         when(amountUtil.getCommissionByPercent(BigDecimal.ONE, null)).thenReturn(
                 BigDecimal.ONE);
         when(atlasClient.completePrePurchase(any())).thenReturn(purchaseCompleteResponse);
-        var request = PurchaseRequestDto.builder()
+        when(customerRepository.findById(deliveryRequestDto.getCustomerId())).thenReturn(
+                Optional.ofNullable(getCustomerEntity()));
+        var request = DeliveryRequestDto.builder()
                 .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
                 .orderNo("123")
                 .deliveryProducts(Set.of(DeliveryProductDto.builder().productId("p1").build()))
                 .build();
-        orderService.purchase(request);
+        orderService.delivery(request);
         verify(orderRepository).findByOrderNo("123");
     }
 
@@ -348,8 +367,7 @@ class OrderServiceTest {
         OrderEntity orderEntity = OrderEntity.builder()
                 .transactionId("123245")
                 .transactionStatus(TransactionStatus.PRE_PURCHASE)
-                .totalAmount(BigDecimal.valueOf(50))
-                .commission(BigDecimal.valueOf(12))
+                .totalAmount(BigDecimal.valueOf(50)).commission(BigDecimal.valueOf(12))
                 .operation(OperationEntity.builder().loanTerm(12).build())
                 .products(List.of(getProductEntity(), getProductEntity2()))
                 .operation(OperationEntity.builder()
@@ -358,16 +376,21 @@ class OrderServiceTest {
                 .build();
         var purchaseCompleteResponse =
                 CompletePrePurchaseResponse.builder().build();
+        var deliveryRequestDto = DeliveryRequestDto.builder()
+                .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
+                .build();
         when(orderRepository.findByOrderNo("123")).thenReturn(Optional.of(orderEntity));
         when(amountUtil.getCommissionByPercent(BigDecimal.ONE, null)).thenReturn(
                 BigDecimal.ONE);
         when(atlasClient.completePrePurchase(any())).thenReturn(purchaseCompleteResponse);
-        var request = PurchaseRequestDto.builder()
+        when(customerRepository.findById(deliveryRequestDto.getCustomerId())).thenReturn(
+                Optional.ofNullable(getCustomerEntity()));
+        var request = DeliveryRequestDto.builder()
                 .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
                 .orderNo("123")
                 .deliveryProducts(Set.of(DeliveryProductDto.builder().productId("p1").build()))
                 .build();
-        orderService.purchase(request);
+        orderService.delivery(request);
         verify(orderRepository).findByOrderNo("123");
     }
 
@@ -385,12 +408,12 @@ class OrderServiceTest {
                         .build())
                 .build();
         when(orderRepository.findByOrderNo("123")).thenReturn(Optional.of(orderEntity));
-        var request = PurchaseRequestDto.builder()
+        var request = DeliveryRequestDto.builder()
                 .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
                 .orderNo("123")
                 .deliveryProducts(Set.of(DeliveryProductDto.builder().productId("p1").build()))
                 .build();
-        assertThrows(NoPermissionForTransaction.class, () -> orderService.purchase(request));
+        assertThrows(NoPermissionForTransaction.class, () -> orderService.delivery(request));
         verify(orderRepository).findByOrderNo("123");
     }
 
@@ -407,15 +430,12 @@ class OrderServiceTest {
                 .build();
 
         when(orderRepository.findByOrderNo("123")).thenReturn(Optional.of(orderEntity));
-        when(amountUtil.getCommissionByPercent(BigDecimal.ONE, null)).thenReturn(BigDecimal.ONE);
-        when(atlasClient.completePrePurchase(any())).thenThrow(
-                new CompletePrePurchaseException(null));
-        var request = PurchaseRequestDto.builder()
+        var request = DeliveryRequestDto.builder()
                 .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
                 .orderNo("123")
                 .deliveryProducts(Set.of(DeliveryProductDto.builder().productId("p1").build()))
                 .build();
-        assertThrows(CompletePrePurchaseException.class, () -> orderService.purchase(request));
+        assertThrows(CustomerNotFoundException.class, () -> orderService.delivery(request));
     }
 
     @Test

@@ -21,9 +21,9 @@ public class LeadController {
     OrderService orderService;
     LeadService leadService;
 
-    @PostMapping("order/refund")
+    @PostMapping("order/payback")
     public ResponseEntity<Void> autoRefundOrder() {
-        orderService.autoRefundOrderSchedule();
+        orderService.autoPayback();
         return ResponseEntity.ok().build();
     }
 

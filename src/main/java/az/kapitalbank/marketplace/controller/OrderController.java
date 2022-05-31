@@ -2,8 +2,8 @@ package az.kapitalbank.marketplace.controller;
 
 import az.kapitalbank.marketplace.annotation.NotNullForTelesalesResult;
 import az.kapitalbank.marketplace.dto.request.CreateOrderRequestDto;
-import az.kapitalbank.marketplace.dto.request.PurchaseRequestDto;
-import az.kapitalbank.marketplace.dto.request.RefundRequestDto;
+import az.kapitalbank.marketplace.dto.request.DeliveryRequestDto;
+import az.kapitalbank.marketplace.dto.request.PaybackRequestDto;
 import az.kapitalbank.marketplace.dto.request.TelesalesResultRequestDto;
 import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
 import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
@@ -49,14 +49,14 @@ public class OrderController {
     }
 
     @PostMapping("/purchase")
-    public ResponseEntity<Void> purchase(@Valid @RequestBody PurchaseRequestDto request) {
-        service.purchase(request);
+    public ResponseEntity<Void> delivery(@Valid @RequestBody DeliveryRequestDto request) {
+        service.delivery(request);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
     @PostMapping("/refund")
-    public ResponseEntity<Void> refund(@Valid @RequestBody RefundRequestDto request) {
-        service.refund(request);
+    public ResponseEntity<Void> payback(@Valid @RequestBody PaybackRequestDto request) {
+        service.payback(request);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }
