@@ -39,7 +39,8 @@ public enum Error {
     PRODUCT_NOT_LINKED_TO_ORDER("E125", "Product is not linked to order"),
     REFUND_FAILED("E126", "Refund operation couldn't finished"),
     COMPLETE_PRE_PURCHASE_FAILED("E127", "Purchase operation couldn't finished"),
-    CUSTOMER_ID_SKIPPED("E128", "Customer id must not be null");
+    CUSTOMER_ID_SKIPPED("E128", "Customer id must not be null"),
+    NO_DELIVERY_PRODUCTS("E129", "No delivery products");
 
     String code;
     String message;

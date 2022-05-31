@@ -1,7 +1,7 @@
 package az.kapitalbank.marketplace.util;
 
 import az.kapitalbank.marketplace.config.CommissionProperties;
-import az.kapitalbank.marketplace.exception.UnknownLoanTerm;
+import az.kapitalbank.marketplace.exception.UnknownLoanTermException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +22,7 @@ public class AmountUtil {
     public BigDecimal getCommissionPercent(int loanTerm) {
         var percent = commissionProperties.getValues().get(loanTerm);
         if (percent == null) {
-            throw new UnknownLoanTerm(loanTerm);
+            throw new UnknownLoanTermException(loanTerm);
         }
         return percent;
     }

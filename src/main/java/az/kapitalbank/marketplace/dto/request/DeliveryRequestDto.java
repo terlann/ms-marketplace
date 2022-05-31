@@ -19,7 +19,7 @@ import lombok.experimental.FieldDefaults;
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class PurchaseRequestDto {
+public class DeliveryRequestDto {
     @NotBlank
     String umicoUserId;
     @NotNull

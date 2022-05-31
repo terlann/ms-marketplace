@@ -124,7 +124,6 @@ public class LeadService {
             operation.setSendLeadReason(SendLeadReason.NO_ACTION_DVS);
             log.info("Send lead schedule process was finished : trackId - {}", trackId);
         });
-        operationRepository.saveAll(operations);
     }
 
     @Transactional
@@ -139,7 +138,6 @@ public class LeadService {
                 sendLead(operationEntity, null);
             }
         });
-        operationRepository.saveAll(operationEntities);
     }
 
     @Transactional
