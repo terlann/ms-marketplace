@@ -1,5 +1,6 @@
 package az.kapitalbank.marketplace.service;
 
+import static az.kapitalbank.marketplace.constant.TransactionStatus.FAIL_IN_COMPLETE_REFUND;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PENDING;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PREAPPROVED;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PENDING;
@@ -8,6 +9,7 @@ import static az.kapitalbank.marketplace.constants.ConstantObject.getCardDetailR
 import static az.kapitalbank.marketplace.constants.ConstantObject.getCustomerEntity;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getCustomerEntity2;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntity;
+import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntityAutoRefund;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntityFirstCustomer;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOrderEntity;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOrderEntityAutoRefund;
@@ -29,8 +31,10 @@ import static org.mockito.Mockito.when;
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.model.request.CompletePrePurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.PrePurchaseRequest;
+import az.kapitalbank.marketplace.client.atlas.model.request.RefundRequest;
 import az.kapitalbank.marketplace.client.atlas.model.response.CompletePrePurchaseResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.PrePurchaseResponse;
+import az.kapitalbank.marketplace.client.atlas.model.response.RefundResponse;
 import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
@@ -235,10 +239,32 @@ class OrderServiceTest {
     }
 
     @Test
-    void autoRefundOrderSchedule_Success() {
+    void autoPayback_Success() {
         when(orderRepository.findByTransactionDateBeforeAndTransactionStatus(any(),
                 eq(TransactionStatus.PRE_PURCHASE))).thenReturn(
                 List.of(getOrderEntityAutoRefund()));
+        when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class))).thenReturn(
+                CompletePrePurchaseResponse.builder().build());
+        when(atlasClient.refund(eq(null), any(RefundRequest.class))).thenReturn(
+                RefundResponse.builder().build());
+        orderService.autoPayback();
+        verify(orderRepository).findByTransactionDateBeforeAndTransactionStatus(any(),
+                eq(TransactionStatus.PRE_PURCHASE));
+    }
+
+    @Test
+    void autoPayback_Fail_In_Complete_Refund() {
+        OrderEntity orderEntity = OrderEntity.builder()
+                .totalAmount(BigDecimal.ONE)
+                .commission(BigDecimal.ONE)
+                .transactionId("123456")
+                .operation(getOperationEntityAutoRefund())
+                .transactionStatus(FAIL_IN_COMPLETE_REFUND)
+                .build();
+
+        when(orderRepository.findByTransactionDateBeforeAndTransactionStatus(any(),
+                eq(TransactionStatus.PRE_PURCHASE))).thenReturn(
+                List.of(orderEntity));
         when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class))).thenReturn(
                 CompletePrePurchaseResponse.builder().build());
         orderService.autoPayback();
@@ -247,12 +273,14 @@ class OrderServiceTest {
     }
 
     @Test
-    void autoPayback_TransactionStatus_Fail() {
+    void autoPayback_Fail_In_Refund() {
         when(orderRepository.findByTransactionDateBeforeAndTransactionStatus(any(),
                 eq(TransactionStatus.PRE_PURCHASE))).thenReturn(
                 List.of(getOrderEntityAutoRefund()));
         when(atlasClient.completePrePurchase(any(CompletePrePurchaseRequest.class))).thenReturn(
                 CompletePrePurchaseResponse.builder().build());
+        when(atlasClient.refund(eq(null), any(RefundRequest.class))).thenThrow(
+                FeignException.class);
         orderService.autoPayback();
         verify(orderRepository).findByTransactionDateBeforeAndTransactionStatus(any(),
                 eq(TransactionStatus.PRE_PURCHASE));
@@ -279,6 +307,7 @@ class OrderServiceTest {
                 .thenReturn(Optional.of(orderEntity));
         assertThrows(CustomerNotFoundException.class, () -> orderService.payback(refundRequestDto));
     }
+
 
     @Test
     void refund_AtlasClientException_InComplete() {
