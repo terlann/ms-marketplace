@@ -128,12 +128,11 @@ public class LoanFormalizationService {
 
     private void onVerificationConfirmed(OperationEntity operationEntity) {
         log.info("Verification status result confirmed : trackId - {}", operationEntity.getId());
+        operationEntity.setDvsOrderStatus(DvsStatus.CONFIRMED);
         var completeScoring = scoringService.completeScoring(operationEntity);
         if (completeScoring.isEmpty()) {
             operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_COMPLETE_SCORING);
             leadService.sendLead(operationEntity, null);
-        } else {
-            operationEntity.setDvsOrderStatus(DvsStatus.CONFIRMED);
         }
     }
 
