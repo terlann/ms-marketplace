@@ -6,6 +6,8 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -16,7 +18,9 @@ import org.springframework.stereotype.Component;
 public class PaybackSchedule {
     OrderService orderService;
 
-    @Scheduled(cron = "0 22 * * * ?", zone = "Asia/Baku")
+    @Async("marketplaceThreadPool")
+    @SchedulerLock(name = "PaybackSchedule_autoPayback")
+    @Scheduled(cron = "0 0 22 * * ?", zone = "Asia/Baku")
     public void autoPayback() {
         log.info("Auto payback schedule started at {}", LocalDateTime.now());
         orderService.autoPayback();
