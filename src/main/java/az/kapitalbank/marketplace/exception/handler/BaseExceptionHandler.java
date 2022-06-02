@@ -10,7 +10,7 @@ import az.kapitalbank.marketplace.exception.NoDeliveryProductsException;
 import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
 import az.kapitalbank.marketplace.exception.NoMatchLoanAmountByOrderException;
 import az.kapitalbank.marketplace.exception.NoMatchOrderAmountByProductException;
-import az.kapitalbank.marketplace.exception.NoPermissionForTransaction;
+import az.kapitalbank.marketplace.exception.NoPermissionForTransactionException;
 import az.kapitalbank.marketplace.exception.OperationAlreadyScoredException;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
@@ -188,9 +188,9 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
-    @ExceptionHandler(NoPermissionForTransaction.class)
+    @ExceptionHandler(NoPermissionForTransactionException.class)
     public ResponseEntity<ErrorResponseDto> noPermissionForTransaction(
-            NoPermissionForTransaction ex) {
+            NoPermissionForTransactionException ex) {
         log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.NO_PERMISSION);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
