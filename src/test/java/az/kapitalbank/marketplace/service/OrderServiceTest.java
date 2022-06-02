@@ -55,7 +55,7 @@ import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
 import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
 import az.kapitalbank.marketplace.exception.NoMatchOrderAmountByProductException;
-import az.kapitalbank.marketplace.exception.NoPermissionForTransaction;
+import az.kapitalbank.marketplace.exception.NoPermissionForTransactionException;
 import az.kapitalbank.marketplace.mapper.CustomerMapper;
 import az.kapitalbank.marketplace.mapper.OperationMapper;
 import az.kapitalbank.marketplace.mapper.OrderMapper;
@@ -413,7 +413,8 @@ class OrderServiceTest {
                 .orderNo("123")
                 .deliveryProducts(Set.of(DeliveryProductDto.builder().productId("p1").build()))
                 .build();
-        assertThrows(NoPermissionForTransaction.class, () -> orderService.delivery(request));
+        assertThrows(NoPermissionForTransactionException.class,
+                () -> orderService.delivery(request));
         verify(orderRepository).findByOrderNo("123");
     }
 
