@@ -413,7 +413,8 @@ class OrderServiceTest {
                 .orderNo("123")
                 .deliveryProducts(Set.of(DeliveryProductDto.builder().productId("p1").build()))
                 .build();
-        assertThrows(NoPermissionForTransactionException.class, () -> orderService.delivery(request));
+        assertThrows(NoPermissionForTransactionException.class,
+                () -> orderService.delivery(request));
         verify(orderRepository).findByOrderNo("123");
     }
 
