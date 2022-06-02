@@ -2,27 +2,28 @@ package az.kapitalbank.marketplace.exception.handler;
 
 import az.kapitalbank.marketplace.constant.Error;
 import az.kapitalbank.marketplace.dto.ErrorResponseDto;
-import az.kapitalbank.marketplace.exception.CompletePrePurchaseException;
 import az.kapitalbank.marketplace.exception.CustomerIdSkippedException;
 import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
 import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
+import az.kapitalbank.marketplace.exception.DeliveryException;
+import az.kapitalbank.marketplace.exception.NoDeliveryProductsException;
 import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
 import az.kapitalbank.marketplace.exception.NoMatchLoanAmountByOrderException;
 import az.kapitalbank.marketplace.exception.NoMatchOrderAmountByProductException;
-import az.kapitalbank.marketplace.exception.NoPermissionForTransaction;
+import az.kapitalbank.marketplace.exception.NoPermissionForTransactionException;
 import az.kapitalbank.marketplace.exception.OperationAlreadyScoredException;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotLinkedToCustomer;
 import az.kapitalbank.marketplace.exception.OtpException;
+import az.kapitalbank.marketplace.exception.PaybackException;
 import az.kapitalbank.marketplace.exception.PersonNotFoundException;
 import az.kapitalbank.marketplace.exception.ProductNotLinkedToOrder;
-import az.kapitalbank.marketplace.exception.RefundException;
 import az.kapitalbank.marketplace.exception.SubscriptionNotFoundException;
 import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
 import az.kapitalbank.marketplace.exception.UmicoUserNotFoundException;
 import az.kapitalbank.marketplace.exception.UniqueAdditionalNumberException;
-import az.kapitalbank.marketplace.exception.UnknownLoanTerm;
+import az.kapitalbank.marketplace.exception.UnknownLoanTermException;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
@@ -48,7 +49,7 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
             HttpHeaders headers,
             HttpStatus status,
             WebRequest request) {
-        log.error("Request - {}, Exception: ", request.toString(), ex);
+        log.error("Request - {}, Exception: {}", request.toString(), ex);
         Map<String, String> warnings = new HashMap<>();
         for (FieldError fieldError : ex.getBindingResult().getFieldErrors()) {
             warnings.put(fieldError.getField(), fieldError.getDefaultMessage());
@@ -58,36 +59,35 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
-    @ExceptionHandler(RefundException.class)
-    public ResponseEntity<ErrorResponseDto> refundException(RefundException ex) {
+    @ExceptionHandler(PaybackException.class)
+    public ResponseEntity<ErrorResponseDto> paybackException(PaybackException ex) {
         log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.REFUND_FAILED);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
-    @ExceptionHandler(CompletePrePurchaseException.class)
-    public ResponseEntity<ErrorResponseDto> completePrePurchaseException(
-            CompletePrePurchaseException ex) {
+    @ExceptionHandler(DeliveryException.class)
+    public ResponseEntity<ErrorResponseDto> deliveryException(DeliveryException ex) {
         log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.COMPLETE_PRE_PURCHASE_FAILED);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
     @ExceptionHandler(PersonNotFoundException.class)
-    public ResponseEntity<ErrorResponseDto> personNotFound(PersonNotFoundException ex) {
+    public ResponseEntity<ErrorResponseDto> personNotFoundException(PersonNotFoundException ex) {
         var errorResponseDto = new ErrorResponseDto(Error.PERSON_NOT_FOUND);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponseDto);
     }
 
     @ExceptionHandler(OrderNotFoundException.class)
-    public ResponseEntity<ErrorResponseDto> orderIdNotFound(OrderNotFoundException ex) {
+    public ResponseEntity<ErrorResponseDto> orderNotFoundException(OrderNotFoundException ex) {
         log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.ORDER_NOT_FOUND);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponseDto);
     }
 
     @ExceptionHandler(NoMatchLoanAmountByOrderException.class)
-    public ResponseEntity<ErrorResponseDto> ordersTotalAmountIncorrect(
+    public ResponseEntity<ErrorResponseDto> noMatchLoanAmountByOrderException(
             NoMatchLoanAmountByOrderException ex) {
         log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.NO_MATCH_LOAN_AMOUNT_BY_ORDERS);
@@ -95,22 +95,23 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(NoMatchOrderAmountByProductException.class)
-    public ResponseEntity<ErrorResponseDto> productsTotalAmountIncorrect(
+    public ResponseEntity<ErrorResponseDto> noMatchOrderAmountByProductException(
             NoMatchOrderAmountByProductException ex) {
         log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.NO_MATCH_ORDER_AMOUNT_BY_PRODUCTS);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
-    @ExceptionHandler(UnknownLoanTerm.class)
-    public ResponseEntity<ErrorResponseDto> loanTermIncorrect(UnknownLoanTerm ex) {
+    @ExceptionHandler(UnknownLoanTermException.class)
+    public ResponseEntity<ErrorResponseDto> unknownLoanTermException(UnknownLoanTermException ex) {
         log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.LOAN_TERM_NOT_FOUND);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponseDto);
     }
 
     @ExceptionHandler(TotalAmountLimitException.class)
-    public ResponseEntity<ErrorResponseDto> exceedTotalAmountLimit(TotalAmountLimitException ex) {
+    public ResponseEntity<ErrorResponseDto> totalAmountLimitException(
+            TotalAmountLimitException ex) {
         log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.PURCHASE_AMOUNT_LIMIT);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
@@ -124,14 +125,16 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(OperationAlreadyScoredException.class)
-    public ResponseEntity<ErrorResponseDto> alreadyScored(OperationAlreadyScoredException ex) {
+    public ResponseEntity<ErrorResponseDto> operationAlreadyScoredException(
+            OperationAlreadyScoredException ex) {
         log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.OPERATION_ALREADY_SCORED);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
     @ExceptionHandler(OperationNotFoundException.class)
-    public ResponseEntity<ErrorResponseDto> alreadyScored(OperationNotFoundException ex) {
+    public ResponseEntity<ErrorResponseDto> operationNotFoundException(
+            OperationNotFoundException ex) {
         log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.OPERATION_NOT_FOUND);
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponseDto);
@@ -185,9 +188,9 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
-    @ExceptionHandler(NoPermissionForTransaction.class)
-    public ResponseEntity<ErrorResponseDto> orderMustNotCompleteException(
-            NoPermissionForTransaction ex) {
+    @ExceptionHandler(NoPermissionForTransactionException.class)
+    public ResponseEntity<ErrorResponseDto> noPermissionForTransaction(
+            NoPermissionForTransactionException ex) {
         log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.NO_PERMISSION);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
@@ -206,6 +209,14 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
             CustomerIdSkippedException ex) {
         log.error(EXCEPTION, ex);
         var errorResponseDto = new ErrorResponseDto(Error.CUSTOMER_ID_SKIPPED);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
+    }
+
+    @ExceptionHandler(NoDeliveryProductsException.class)
+    public ResponseEntity<ErrorResponseDto> noDeliveryProductsException(
+            NoDeliveryProductsException ex) {
+        log.error(EXCEPTION, ex);
+        var errorResponseDto = new ErrorResponseDto(Error.NO_DELIVERY_PRODUCTS);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 

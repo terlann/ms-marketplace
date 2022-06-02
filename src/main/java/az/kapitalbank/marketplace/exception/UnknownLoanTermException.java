@@ -1,10 +1,10 @@
 package az.kapitalbank.marketplace.exception;
 
-public class UnknownLoanTerm extends RuntimeException {
+public class UnknownLoanTermException extends RuntimeException {
 
     private static final String MESSAGE = "No such loan term. loanTerm - %s";
 
-    public UnknownLoanTerm(int loanTerm) {
+    public UnknownLoanTermException(int loanTerm) {
         super(String.format(MESSAGE, loanTerm));
     }
 }

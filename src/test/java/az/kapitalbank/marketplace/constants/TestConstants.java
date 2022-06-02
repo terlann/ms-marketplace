@@ -15,7 +15,8 @@ public enum TestConstants {
     CUSTOMER_ID("30d8c6d0-a0fd-11ec-b909-0242ac120002"),
     UMICO_USER_ID("30d8c6d0-3242-11ec-b909-0242ac120002"),
     BUSINESS_KEY("d279220e-a1e9-11ec-b909-0242ac120002"),
-    TELESALES_ORDER_ID("eb813fa4-a142-11ec-b909-0242ac120002");
+    TELESALES_ORDER_ID("eb813fa4-a142-11ec-b909-0242ac120002"),
+    TRANSACTION_ID("eb813fa4-a142-11ec-b925-0242ac120002");
 
     final String value;
 

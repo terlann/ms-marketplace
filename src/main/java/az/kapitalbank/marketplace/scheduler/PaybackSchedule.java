@@ -13,13 +13,13 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class RefundSchedule {
+public class PaybackSchedule {
     OrderService orderService;
 
     @Scheduled(cron = "0 22 * * * ?", zone = "Asia/Baku")
-    public void autoRefundOrder() {
-        log.info("Auto refund schedule started at {}", LocalDateTime.now());
-        orderService.autoRefundOrderSchedule();
-        log.info("Auto refund schedule finished at {}", LocalDateTime.now());
+    public void autoPayback() {
+        log.info("Auto payback schedule started at {}", LocalDateTime.now());
+        orderService.autoPayback();
+        log.info("Auto payback schedule finished at {}", LocalDateTime.now());
     }
 }
