@@ -50,7 +50,7 @@ import az.kapitalbank.marketplace.exception.NoDeliveryProductsException;
 import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
 import az.kapitalbank.marketplace.exception.NoMatchLoanAmountByOrderException;
 import az.kapitalbank.marketplace.exception.NoMatchOrderAmountByProductException;
-import az.kapitalbank.marketplace.exception.NoPermissionForTransaction;
+import az.kapitalbank.marketplace.exception.NoPermissionForTransactionException;
 import az.kapitalbank.marketplace.exception.OperationAlreadyScoredException;
 import az.kapitalbank.marketplace.exception.OperationNotFoundException;
 import az.kapitalbank.marketplace.exception.OrderNotFoundException;
@@ -276,7 +276,7 @@ public class OrderService {
             log.error("No Permission for complete pre purchase in delivery : "
                             + "orderNo - {}, transactionStatus - {}",
                     order.getOrderNo(), order.getTransactionStatus());
-            throw new NoPermissionForTransaction(ORDER_NO_LOG + order.getOrderNo());
+            throw new NoPermissionForTransactionException(ORDER_NO_LOG + order.getOrderNo());
         }
 
         var productEntities = order.getProducts();
@@ -447,7 +447,7 @@ public class OrderService {
                 .allMatch(order -> order.getTransactionStatus() == null);
         if (!isPrePurchasable) {
             log.error("No Permission for pre purchase. trackId - {}", trackId);
-            throw new NoPermissionForTransaction("trackId - " + trackId);
+            throw new NoPermissionForTransactionException("trackId - " + trackId);
         }
     }
 
@@ -492,7 +492,7 @@ public class OrderService {
             log.error("No Permission for refund in payback : "
                             + "orderNo - {}, transactionStatus - {}",
                     order.getOrderNo(), order.getTransactionStatus());
-            throw new NoPermissionForTransaction(ORDER_NO_LOG + orderNo);
+            throw new NoPermissionForTransactionException(ORDER_NO_LOG + orderNo);
         }
 
         var customer = customerRepository.findById(request.getCustomerId())
