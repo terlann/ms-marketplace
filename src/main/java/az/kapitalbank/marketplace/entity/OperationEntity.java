@@ -73,6 +73,7 @@ public class OperationEntity extends BaseEntity {
     SendLeadReason sendLeadReason;
     BigDecimal scoredAmount;
     Boolean isOtpOperation;
+    String businessErrorReason;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false, updatable = false)
