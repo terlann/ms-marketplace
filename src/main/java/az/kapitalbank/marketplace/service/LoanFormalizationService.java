@@ -271,6 +271,9 @@ public class LoanFormalizationService {
         var businessErrorData = (BusinessErrorData[]) scoringResultEvent.getData();
         log.error("Scoring result : business error , trackId - {}, response - {}",
                 operationEntity.getId(), Arrays.toString(businessErrorData));
+        if (businessErrorData != null && businessErrorData[0] != null) {
+            operationEntity.setBusinessErrorReason(businessErrorData[0].getId());
+        }
         var rejectedBusinessError = checkRejectedBusinessErrors(businessErrorData);
         if (rejectedBusinessError.isPresent()) {
             var umicoDecisionStatus = umicoService.sendRejectedDecision(operationEntity.getId());
