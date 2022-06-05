@@ -51,6 +51,8 @@ dependencies {
     implementation "io.github.openfeign:feign-annotation-error-decoder:$openFeignVersion"
     implementation "org.mapstruct:mapstruct:$mapStructversion"
     implementation "org.junit.jupiter:junit-jupiter:$junitVersion"
+    implementation "net.javacrumbs.shedlock:shedlock-spring:$shedLockVersion"
+    implementation "net.javacrumbs.shedlock:shedlock-provider-jdbc-template:$shedLockVersion"
     annotationProcessor "org.mapstruct:mapstruct-processor:$mapStructversion"
     compileOnly "org.projectlombok:lombok:$lombokVersion"
     annotationProcessor "org.projectlombok:lombok:$lombokVersion"
