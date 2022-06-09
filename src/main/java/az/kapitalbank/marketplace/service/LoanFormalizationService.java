@@ -4,6 +4,7 @@ import static az.kapitalbank.marketplace.constant.AtlasConstant.UID;
 
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
 import az.kapitalbank.marketplace.constant.DvsStatus;
+import az.kapitalbank.marketplace.constant.Error;
 import az.kapitalbank.marketplace.constant.FraudResultStatus;
 import az.kapitalbank.marketplace.constant.OperationRejectReason;
 import az.kapitalbank.marketplace.constant.RejectedBusinessError;
@@ -12,7 +13,7 @@ import az.kapitalbank.marketplace.constant.SendLeadReason;
 import az.kapitalbank.marketplace.constant.TaskDefinitionKey;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.entity.OperationEntity;
-import az.kapitalbank.marketplace.exception.OperationNotFoundException;
+import az.kapitalbank.marketplace.exception.CommonException;
 import az.kapitalbank.marketplace.messaging.event.BusinessErrorData;
 import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
 import az.kapitalbank.marketplace.messaging.event.InUserActivityData;
@@ -314,7 +315,8 @@ public class LoanFormalizationService {
     public void prePurchaseProcess(PrePurchaseEvent prePurchaseEvent) {
         var trackId = prePurchaseEvent.getTrackId();
         var operationEntity = operationRepository.findById(trackId)
-                .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
+                .orElseThrow(() -> new CommonException(Error.OPERATION_NOT_FOUND,
+                        "Operation not found.TrackId - " + trackId));
         var lastTempAmount = orderService.prePurchaseOrders(operationEntity,
                 operationEntity.getCustomer().getCardId());
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {

@@ -8,13 +8,13 @@ import az.kapitalbank.marketplace.client.otp.model.ChannelRequest;
 import az.kapitalbank.marketplace.client.otp.model.OtpClientErrorResponse;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpRequest;
 import az.kapitalbank.marketplace.client.otp.model.VerifyOtpRequest;
+import az.kapitalbank.marketplace.constant.Error;
 import az.kapitalbank.marketplace.constant.OtpConstant;
 import az.kapitalbank.marketplace.dto.request.SendOtpRequestDto;
 import az.kapitalbank.marketplace.dto.request.VerifyOtpRequestDto;
 import az.kapitalbank.marketplace.dto.response.SendOtpResponseDto;
-import az.kapitalbank.marketplace.exception.OperationNotFoundException;
+import az.kapitalbank.marketplace.exception.CommonException;
 import az.kapitalbank.marketplace.exception.OtpException;
-import az.kapitalbank.marketplace.exception.SubscriptionNotFoundException;
 import az.kapitalbank.marketplace.messaging.event.PrePurchaseEvent;
 import az.kapitalbank.marketplace.messaging.publisher.PrePurchasePublisher;
 import az.kapitalbank.marketplace.repository.OperationRepository;
@@ -49,7 +49,8 @@ public class OtpService {
         log.info("Send otp process is started : request - {}", request);
         var trackId = request.getTrackId();
         var operationEntity = operationRepository.findById(trackId)
-                .orElseThrow(() -> new OperationNotFoundException("trackId: " + trackId));
+                .orElseThrow(() -> new CommonException(Error.OPERATION_NOT_FOUND,
+                        "Operation not found.TrackId" + trackId));
         var cardId = operationEntity.getCustomer().getCardId();
         String cardLinkedMobileNumber = getCardLinkedMobileNumber(cardId);
         SendOtpRequest sendOtpRequest = SendOtpRequest.builder().phoneNumber(cardLinkedMobileNumber)
@@ -76,7 +77,8 @@ public class OtpService {
         log.info("Verify otp process is started : request - {}", request);
         var trackId = request.getTrackId();
         var operationEntity = operationRepository.findById(trackId)
-                .orElseThrow(() -> new OperationNotFoundException("trackId - " + trackId));
+                .orElseThrow(() -> new CommonException(Error.OPERATION_NOT_FOUND,
+                        "Operation not found.TrackId - " + trackId));
         var cardId = operationEntity.getCustomer().getCardId();
         String cardLinkedMobileNumber = getCardLinkedMobileNumber(cardId);
         var otpVerifyRequest =
@@ -110,7 +112,8 @@ public class OtpService {
                 .filter(subscription -> subscription.getChannel().equals("SMPP_ALL")
                         && subscription.getScheme().contains("3DS"))
                 .findFirst()
-                .orElseThrow(() -> new SubscriptionNotFoundException("cardId: " + cardId))
+                .orElseThrow(() -> new CommonException(Error.SUBSCRIPTION_NOT_FOUND,
+                        "Card UID related mobile number not found.CardId: " + cardId))
                 .getAddress();
         log.info(
                 "Card linked mobile number process was finished : "

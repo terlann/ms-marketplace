@@ -52,10 +52,7 @@ import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
-import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
-import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
-import az.kapitalbank.marketplace.exception.NoMatchOrderAmountByProductException;
-import az.kapitalbank.marketplace.exception.NoPermissionForTransactionException;
+import az.kapitalbank.marketplace.exception.CommonException;
 import az.kapitalbank.marketplace.mapper.CustomerMapper;
 import az.kapitalbank.marketplace.mapper.OperationMapper;
 import az.kapitalbank.marketplace.mapper.OrderMapper;
@@ -204,7 +201,7 @@ class OrderServiceTest {
                         Stream.of(PENDING, FAIL_IN_PENDING, PREAPPROVED, FAIL_IN_PREAPPROVED)
                                 .map(Enum::name)
                                 .collect(Collectors.toList()))).thenReturn(true);
-        assertThrows(CustomerNotCompletedProcessException.class,
+        assertThrows(CommonException.class,
                 () -> orderService.createOrder(request));
     }
 
@@ -234,7 +231,7 @@ class OrderServiceTest {
     void createOrder_NoMatchOrderAmountByProductException() {
         CreateOrderRequestDto request =
                 getCreateOrderRequestDtoFailInProductAmount(null);
-        assertThrows(NoMatchOrderAmountByProductException.class,
+        assertThrows(CommonException.class,
                 () -> orderService.createOrder(request));
     }
 
@@ -305,7 +302,7 @@ class OrderServiceTest {
                 .build();
         when(orderRepository.findByOrderNo(refundRequestDto.getOrderNo()))
                 .thenReturn(Optional.of(orderEntity));
-        assertThrows(CustomerNotFoundException.class, () -> orderService.payback(refundRequestDto));
+        assertThrows(CommonException.class, () -> orderService.payback(refundRequestDto));
     }
 
 
@@ -328,7 +325,7 @@ class OrderServiceTest {
                 .build();
         when(orderRepository.findByOrderNo(refundRequestDto.getOrderNo()))
                 .thenReturn(Optional.of(orderEntity));
-        assertThrows(CustomerNotFoundException.class, () -> orderService.payback(refundRequestDto));
+        assertThrows(CommonException.class, () -> orderService.payback(refundRequestDto));
     }
 
     @Test
@@ -413,7 +410,7 @@ class OrderServiceTest {
                 .orderNo("123")
                 .deliveryProducts(Set.of(DeliveryProductDto.builder().productId("p1").build()))
                 .build();
-        assertThrows(NoPermissionForTransactionException.class,
+        assertThrows(CommonException.class,
                 () -> orderService.delivery(request));
         verify(orderRepository).findByOrderNo("123");
     }
@@ -436,7 +433,7 @@ class OrderServiceTest {
                 .orderNo("123")
                 .deliveryProducts(Set.of(DeliveryProductDto.builder().productId("p1").build()))
                 .build();
-        assertThrows(CustomerNotFoundException.class, () -> orderService.delivery(request));
+        assertThrows(CommonException.class, () -> orderService.delivery(request));
     }
 
     @Test
