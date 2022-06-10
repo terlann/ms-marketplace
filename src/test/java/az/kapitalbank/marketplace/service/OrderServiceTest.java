@@ -320,6 +320,28 @@ class OrderServiceTest {
         assertThrows(CommonException.class, () -> orderService.payback(refundRequestDto));
     }
 
+    @Test
+    void refund_AtlasClient_Non_PrePurchase() {
+        var refundRequestDto = PaybackRequestDto.builder()
+                .orderNo("12345")
+                .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
+                .build();
+        var orderEntity = OrderEntity.builder()
+                .commission(BigDecimal.ONE)
+                .totalAmount(BigDecimal.ONE)
+                .transactionStatus(TransactionStatus.REFUND)
+                .transactionId("1231564")
+                .operation(OperationEntity.builder()
+                        .customer(CustomerEntity.builder()
+                                .id(UUID.fromString(CUSTOMER_ID.getValue()))
+                                .build())
+                        .build())
+                .build();
+        when(orderRepository.findByOrderNo(refundRequestDto.getOrderNo()))
+                .thenReturn(Optional.of(orderEntity));
+        assertThrows(CommonException.class, () -> orderService.payback(refundRequestDto));
+    }
+
 
     @Test
     void refund_AtlasClientException_InComplete() {
