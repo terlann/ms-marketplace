@@ -568,8 +568,8 @@ public class OrderService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         if (calculatedTotalOrderAmount.compareTo(operationTotalAmount) != 0) {
             throw new CommonException(Error.NO_MATCH_LOAN_AMOUNT_BY_ORDERS, String.format(
-                    "Loan amount is not equal total order amount.  loanAmount=%s ,"
-                            + " totalOrderAmount=%s ", operationTotalAmount,
+                    "Loan amount is not equal total order amount.  loanAmount=%s , "
+                            + "totalOrderAmount=%s ", operationTotalAmount,
                     calculatedTotalOrderAmount));
         }
     }

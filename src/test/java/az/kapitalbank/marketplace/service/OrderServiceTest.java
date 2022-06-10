@@ -123,6 +123,21 @@ class OrderServiceTest {
     }
 
     @Test
+    void telesalesResult_When_ScoringStatusIsNonNull() {
+        var request = TelesalesResultRequestDto.builder()
+                .telesalesOrderId(TELESALES_ORDER_ID.getValue())
+                .scoringStatus(ScoringStatus.REJECTED)
+                .build();
+        var operationEntity = OperationEntity.builder()
+                .scoringStatus(ScoringStatus.REJECTED)
+                .build();
+        when(operationRepository.findByTelesalesOrderId(TELESALES_ORDER_ID.getValue())).thenReturn(
+                Optional.of(operationEntity));
+        assertThrows(CommonException.class, () -> orderService.telesalesResult(request));
+
+    }
+
+    @Test
     void telesalesResult_Approved() {
         var request = TelesalesResultRequestDto.builder()
                 .telesalesOrderId(TELESALES_ORDER_ID.getValue())
@@ -360,6 +375,22 @@ class OrderServiceTest {
     }
 
     @Test
+    void delivery_When_Find_By_Order_No() {
+        var request = DeliveryRequestDto.builder().orderNo("123").build();
+        when(orderRepository.findByOrderNo("123")).thenReturn(Optional.empty());
+        assertThrows(CommonException.class, () -> orderService.delivery(request));
+    }
+
+    @Test
+    void delivery_When_Transaction_Status_Non_PrePurchase() {
+        var request = DeliveryRequestDto.builder().orderNo("123").build();
+        var order =
+                OrderEntity.builder().transactionStatus(TransactionStatus.FAIL_IN_REFUND).build();
+        when(orderRepository.findByOrderNo("123")).thenReturn(Optional.ofNullable(order));
+        assertThrows(CommonException.class, () -> orderService.delivery(request));
+    }
+
+    @Test
     void purchase_Partial_Success() {
         OrderEntity orderEntity = OrderEntity.builder()
                 .transactionId("123245")
@@ -447,6 +478,25 @@ class OrderServiceTest {
         when(orderMapper.toCheckOrderResponseDto(operationEntity)).thenReturn(expected);
         var actual = orderService.checkOrder(telesalesOrderId);
         assertEquals(expected, actual);
+    }
+
+    @Test
+    void checkOrder_Exception() {
+        String telesalesOrderId = "1321651";
+        OperationEntity operationEntity = OperationEntity.builder()
+                .scoringStatus(ScoringStatus.APPROVED)
+                .build();
+        when(operationRepository.findByTelesalesOrderId(telesalesOrderId))
+                .thenReturn(Optional.of(operationEntity));
+        assertThrows(CommonException.class, () -> orderService.checkOrder(telesalesOrderId));
+    }
+
+    @Test
+    void checkOrder_When_Is_Empty_Exception() {
+        String telesalesOrderId = "1321651";
+        when(operationRepository.findByTelesalesOrderId(telesalesOrderId))
+                .thenReturn(Optional.empty());
+        assertThrows(CommonException.class, () -> orderService.checkOrder(telesalesOrderId));
     }
 
     private CreateOrderRequestDto getCreateOrderRequestDto(UUID customerId) {
