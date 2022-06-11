@@ -52,6 +52,7 @@ import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
+import az.kapitalbank.marketplace.entity.ProductEntity;
 import az.kapitalbank.marketplace.exception.CommonException;
 import az.kapitalbank.marketplace.mapper.CustomerMapper;
 import az.kapitalbank.marketplace.mapper.OperationMapper;
@@ -198,6 +199,19 @@ class OrderServiceTest {
     }
 
     @Test
+    void createOrder_When_UmicoUserId_IsPresent() {
+        CreateOrderRequestDto request =
+                getCreateOrderRequestDto(null);
+        var fraudCheckEvent = FraudCheckEvent.builder().build();
+        var customerEntity = CustomerEntity.builder().cardId(CARD_UID.getValue()).build();
+        when(customerRepository.findByUmicoUserId(UMICO_USER_ID.getValue()))
+                .thenReturn(Optional.of(customerEntity));
+        when(amountUtil.getCommission(BigDecimal.valueOf(50), 12))
+                .thenReturn(BigDecimal.valueOf(12));
+        assertThrows(CommonException.class, () -> orderService.createOrder(request));
+    }
+
+    @Test
     void createOrder_NotCompleteProcess() {
         CreateOrderRequestDto request =
                 getCreateOrderRequestDto(null);
@@ -241,6 +255,15 @@ class OrderServiceTest {
         orderService.createOrder(request);
         verify(operationMapper).toOperationEntity(request);
     }
+
+    @Test
+    void createOrder_SecondOperation_When_Same_PhoneNumber() {
+        CreateOrderRequestDto request =
+                getCreateOrderSamePhoneNumbersRequestDto(null);
+        var fraudCheckEvent = FraudCheckEvent.builder().build();
+        assertThrows(CommonException.class, () -> orderService.createOrder(request));
+    }
+
 
     @Test
     void createOrder_NoMatchOrderAmountByProductException() {
@@ -404,6 +427,44 @@ class OrderServiceTest {
     }
 
     @Test
+    void delivery_verifyProductIdIsLinkedToOrderNo() {
+        var request = DeliveryRequestDto.builder()
+                .deliveryProducts(Set.of(DeliveryProductDto.builder().productId("p1").build()))
+                .orderNo("123").build();
+        var product = ProductEntity.builder().productNo("1111").build();
+        var order = OrderEntity.builder()
+                .products(List.of(product))
+                .transactionStatus(TransactionStatus.PRE_PURCHASE)
+                .build();
+        when(orderRepository.findByOrderNo(request.getOrderNo())).thenReturn(
+                Optional.of(order));
+        assertThrows(CommonException.class, () -> orderService.delivery(request));
+    }
+
+    @Test
+    void delivery_When_DeliveredOrderAmount_Is_Zero() {
+        var customerEntity =
+                CustomerEntity.builder().id(UUID.fromString(CUSTOMER_ID.getValue())).build();
+        var request = DeliveryRequestDto.builder()
+                .deliveryProducts(Set.of(DeliveryProductDto.builder().productId("p1").build()))
+                .orderNo("123")
+                .customerId(UUID.fromString(customerEntity.getId().toString()))
+                .build();
+        var product = ProductEntity.builder()
+                .amount(BigDecimal.ZERO)
+                .productNo("p1").build();
+        var order = OrderEntity.builder()
+                .products(List.of(product))
+                .transactionStatus(TransactionStatus.PRE_PURCHASE)
+                .build();
+        when(orderRepository.findByOrderNo(request.getOrderNo())).thenReturn(
+                Optional.of(order));
+        when(customerRepository.findById(request.getCustomerId())).thenReturn(
+                Optional.of(customerEntity));
+        assertThrows(CommonException.class, () -> orderService.delivery(request));
+    }
+
+    @Test
     void delivery_When_Transaction_Status_Non_PrePurchase() {
         var request = DeliveryRequestDto.builder().orderNo("123").build();
         var order =
@@ -530,6 +591,27 @@ class OrderServiceTest {
                         .umicoUserId(UMICO_USER_ID.getValue())
                         .additionalPhoneNumber1("9941112233")
                         .additionalPhoneNumber2("9941112234")
+                        .build())
+                .deliveryInfo(List.of(OrderProductDeliveryInfo.builder()
+                        .totalAmount(BigDecimal.valueOf(50))
+                        .orderNo("123")
+                        .build()))
+                .products(List.of(OrderProductItem.builder()
+                        .orderNo("123")
+                        .productAmount(BigDecimal.valueOf(50))
+                        .build()))
+                .build();
+    }
+
+    private CreateOrderRequestDto getCreateOrderSamePhoneNumbersRequestDto(UUID customerId) {
+        return CreateOrderRequestDto.builder()
+                .totalAmount(BigDecimal.valueOf(50))
+                .loanTerm(12)
+                .customerInfo(CustomerInfo.builder()
+                        .customerId(customerId)
+                        .umicoUserId(UMICO_USER_ID.getValue())
+                        .additionalPhoneNumber1("9941112233")
+                        .additionalPhoneNumber2("9941112233")
                         .build())
                 .deliveryInfo(List.of(OrderProductDeliveryInfo.builder()
                         .totalAmount(BigDecimal.valueOf(50))
