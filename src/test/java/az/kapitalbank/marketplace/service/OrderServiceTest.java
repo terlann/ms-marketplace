@@ -145,6 +145,28 @@ class OrderServiceTest {
                 .scoringStatus(ScoringStatus.APPROVED)
                 .uid(CARD_UID.getValue())
                 .build();
+        OrderEntity orderEntity = OrderEntity.builder()
+                .transactionStatus(TransactionStatus.PRE_PURCHASE)
+                .build();
+        OperationEntity operationEntity = OperationEntity.builder()
+                .id(UUID.fromString(TRACK_ID.getValue()))
+                .orders(List.of(orderEntity))
+                .customer(getCustomerEntity())
+                .totalAmount(BigDecimal.ONE)
+                .build();
+        when(operationRepository.findByTelesalesOrderId(TELESALES_ORDER_ID.getValue())).thenReturn(
+                Optional.of(operationEntity));
+        assertThrows(CommonException.class, () -> orderService.telesalesResult(request));
+        verify(operationRepository).findByTelesalesOrderId(TELESALES_ORDER_ID.getValue());
+    }
+
+    @Test
+    void telesalesResult_validateOrdersForPrePurchase_NoPermission() {
+        var request = TelesalesResultRequestDto.builder()
+                .telesalesOrderId(TELESALES_ORDER_ID.getValue())
+                .scoringStatus(ScoringStatus.APPROVED)
+                .uid(CARD_UID.getValue())
+                .build();
         var purchaseResponse = PrePurchaseResponse.builder().build();
         when(operationRepository.findByTelesalesOrderId(TELESALES_ORDER_ID.getValue())).thenReturn(
                 Optional.of(getOperationEntity()));
