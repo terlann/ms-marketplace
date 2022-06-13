@@ -3,7 +3,10 @@ package az.kapitalbank.marketplace.service;
 import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
 import static az.kapitalbank.marketplace.constants.TestConstants.RRN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -12,6 +15,7 @@ import az.kapitalbank.marketplace.client.atlas.model.response.Subscription;
 import az.kapitalbank.marketplace.client.atlas.model.response.SubscriptionResponse;
 import az.kapitalbank.marketplace.client.otp.OtpClient;
 import az.kapitalbank.marketplace.client.otp.model.ChannelRequest;
+import az.kapitalbank.marketplace.client.otp.model.OtpClientErrorResponse;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpRequest;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpResponse;
 import az.kapitalbank.marketplace.client.otp.model.VerifyOtpRequest;
@@ -23,12 +27,19 @@ import az.kapitalbank.marketplace.dto.response.SendOtpResponseDto;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
+import az.kapitalbank.marketplace.exception.CommonException;
 import az.kapitalbank.marketplace.messaging.publisher.PrePurchasePublisher;
 import az.kapitalbank.marketplace.repository.OperationRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import feign.FeignException;
+import feign.Request;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import lombok.SneakyThrows;
 import lombok.experimental.NonFinal;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,6 +55,8 @@ class OtpServiceTest {
     OtpClient otpClient;
     @Mock
     AtlasClient atlasClient;
+    @Mock
+    ObjectMapper objectMapper;
     @Mock
     PrePurchasePublisher prePurchasePublisher;
     @Mock
@@ -81,6 +94,30 @@ class OtpServiceTest {
                         .build();
 
         assertEquals(expected, actual);
+    }
+
+    @Test
+    @SneakyThrows
+    void send_Exception() {
+        var trackId = UUID.fromString(OtpConstant.DEFINITION_ID.getValue());
+        String cardConnectedNumber = "994553601019";
+        OperationEntity operationEntity = getOperationEntity();
+        SubscriptionResponse subscriptionResponse = getSubscriptionResponse();
+        FeignException feignException = new FeignException.BadRequest("salam",
+                Request.create(Request.HttpMethod.GET, "/result", Map.of("salam", List.of("salam")),
+                        "salam".getBytes(
+                                StandardCharsets.UTF_8), null, null), null);
+
+        when(operationRepository.findById(trackId)).thenReturn(Optional.of(operationEntity));
+        when(atlasClient.findAllByUid(CARD_UID.getValue(), "", "")).thenReturn(
+                subscriptionResponse);
+        when(otpClient.send(any(SendOtpRequest.class))).thenThrow(feignException);
+        when(objectMapper.readValue(anyString(), eq(OtpClientErrorResponse.class))).thenThrow(
+                CommonException.class);
+
+        var request = SendOtpRequestDto.builder()
+                .trackId(trackId).build();
+        assertThrows(CommonException.class, () -> otpService.send(request));
     }
 
     private SubscriptionResponse getSubscriptionResponse() {
