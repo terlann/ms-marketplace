@@ -72,8 +72,8 @@ client:
     url: https://pre.adp-optimus.kapitalbank.az/api/v1
   adp-dvs:
     url: https://pre.adp-dvs.kapitalbank.az/v1
-  externalinteg:
-    url: http://pre.externalinteg.kapitalbank.az/api
+  iamas:
+    url: https://pre.integration.kapitalbank.az/api/iamas
   ms-otp:
     url: https://pre.ms-otp.kapitalbank.az/v1
   loan:

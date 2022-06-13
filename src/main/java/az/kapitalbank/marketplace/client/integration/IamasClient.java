@@ -9,12 +9,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
 @FeignClient(name = "iamas",
-        url = "${client.externalinteg.url}",
+        url = "${client.iamas.url}",
         primary = false,
         configuration = IamasClient.FeignConfiguration.class)
 public interface IamasClient {
 
-    @GetMapping("/iamas/id-card/by/pin/{pin}")
+    @GetMapping("/id-card/by/pin/{pin}")
     List<IamasResponse> findPersonByPin(@PathVariable("pin") String pin);
 
     class FeignConfiguration {

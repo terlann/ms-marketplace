@@ -10,9 +10,8 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.security.oauth2.client.OAuth2AuthorizeRequest;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager;
-import org.springframework.stereotype.Component;
 
-@Component
+
 @Profile("!local && !dev")
 public class IntegrationAuthRequestInterceptor implements RequestInterceptor {
     private final OAuth2AuthorizedClientManager manager;
