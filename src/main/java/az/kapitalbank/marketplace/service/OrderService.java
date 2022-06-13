@@ -4,6 +4,7 @@ import static az.kapitalbank.marketplace.constant.AtlasConstant.COMPLETE_PRE_PUR
 import static az.kapitalbank.marketplace.constant.AtlasConstant.COMPLETE_PRE_PURCHASE_FOR_REFUND_DESCRIPTION;
 import static az.kapitalbank.marketplace.constant.AtlasConstant.PRE_PURCHASE_DESCRIPTION;
 import static az.kapitalbank.marketplace.constant.CommonConstant.CUSTOMER_ID_LOG;
+import static az.kapitalbank.marketplace.constant.CommonConstant.CUSTOMER_NOT_FOUND_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.ORDER_NO_EXCEPTION_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.ORDER_NO_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.ORDER_NO_REQUEST_LOG;
@@ -210,12 +211,12 @@ public class OrderService {
             } else {
                 customerEntity = customerMapper.toCustomerEntity(request.getCustomerInfo());
                 customerEntity = customerRepository.save(customerEntity);
-                log.info("New customer was created. customerId - {}", customerEntity.getId());
+                log.info("New customer was created : customerId - {}", customerEntity.getId());
             }
         } else {
             customerEntity = customerRepository.findById(customerId)
                     .orElseThrow(() -> new CommonException(Error.CUSTOMER_NOT_FOUND,
-                            "Customer not found." + CUSTOMER_ID_LOG + customerId));
+                            CUSTOMER_NOT_FOUND_LOG + CUSTOMER_ID_LOG + customerId));
             validateCustomerBalance(request, customerEntity.getCardId());
         }
         return customerEntity;
@@ -230,7 +231,7 @@ public class OrderService {
                         decisions);
         if (isExistsCustomerByDecisionStatus) {
             throw new CommonException(Error.CUSTOMER_NOT_COMPLETED_PROCESS,
-                    "Customer has not yet completed the process." + CUSTOMER_ID_LOG
+                    "Customer has not yet completed the process : " + CUSTOMER_ID_LOG
                             + customerEntity.getId());
         }
     }
@@ -240,7 +241,7 @@ public class OrderService {
         var secondPhoneNumber = request.getCustomerInfo().getAdditionalPhoneNumber2();
         if (firstPhoneNumber.equals(secondPhoneNumber)) {
             throw new CommonException(Error.UNIQUE_PHONE_NUMBER, String.format(
-                    "Additional numbers aren't different.additionalPhoneNumber1 = %s ,"
+                    "Additional numbers aren't different : additionalPhoneNumber1 = %s ,"
                             + " additionalPhoneNumber2 = %s", firstPhoneNumber, secondPhoneNumber));
         }
     }
@@ -281,7 +282,7 @@ public class OrderService {
 
         var customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(
-                        () -> new CommonException(Error.CUSTOMER_NOT_FOUND, "Customer not found. "
+                        () -> new CommonException(Error.CUSTOMER_NOT_FOUND, "Customer not found : "
                                 + CUSTOMER_ID_LOG + request.getCustomerId()));
 
         var deliveredOrderAmount = getDeliveredOrderAmount(request, productEntities);
@@ -308,7 +309,7 @@ public class OrderService {
             if (!orderProductIdList.contains(deliveryProduct.getProductId())) {
                 throw new CommonException(Error.PRODUCT_NOT_LINKED_TO_ORDER,
                         String.format(
-                                "Product is not linked to order. productId - %s, orderNo - %s",
+                                "Product is not linked to order : productId - %s, orderNo - %s",
                                 deliveryProduct.getProductId(), request.getOrderNo()));
             }
         }
@@ -447,7 +448,7 @@ public class OrderService {
         var isPrePurchasable = orders.stream()
                 .allMatch(order -> order.getTransactionStatus() == null);
         if (!isPrePurchasable) {
-            log.error("No Permission for pre purchase. trackId - {}", trackId);
+            log.error("No Permission for pre purchase : trackId - {}", trackId);
             throw new CommonException(Error.NO_PERMISSION, "trackId - " + trackId);
         }
     }
@@ -487,7 +488,7 @@ public class OrderService {
         var orderNo = request.getOrderNo();
         var order = orderRepository.findByOrderNo(orderNo)
                 .orElseThrow(() -> new CommonException(Error.ORDER_NOT_FOUND,
-                        "Order not found. orderNo - " + orderNo));
+                        "Order not found : orderNo - " + orderNo));
 
         var transactionStatus = order.getTransactionStatus();
         if (transactionStatus != PRE_PURCHASE) {
@@ -499,7 +500,7 @@ public class OrderService {
 
         var customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(
-                        () -> new CommonException(Error.CUSTOMER_NOT_FOUND, "Customer not found. "
+                        () -> new CommonException(Error.CUSTOMER_NOT_FOUND, CUSTOMER_NOT_FOUND_LOG
                                 + CUSTOMER_ID_LOG + request.getCustomerId()));
 
         completePrePurchaseOrder(order, customer.getCardId());
@@ -557,8 +558,8 @@ public class OrderService {
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             if (order.getTotalAmount().compareTo(productsTotalAmount) != 0) {
                 throw new CommonException(Error.NO_MATCH_ORDER_AMOUNT_BY_PRODUCTS, String.format(
-                        "Order amount is not equal total product amount."
-                                + " orderAmount - %s , productsTotalAmount - %s ",
+                        "Order amount is not equal total product amount : "
+                                + "orderAmount - %s , productsTotalAmount - %s ",
                         order.getTotalAmount(),
                         productsTotalAmount));
             }
@@ -569,7 +570,7 @@ public class OrderService {
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         if (calculatedTotalOrderAmount.compareTo(operationTotalAmount) != 0) {
             throw new CommonException(Error.NO_MATCH_LOAN_AMOUNT_BY_ORDERS, String.format(
-                    "Loan amount is not equal total order amount.  loanAmount=%s , "
+                    "Loan amount is not equal total order amount : loanAmount=%s , "
                             + "totalOrderAmount=%s ", operationTotalAmount,
                     calculatedTotalOrderAmount));
         }
@@ -600,7 +601,7 @@ public class OrderService {
         var primaryAccount = cardDetailResponse.getAccounts().stream()
                 .filter(x -> x.getStatus() == AccountStatus.OPEN_PRIMARY).findFirst();
         if (primaryAccount.isEmpty()) {
-            log.info("Account not found in open primary status.cardId - {}", cardId);
+            log.info("Account not found in open primary status : cardId - {}", cardId);
             return BigDecimal.ZERO;
         }
         return primaryAccount.get().getAvailableBalance();

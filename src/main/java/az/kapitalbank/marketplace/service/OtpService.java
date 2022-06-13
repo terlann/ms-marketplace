@@ -110,7 +110,7 @@ public class OtpService {
                         && subscription.getScheme().contains("3DS"))
                 .findFirst()
                 .orElseThrow(() -> new CommonException(Error.SUBSCRIPTION_NOT_FOUND,
-                        "Card UID related mobile number not found.CardId: " + cardId))
+                        "Card UID related mobile number not found : cardId: " + cardId))
                 .getAddress();
         log.info(
                 "Card linked mobile number process was finished : "

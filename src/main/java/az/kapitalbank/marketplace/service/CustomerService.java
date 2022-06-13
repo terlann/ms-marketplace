@@ -36,12 +36,12 @@ public class CustomerService {
                     .findFirst();
             if (iamasResponse.isEmpty()) {
                 throw new CommonException(Error.PERSON_NOT_FOUND,
-                        "Person not found in IAMAS. pin - " + pin);
+                        "Person not found in IAMAS : pin - " + pin);
             }
         } catch (FeignException e) {
             log.error("Check person was failed : pin - {}, exception - {}", pin, e);
             throw new CommonException(Error.PERSON_NOT_FOUND,
-                    "Person not found in IAMAS. pin - " + pin);
+                    "Person not found in IAMAS : pin - " + pin);
         }
         log.info("Check person was finished : pin - {} ", pin);
     }
@@ -49,10 +49,10 @@ public class CustomerService {
     public BalanceResponseDto getBalance(String umicoUserId, UUID customerId) {
         var customerEntity = customerRepository.findById(customerId)
                 .orElseThrow(() -> new CommonException(Error.CUSTOMER_NOT_FOUND,
-                        "Customer not found. customerId - " + customerId));
+                        "Customer not found : customerId - " + customerId));
         if (!customerEntity.getUmicoUserId().equals(umicoUserId)) {
             throw new CommonException(Error.UMICO_USER_NOT_FOUND,
-                    "Umico user not found. umicoUserId - " + umicoUserId);
+                    "Umico user not found : umicoUserId - " + umicoUserId);
         }
         var cardId = customerEntity.getCardId();
         var cardDetailResponse = atlasClient.findCardByUid(cardId, ResultType.ACCOUNT);
