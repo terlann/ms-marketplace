@@ -7,7 +7,7 @@ import static org.mockito.Mockito.when;
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.model.response.AccountResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.CardDetailResponse;
-import az.kapitalbank.marketplace.client.integration.IamasClient;
+import az.kapitalbank.marketplace.client.integration.IntegrationClient;
 import az.kapitalbank.marketplace.client.integration.model.IamasPerson;
 import az.kapitalbank.marketplace.client.integration.model.IamasResponse;
 import az.kapitalbank.marketplace.constant.AccountStatus;
@@ -35,7 +35,7 @@ class CustomerServiceTest {
     @Mock
     private CustomerRepository customerRepository;
     @Mock
-    private IamasClient iamasClient;
+    private IntegrationClient integrationClient;
     @InjectMocks
     CustomerService customerService;
 
@@ -52,9 +52,9 @@ class CustomerServiceTest {
                 .personAz(iamasPerson)
                 .build();
         var iamasResponses = List.of(iamasResponse);
-        when(iamasClient.findPersonByPin(pin)).thenReturn(iamasResponses);
+        when(integrationClient.findPersonByPin(pin)).thenReturn(iamasResponses);
         customerService.checkPerson(pin);
-        verify(iamasClient).findPersonByPin(pin);
+        verify(integrationClient).findPersonByPin(pin);
     }
 
     @Test

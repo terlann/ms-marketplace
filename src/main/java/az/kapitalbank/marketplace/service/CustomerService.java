@@ -1,7 +1,7 @@
 package az.kapitalbank.marketplace.service;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
-import az.kapitalbank.marketplace.client.integration.IamasClient;
+import az.kapitalbank.marketplace.client.integration.IntegrationClient;
 import az.kapitalbank.marketplace.client.integration.model.IamasResponse;
 import az.kapitalbank.marketplace.constant.AccountStatus;
 import az.kapitalbank.marketplace.constant.ResultType;
@@ -26,12 +26,12 @@ public class CustomerService {
 
     AtlasClient atlasClient;
     CustomerRepository customerRepository;
-    IamasClient iamasClient;
+    IntegrationClient integrationClient;
 
     public void checkPerson(String pin) {
         log.info("Check person is started : pin - {} ", pin);
         try {
-            var iamasResponse = iamasClient.findPersonByPin(pin)
+            var iamasResponse = integrationClient.findPersonByPin(pin)
                     .stream()
                     .filter(IamasResponse::isActive)
                     .findFirst();
