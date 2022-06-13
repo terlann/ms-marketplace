@@ -1,14 +1,13 @@
 package az.kapitalbank.marketplace.service;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
-import az.kapitalbank.marketplace.client.integration.IamasClient;
+import az.kapitalbank.marketplace.client.integration.IntegrationClient;
 import az.kapitalbank.marketplace.client.integration.model.IamasResponse;
 import az.kapitalbank.marketplace.constant.AccountStatus;
+import az.kapitalbank.marketplace.constant.Error;
 import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.dto.response.BalanceResponseDto;
-import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
-import az.kapitalbank.marketplace.exception.PersonNotFoundException;
-import az.kapitalbank.marketplace.exception.UmicoUserNotFoundException;
+import az.kapitalbank.marketplace.exception.CommonException;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import feign.FeignException;
 import java.util.UUID;
@@ -26,30 +25,34 @@ public class CustomerService {
 
     AtlasClient atlasClient;
     CustomerRepository customerRepository;
-    IamasClient iamasClient;
+    IntegrationClient integrationClient;
 
     public void checkPerson(String pin) {
         log.info("Check person is started : pin - {} ", pin);
         try {
-            var iamasResponse = iamasClient.findPersonByPin(pin)
+            var iamasResponse = integrationClient.findPersonByPin(pin)
                     .stream()
                     .filter(IamasResponse::isActive)
                     .findFirst();
             if (iamasResponse.isEmpty()) {
-                throw new PersonNotFoundException("pin - " + pin);
+                throw new CommonException(Error.PERSON_NOT_FOUND,
+                        "Person not found in IAMAS : pin - " + pin);
             }
         } catch (FeignException e) {
             log.error("Check person was failed : pin - {}, exception - {}", pin, e);
-            throw new PersonNotFoundException("pin - " + pin);
+            throw new CommonException(Error.PERSON_NOT_FOUND,
+                    "Person not found in IAMAS : pin - " + pin);
         }
         log.info("Check person was finished : pin - {} ", pin);
     }
 
     public BalanceResponseDto getBalance(String umicoUserId, UUID customerId) {
         var customerEntity = customerRepository.findById(customerId)
-                .orElseThrow(() -> new CustomerNotFoundException("customerId - " + customerId));
+                .orElseThrow(() -> new CommonException(Error.CUSTOMER_NOT_FOUND,
+                        "Customer not found : customerId - " + customerId));
         if (!customerEntity.getUmicoUserId().equals(umicoUserId)) {
-            throw new UmicoUserNotFoundException("umicoUserId - " + umicoUserId);
+            throw new CommonException(Error.UMICO_USER_NOT_FOUND,
+                    "Umico user not found : umicoUserId - " + umicoUserId);
         }
         var cardId = customerEntity.getCardId();
         var cardDetailResponse = atlasClient.findCardByUid(cardId, ResultType.ACCOUNT);
