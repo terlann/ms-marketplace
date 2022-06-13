@@ -58,7 +58,7 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(DeliveryException.class)
     public ResponseEntity<ErrorResponseDto> deliveryException(DeliveryException ex) {
-        log.error(EXCEPTION, Error.REFUND_FAILED, ex);
+        log.error(EXCEPTION, Error.COMPLETE_PRE_PURCHASE_FAILED, ex);
         var errorResponseDto = new ErrorResponseDto(Error.COMPLETE_PRE_PURCHASE_FAILED);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }

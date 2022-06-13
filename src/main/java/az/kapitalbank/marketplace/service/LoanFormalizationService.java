@@ -316,7 +316,7 @@ public class LoanFormalizationService {
         var trackId = prePurchaseEvent.getTrackId();
         var operationEntity = operationRepository.findById(trackId)
                 .orElseThrow(() -> new CommonException(Error.OPERATION_NOT_FOUND,
-                        "Operation not found. trackId - " + trackId));
+                        "Operation not found : trackId - " + trackId));
         var lastTempAmount = orderService.prePurchaseOrders(operationEntity,
                 operationEntity.getCustomer().getCardId());
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {

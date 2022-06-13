@@ -75,7 +75,7 @@ public class OtpService {
         var trackId = request.getTrackId();
         var operationEntity = operationRepository.findById(trackId)
                 .orElseThrow(() -> new CommonException(Error.OPERATION_NOT_FOUND,
-                        "Operation not found.TrackId - " + trackId));
+                        "Operation not found : trackId - " + trackId));
         var cardId = operationEntity.getCustomer().getCardId();
         String cardLinkedMobileNumber = getCardLinkedMobileNumber(cardId);
         var otpVerifyRequest =
