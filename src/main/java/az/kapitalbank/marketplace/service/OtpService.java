@@ -19,7 +19,6 @@ import az.kapitalbank.marketplace.messaging.event.PrePurchaseEvent;
 import az.kapitalbank.marketplace.messaging.publisher.PrePurchasePublisher;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.util.OtpUtil;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import feign.FeignException;
 import java.util.UUID;
@@ -43,14 +42,13 @@ public class OtpService {
     PrePurchasePublisher prePurchasePublisher;
     OperationRepository operationRepository;
 
-    @SneakyThrows
     @Transactional
     public SendOtpResponseDto send(SendOtpRequestDto request) {
         log.info("Send otp process is started : request - {}", request);
         var trackId = request.getTrackId();
         var operationEntity = operationRepository.findById(trackId)
                 .orElseThrow(() -> new CommonException(Error.OPERATION_NOT_FOUND,
-                        "Operation not found.TrackId" + trackId));
+                        "Operation not found : trackId" + trackId));
         var cardId = operationEntity.getCustomer().getCardId();
         String cardLinkedMobileNumber = getCardLinkedMobileNumber(cardId);
         SendOtpRequest sendOtpRequest = SendOtpRequest.builder().phoneNumber(cardLinkedMobileNumber)
@@ -71,7 +69,6 @@ public class OtpService {
         return new SendOtpResponseDto(OtpUtil.maskMobileNumber(cardLinkedMobileNumber));
     }
 
-    @SneakyThrows
     @Transactional
     public void verify(VerifyOtpRequestDto request) {
         log.info("Verify otp process is started : request - {}", request);
@@ -99,8 +96,8 @@ public class OtpService {
         log.info("Verify otp process was finished : trackId - {}", trackId);
     }
 
-    private OtpClientErrorResponse getOtpClientErrorResponse(String otpClientResponse)
-            throws JsonProcessingException {
+    @SneakyThrows
+    private OtpClientErrorResponse getOtpClientErrorResponse(String otpClientResponse) {
         return objectMapper.readValue(otpClientResponse, OtpClientErrorResponse.class);
     }
 

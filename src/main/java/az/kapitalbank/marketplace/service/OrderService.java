@@ -203,7 +203,7 @@ public class OrderService {
             if (customerByUmicoUserId.isPresent()) {
                 if (customerByUmicoUserId.get().getCardId() != null) {
                     throw new CommonException(Error.CUSTOMER_ID_SKIPPED,
-                            "Skipped cutomer id in request : Umico user id -" + umicoUserId);
+                            "Skipped customer id in request : umicoUserId -" + umicoUserId);
                 }
                 customerEntity = customerByUmicoUserId.get();
                 checkCustomerIncompleteProcess(customerEntity);
@@ -499,7 +499,7 @@ public class OrderService {
 
         var customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(
-                        () -> new CommonException(Error.CUSTOMER_NOT_FOUND, "Customer not found."
+                        () -> new CommonException(Error.CUSTOMER_NOT_FOUND, "Customer not found. "
                                 + CUSTOMER_ID_LOG + request.getCustomerId()));
 
         completePrePurchaseOrder(order, customer.getCardId());
@@ -542,7 +542,8 @@ public class OrderService {
         var availableBalance = getAvailableBalance(cardId);
         if (purchaseAmount.compareTo(availableBalance) > 0) {
             throw new CommonException(Error.NO_ENOUGH_BALANCE,
-                    "There is no enough amount in balance . Balance - " + availableBalance);
+                    "There is no enough amount in balance : availableBalance - "
+                            + availableBalance);
         }
     }
 
@@ -581,7 +582,7 @@ public class OrderService {
         if (minLimitDifference < 0 || maxLimitDifference > 0) {
             throw new CommonException(Error.PURCHASE_AMOUNT_LIMIT,
                     "Purchase amount must be between 50 and 15000 "
-                            + "in first transaction.Purchase Amount - " + purchaseAmount);
+                            + "in first transaction : purchaseAmount - " + purchaseAmount);
         }
     }
 

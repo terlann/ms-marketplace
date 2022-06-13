@@ -49,10 +49,10 @@ public class CustomerService {
     public BalanceResponseDto getBalance(String umicoUserId, UUID customerId) {
         var customerEntity = customerRepository.findById(customerId)
                 .orElseThrow(() -> new CommonException(Error.CUSTOMER_NOT_FOUND,
-                        "Customer not found. CustomerId - " + customerId));
+                        "Customer not found. customerId - " + customerId));
         if (!customerEntity.getUmicoUserId().equals(umicoUserId)) {
             throw new CommonException(Error.UMICO_USER_NOT_FOUND,
-                    "Umico user not found. UmicoUserId - " + umicoUserId);
+                    "Umico user not found. umicoUserId - " + umicoUserId);
         }
         var cardId = customerEntity.getCardId();
         var cardDetailResponse = atlasClient.findCardByUid(cardId, ResultType.ACCOUNT);

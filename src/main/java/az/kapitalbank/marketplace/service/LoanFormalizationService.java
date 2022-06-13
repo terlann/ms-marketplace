@@ -303,7 +303,7 @@ public class LoanFormalizationService {
                 var rejectedBusinessError = RejectedBusinessError.valueOf(businessError.getId());
                 return Optional.of(rejectedBusinessError.name());
             } catch (Exception ex) {
-                log.info(
+                log.error(
                         "Optimus business error not found in rejected business error,"
                                 + " businessError - {}", businessError);
             }
@@ -316,7 +316,7 @@ public class LoanFormalizationService {
         var trackId = prePurchaseEvent.getTrackId();
         var operationEntity = operationRepository.findById(trackId)
                 .orElseThrow(() -> new CommonException(Error.OPERATION_NOT_FOUND,
-                        "Operation not found.TrackId - " + trackId));
+                        "Operation not found. trackId - " + trackId));
         var lastTempAmount = orderService.prePurchaseOrders(operationEntity,
                 operationEntity.getCustomer().getCardId());
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {

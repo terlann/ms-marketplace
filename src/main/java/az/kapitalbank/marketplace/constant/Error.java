@@ -6,10 +6,12 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.ToString;
 import lombok.experimental.FieldDefaults;
 import org.springframework.http.HttpStatus;
 
 @Getter
+@ToString
 @AllArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public enum Error {

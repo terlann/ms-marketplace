@@ -23,7 +23,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 @RestControllerAdvice
 public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
 
-    private static final String EXCEPTION = "Exception: ";
+    private static final String EXCEPTION = "Error Response - {} , Exception - {}";
 
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
@@ -44,21 +44,21 @@ public class BaseExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(CommonException.class)
     public ResponseEntity<ErrorResponseDto> commonException(
             CommonException ex) {
-        log.error(EXCEPTION, ex);
+        log.error(EXCEPTION, ex.getError(), ex);
         var errorResponseDto = new ErrorResponseDto(ex.getError());
         return ResponseEntity.status(ex.getError().getStatus()).body(errorResponseDto);
     }
 
     @ExceptionHandler(PaybackException.class)
     public ResponseEntity<ErrorResponseDto> paybackException(PaybackException ex) {
-        log.error(EXCEPTION, ex);
+        log.error(EXCEPTION, Error.REFUND_FAILED, ex);
         var errorResponseDto = new ErrorResponseDto(Error.REFUND_FAILED);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
 
     @ExceptionHandler(DeliveryException.class)
     public ResponseEntity<ErrorResponseDto> deliveryException(DeliveryException ex) {
-        log.error(EXCEPTION, ex);
+        log.error(EXCEPTION, Error.REFUND_FAILED, ex);
         var errorResponseDto = new ErrorResponseDto(Error.COMPLETE_PRE_PURCHASE_FAILED);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponseDto);
     }
