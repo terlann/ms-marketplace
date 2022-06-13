@@ -8,11 +8,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
-@FeignClient(name = "iamas",
-        url = "${client.externalinteg.url}",
+@FeignClient(name = "integration",
+        url = "${client.integration.url}",
         primary = false,
-        configuration = IamasClient.FeignConfiguration.class)
-public interface IamasClient {
+        configuration = IntegrationClient.FeignConfiguration.class)
+public interface IntegrationClient {
 
     @GetMapping("/iamas/id-card/by/pin/{pin}")
     List<IamasResponse> findPersonByPin(@PathVariable("pin") String pin);
