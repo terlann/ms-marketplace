@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 @FeignClient(name = "integration",
         url = "${client.integration.url}",
-        primary = false,
         configuration = IntegrationClient.IntegrationClientConfig.class)
 public interface IntegrationClient {
 
