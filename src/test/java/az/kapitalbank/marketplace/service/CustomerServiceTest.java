@@ -66,9 +66,9 @@ class CustomerServiceTest {
         var iamasResponse = IamasResponse.builder()
                 .build();
         var iamasResponses = List.of(iamasResponse);
-        when(iamasClient.findPersonByPin(pin)).thenReturn(iamasResponses);
+        when(integrationClient.findPersonByPin(pin)).thenReturn(iamasResponses);
         assertThrows(CommonException.class, () -> customerService.checkPerson(pin));
-        verify(iamasClient).findPersonByPin(pin);
+        verify(integrationClient).findPersonByPin(pin);
     }
 
     @Test
@@ -84,7 +84,7 @@ class CustomerServiceTest {
                 .personAz(iamasPerson)
                 .build();
         var iamasResponses = List.of(iamasResponse);
-        when(iamasClient.findPersonByPin(pin)).thenThrow(FeignException.class);
+        when(integrationClient.findPersonByPin(pin)).thenThrow(FeignException.class);
         assertThrows(CommonException.class, () -> customerService.checkPerson(pin));
     }
 
