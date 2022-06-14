@@ -52,10 +52,8 @@ import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
-import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
-import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
-import az.kapitalbank.marketplace.exception.NoMatchOrderAmountByProductException;
-import az.kapitalbank.marketplace.exception.NoPermissionForTransactionException;
+import az.kapitalbank.marketplace.entity.ProductEntity;
+import az.kapitalbank.marketplace.exception.CommonException;
 import az.kapitalbank.marketplace.mapper.CustomerMapper;
 import az.kapitalbank.marketplace.mapper.OperationMapper;
 import az.kapitalbank.marketplace.mapper.OrderMapper;
@@ -64,7 +62,7 @@ import az.kapitalbank.marketplace.messaging.publisher.FraudCheckPublisher;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
-import az.kapitalbank.marketplace.util.AmountUtil;
+import az.kapitalbank.marketplace.util.CommissionUtil;
 import feign.FeignException;
 import java.math.BigDecimal;
 import java.util.List;
@@ -83,7 +81,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class OrderServiceTest {
 
     @Mock
-    AmountUtil amountUtil;
+    CommissionUtil commissionUtil;
     @Mock
     OrderMapper orderMapper;
     @Mock
@@ -126,7 +124,44 @@ class OrderServiceTest {
     }
 
     @Test
+    void telesalesResult_When_ScoringStatusIsNonNull() {
+        var request = TelesalesResultRequestDto.builder()
+                .telesalesOrderId(TELESALES_ORDER_ID.getValue())
+                .scoringStatus(ScoringStatus.REJECTED)
+                .build();
+        var operationEntity = OperationEntity.builder()
+                .scoringStatus(ScoringStatus.REJECTED)
+                .build();
+        when(operationRepository.findByTelesalesOrderId(TELESALES_ORDER_ID.getValue())).thenReturn(
+                Optional.of(operationEntity));
+        assertThrows(CommonException.class, () -> orderService.telesalesResult(request));
+
+    }
+
+    @Test
     void telesalesResult_Approved() {
+        var request = TelesalesResultRequestDto.builder()
+                .telesalesOrderId(TELESALES_ORDER_ID.getValue())
+                .scoringStatus(ScoringStatus.APPROVED)
+                .uid(CARD_UID.getValue())
+                .build();
+        OrderEntity orderEntity = OrderEntity.builder()
+                .transactionStatus(TransactionStatus.PRE_PURCHASE)
+                .build();
+        OperationEntity operationEntity = OperationEntity.builder()
+                .id(UUID.fromString(TRACK_ID.getValue()))
+                .orders(List.of(orderEntity))
+                .customer(getCustomerEntity())
+                .totalAmount(BigDecimal.ONE)
+                .build();
+        when(operationRepository.findByTelesalesOrderId(TELESALES_ORDER_ID.getValue())).thenReturn(
+                Optional.of(operationEntity));
+        assertThrows(CommonException.class, () -> orderService.telesalesResult(request));
+        verify(operationRepository).findByTelesalesOrderId(TELESALES_ORDER_ID.getValue());
+    }
+
+    @Test
+    void telesalesResult_validateOrdersForPrePurchase_NoPermission() {
         var request = TelesalesResultRequestDto.builder()
                 .telesalesOrderId(TELESALES_ORDER_ID.getValue())
                 .scoringStatus(ScoringStatus.APPROVED)
@@ -164,7 +199,7 @@ class OrderServiceTest {
 
         when(customerRepository.findByUmicoUserId(UMICO_USER_ID.getValue()))
                 .thenReturn(Optional.empty());
-        when(amountUtil.getCommission(BigDecimal.valueOf(50), 12))
+        when(commissionUtil.getCommission(BigDecimal.valueOf(50), 12))
                 .thenReturn(BigDecimal.valueOf(12));
         when(customerMapper.toCustomerEntity(request.getCustomerInfo())).thenReturn(
                 getCustomerEntity2());
@@ -186,13 +221,26 @@ class OrderServiceTest {
     }
 
     @Test
+    void createOrder_When_UmicoUserId_IsPresent() {
+        CreateOrderRequestDto request =
+                getCreateOrderRequestDto(null);
+        var fraudCheckEvent = FraudCheckEvent.builder().build();
+        var customerEntity = CustomerEntity.builder().cardId(CARD_UID.getValue()).build();
+        when(customerRepository.findByUmicoUserId(UMICO_USER_ID.getValue()))
+                .thenReturn(Optional.of(customerEntity));
+        when(commissionUtil.getCommission(BigDecimal.valueOf(50), 12))
+                .thenReturn(BigDecimal.valueOf(12));
+        assertThrows(CommonException.class, () -> orderService.createOrder(request));
+    }
+
+    @Test
     void createOrder_NotCompleteProcess() {
         CreateOrderRequestDto request =
                 getCreateOrderRequestDto(null);
 
         when(customerRepository.findByUmicoUserId(UMICO_USER_ID.getValue()))
                 .thenReturn(Optional.empty());
-        when(amountUtil.getCommission(BigDecimal.valueOf(50), 12))
+        when(commissionUtil.getCommission(BigDecimal.valueOf(50), 12))
                 .thenReturn(BigDecimal.valueOf(12));
         Optional<CustomerEntity> customerEntity2 = Optional.of(getCustomerEntity2());
         when(customerRepository.findByUmicoUserId(
@@ -204,7 +252,7 @@ class OrderServiceTest {
                         Stream.of(PENDING, FAIL_IN_PENDING, PREAPPROVED, FAIL_IN_PREAPPROVED)
                                 .map(Enum::name)
                                 .collect(Collectors.toList()))).thenReturn(true);
-        assertThrows(CustomerNotCompletedProcessException.class,
+        assertThrows(CommonException.class,
                 () -> orderService.createOrder(request));
     }
 
@@ -214,7 +262,7 @@ class OrderServiceTest {
                 getCreateOrderRequestDto(UUID.fromString("d2a9d8bc-9beb-11ec-b909-0242ac120002"));
         var fraudCheckEvent = FraudCheckEvent.builder().build();
 
-        when(amountUtil.getCommission(BigDecimal.valueOf(50), 12))
+        when(commissionUtil.getCommission(BigDecimal.valueOf(50), 12))
                 .thenReturn(BigDecimal.valueOf(12));
         when(operationMapper.toOperationEntity(request)).thenReturn(getOperationEntity());
         when(orderMapper.toOrderEntity(request.getDeliveryInfo().get(0),
@@ -231,10 +279,19 @@ class OrderServiceTest {
     }
 
     @Test
+    void createOrder_SecondOperation_When_Same_PhoneNumber() {
+        CreateOrderRequestDto request =
+                getCreateOrderSamePhoneNumbersRequestDto(null);
+        var fraudCheckEvent = FraudCheckEvent.builder().build();
+        assertThrows(CommonException.class, () -> orderService.createOrder(request));
+    }
+
+
+    @Test
     void createOrder_NoMatchOrderAmountByProductException() {
         CreateOrderRequestDto request =
                 getCreateOrderRequestDtoFailInProductAmount(null);
-        assertThrows(NoMatchOrderAmountByProductException.class,
+        assertThrows(CommonException.class,
                 () -> orderService.createOrder(request));
     }
 
@@ -305,7 +362,29 @@ class OrderServiceTest {
                 .build();
         when(orderRepository.findByOrderNo(refundRequestDto.getOrderNo()))
                 .thenReturn(Optional.of(orderEntity));
-        assertThrows(CustomerNotFoundException.class, () -> orderService.payback(refundRequestDto));
+        assertThrows(CommonException.class, () -> orderService.payback(refundRequestDto));
+    }
+
+    @Test
+    void refund_AtlasClient_Non_PrePurchase() {
+        var refundRequestDto = PaybackRequestDto.builder()
+                .orderNo("12345")
+                .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
+                .build();
+        var orderEntity = OrderEntity.builder()
+                .commission(BigDecimal.ONE)
+                .totalAmount(BigDecimal.ONE)
+                .transactionStatus(TransactionStatus.REFUND)
+                .transactionId("1231564")
+                .operation(OperationEntity.builder()
+                        .customer(CustomerEntity.builder()
+                                .id(UUID.fromString(CUSTOMER_ID.getValue()))
+                                .build())
+                        .build())
+                .build();
+        when(orderRepository.findByOrderNo(refundRequestDto.getOrderNo()))
+                .thenReturn(Optional.of(orderEntity));
+        assertThrows(CommonException.class, () -> orderService.payback(refundRequestDto));
     }
 
 
@@ -328,7 +407,7 @@ class OrderServiceTest {
                 .build();
         when(orderRepository.findByOrderNo(refundRequestDto.getOrderNo()))
                 .thenReturn(Optional.of(orderEntity));
-        assertThrows(CustomerNotFoundException.class, () -> orderService.payback(refundRequestDto));
+        assertThrows(CommonException.class, () -> orderService.payback(refundRequestDto));
     }
 
     @Test
@@ -348,7 +427,7 @@ class OrderServiceTest {
                 .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
                 .build();
         when(orderRepository.findByOrderNo("123")).thenReturn(Optional.of(orderEntity));
-        when(amountUtil.getCommissionByPercent(BigDecimal.ONE, null)).thenReturn(
+        when(commissionUtil.getCommissionByPercent(BigDecimal.ONE, null)).thenReturn(
                 BigDecimal.ONE);
         when(atlasClient.completePrePurchase(any())).thenReturn(purchaseCompleteResponse);
         when(customerRepository.findById(deliveryRequestDto.getCustomerId())).thenReturn(
@@ -360,6 +439,60 @@ class OrderServiceTest {
                 .build();
         orderService.delivery(request);
         verify(orderRepository).findByOrderNo("123");
+    }
+
+    @Test
+    void delivery_When_Find_By_Order_No() {
+        var request = DeliveryRequestDto.builder().orderNo("123").build();
+        when(orderRepository.findByOrderNo("123")).thenReturn(Optional.empty());
+        assertThrows(CommonException.class, () -> orderService.delivery(request));
+    }
+
+    @Test
+    void delivery_verifyProductIdIsLinkedToOrderNo() {
+        var request = DeliveryRequestDto.builder()
+                .deliveryProducts(Set.of(DeliveryProductDto.builder().productId("p1").build()))
+                .orderNo("123").build();
+        var product = ProductEntity.builder().productNo("1111").build();
+        var order = OrderEntity.builder()
+                .products(List.of(product))
+                .transactionStatus(TransactionStatus.PRE_PURCHASE)
+                .build();
+        when(orderRepository.findByOrderNo(request.getOrderNo())).thenReturn(
+                Optional.of(order));
+        assertThrows(CommonException.class, () -> orderService.delivery(request));
+    }
+
+    @Test
+    void delivery_When_DeliveredOrderAmount_Is_Zero() {
+        var customerEntity =
+                CustomerEntity.builder().id(UUID.fromString(CUSTOMER_ID.getValue())).build();
+        var request = DeliveryRequestDto.builder()
+                .deliveryProducts(Set.of(DeliveryProductDto.builder().productId("p1").build()))
+                .orderNo("123")
+                .customerId(UUID.fromString(customerEntity.getId().toString()))
+                .build();
+        var product = ProductEntity.builder()
+                .amount(BigDecimal.ZERO)
+                .productNo("p1").build();
+        var order = OrderEntity.builder()
+                .products(List.of(product))
+                .transactionStatus(TransactionStatus.PRE_PURCHASE)
+                .build();
+        when(orderRepository.findByOrderNo(request.getOrderNo())).thenReturn(
+                Optional.of(order));
+        when(customerRepository.findById(request.getCustomerId())).thenReturn(
+                Optional.of(customerEntity));
+        assertThrows(CommonException.class, () -> orderService.delivery(request));
+    }
+
+    @Test
+    void delivery_When_Transaction_Status_Non_PrePurchase() {
+        var request = DeliveryRequestDto.builder().orderNo("123").build();
+        var order =
+                OrderEntity.builder().transactionStatus(TransactionStatus.FAIL_IN_REFUND).build();
+        when(orderRepository.findByOrderNo("123")).thenReturn(Optional.ofNullable(order));
+        assertThrows(CommonException.class, () -> orderService.delivery(request));
     }
 
     @Test
@@ -380,7 +513,7 @@ class OrderServiceTest {
                 .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
                 .build();
         when(orderRepository.findByOrderNo("123")).thenReturn(Optional.of(orderEntity));
-        when(amountUtil.getCommissionByPercent(BigDecimal.ONE, null)).thenReturn(
+        when(commissionUtil.getCommissionByPercent(BigDecimal.ONE, null)).thenReturn(
                 BigDecimal.ONE);
         when(atlasClient.completePrePurchase(any())).thenReturn(purchaseCompleteResponse);
         when(customerRepository.findById(deliveryRequestDto.getCustomerId())).thenReturn(
@@ -413,7 +546,7 @@ class OrderServiceTest {
                 .orderNo("123")
                 .deliveryProducts(Set.of(DeliveryProductDto.builder().productId("p1").build()))
                 .build();
-        assertThrows(NoPermissionForTransactionException.class,
+        assertThrows(CommonException.class,
                 () -> orderService.delivery(request));
         verify(orderRepository).findByOrderNo("123");
     }
@@ -436,7 +569,7 @@ class OrderServiceTest {
                 .orderNo("123")
                 .deliveryProducts(Set.of(DeliveryProductDto.builder().productId("p1").build()))
                 .build();
-        assertThrows(CustomerNotFoundException.class, () -> orderService.delivery(request));
+        assertThrows(CommonException.class, () -> orderService.delivery(request));
     }
 
     @Test
@@ -452,6 +585,25 @@ class OrderServiceTest {
         assertEquals(expected, actual);
     }
 
+    @Test
+    void checkOrder_Exception() {
+        String telesalesOrderId = "1321651";
+        OperationEntity operationEntity = OperationEntity.builder()
+                .scoringStatus(ScoringStatus.APPROVED)
+                .build();
+        when(operationRepository.findByTelesalesOrderId(telesalesOrderId))
+                .thenReturn(Optional.of(operationEntity));
+        assertThrows(CommonException.class, () -> orderService.checkOrder(telesalesOrderId));
+    }
+
+    @Test
+    void checkOrder_When_Is_Empty_Exception() {
+        String telesalesOrderId = "1321651";
+        when(operationRepository.findByTelesalesOrderId(telesalesOrderId))
+                .thenReturn(Optional.empty());
+        assertThrows(CommonException.class, () -> orderService.checkOrder(telesalesOrderId));
+    }
+
     private CreateOrderRequestDto getCreateOrderRequestDto(UUID customerId) {
         return CreateOrderRequestDto.builder()
                 .totalAmount(BigDecimal.valueOf(50))
@@ -461,6 +613,27 @@ class OrderServiceTest {
                         .umicoUserId(UMICO_USER_ID.getValue())
                         .additionalPhoneNumber1("9941112233")
                         .additionalPhoneNumber2("9941112234")
+                        .build())
+                .deliveryInfo(List.of(OrderProductDeliveryInfo.builder()
+                        .totalAmount(BigDecimal.valueOf(50))
+                        .orderNo("123")
+                        .build()))
+                .products(List.of(OrderProductItem.builder()
+                        .orderNo("123")
+                        .productAmount(BigDecimal.valueOf(50))
+                        .build()))
+                .build();
+    }
+
+    private CreateOrderRequestDto getCreateOrderSamePhoneNumbersRequestDto(UUID customerId) {
+        return CreateOrderRequestDto.builder()
+                .totalAmount(BigDecimal.valueOf(50))
+                .loanTerm(12)
+                .customerInfo(CustomerInfo.builder()
+                        .customerId(customerId)
+                        .umicoUserId(UMICO_USER_ID.getValue())
+                        .additionalPhoneNumber1("9941112233")
+                        .additionalPhoneNumber2("9941112233")
                         .build())
                 .deliveryInfo(List.of(OrderProductDeliveryInfo.builder()
                         .totalAmount(BigDecimal.valueOf(50))

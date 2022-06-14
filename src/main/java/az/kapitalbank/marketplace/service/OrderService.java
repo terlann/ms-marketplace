@@ -4,6 +4,7 @@ import static az.kapitalbank.marketplace.constant.AtlasConstant.COMPLETE_PRE_PUR
 import static az.kapitalbank.marketplace.constant.AtlasConstant.COMPLETE_PRE_PURCHASE_FOR_REFUND_DESCRIPTION;
 import static az.kapitalbank.marketplace.constant.AtlasConstant.PRE_PURCHASE_DESCRIPTION;
 import static az.kapitalbank.marketplace.constant.CommonConstant.CUSTOMER_ID_LOG;
+import static az.kapitalbank.marketplace.constant.CommonConstant.CUSTOMER_NOT_FOUND_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.ORDER_NO_EXCEPTION_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.ORDER_NO_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.ORDER_NO_REQUEST_LOG;
@@ -27,6 +28,7 @@ import az.kapitalbank.marketplace.client.atlas.model.request.CompletePrePurchase
 import az.kapitalbank.marketplace.client.atlas.model.request.PrePurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.RefundRequest;
 import az.kapitalbank.marketplace.constant.AccountStatus;
+import az.kapitalbank.marketplace.constant.Error;
 import az.kapitalbank.marketplace.constant.OperationRejectReason;
 import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
@@ -42,22 +44,9 @@ import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
 import az.kapitalbank.marketplace.entity.ProductEntity;
-import az.kapitalbank.marketplace.exception.CustomerIdSkippedException;
-import az.kapitalbank.marketplace.exception.CustomerNotCompletedProcessException;
-import az.kapitalbank.marketplace.exception.CustomerNotFoundException;
+import az.kapitalbank.marketplace.exception.CommonException;
 import az.kapitalbank.marketplace.exception.DeliveryException;
-import az.kapitalbank.marketplace.exception.NoDeliveryProductsException;
-import az.kapitalbank.marketplace.exception.NoEnoughBalanceException;
-import az.kapitalbank.marketplace.exception.NoMatchLoanAmountByOrderException;
-import az.kapitalbank.marketplace.exception.NoMatchOrderAmountByProductException;
-import az.kapitalbank.marketplace.exception.NoPermissionForTransactionException;
-import az.kapitalbank.marketplace.exception.OperationAlreadyScoredException;
-import az.kapitalbank.marketplace.exception.OperationNotFoundException;
-import az.kapitalbank.marketplace.exception.OrderNotFoundException;
 import az.kapitalbank.marketplace.exception.PaybackException;
-import az.kapitalbank.marketplace.exception.ProductNotLinkedToOrder;
-import az.kapitalbank.marketplace.exception.TotalAmountLimitException;
-import az.kapitalbank.marketplace.exception.UniqueAdditionalNumberException;
 import az.kapitalbank.marketplace.mapper.CustomerMapper;
 import az.kapitalbank.marketplace.mapper.OperationMapper;
 import az.kapitalbank.marketplace.mapper.OrderMapper;
@@ -65,8 +54,8 @@ import az.kapitalbank.marketplace.messaging.publisher.FraudCheckPublisher;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
-import az.kapitalbank.marketplace.util.AmountUtil;
-import az.kapitalbank.marketplace.util.GenerateUtil;
+import az.kapitalbank.marketplace.util.CommissionUtil;
+import az.kapitalbank.marketplace.util.RrnUtil;
 import feign.FeignException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -88,7 +77,7 @@ import org.springframework.stereotype.Service;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class OrderService {
 
-    AmountUtil amountUtil;
+    CommissionUtil commissionUtil;
     SmsService smsService;
     OrderMapper orderMapper;
     AtlasClient atlasClient;
@@ -105,11 +94,12 @@ public class OrderService {
         var telesalesOrderId = request.getTelesalesOrderId().trim();
         log.info("Telesales result is started... request - {}", request);
         var operationEntity = operationRepository.findByTelesalesOrderId(telesalesOrderId)
-                .orElseThrow(() -> new OperationNotFoundException(
-                        TELESALES_ORDER_ID_LOG + telesalesOrderId));
+                .orElseThrow(() -> new CommonException(Error.OPERATION_NOT_FOUND,
+                        "Operation not found." + TELESALES_ORDER_ID_LOG + telesalesOrderId));
         var trackId = operationEntity.getId();
         if (operationEntity.getScoringStatus() != null) {
-            throw new OperationAlreadyScoredException(TELESALES_ORDER_ID_LOG + telesalesOrderId);
+            throw new CommonException(Error.OPERATION_ALREADY_SCORED,
+                    "Operation had already scored." + TELESALES_ORDER_ID_LOG + telesalesOrderId);
         }
         operationEntity.setScoringDate(LocalDateTime.now());
         if (request.getScoringStatus() == ScoringStatus.REJECTED) {
@@ -176,12 +166,20 @@ public class OrderService {
         operationEntity.setCustomer(customerEntity);
         operationEntity.setIsOtpOperation(request.getCustomerInfo().getCustomerId() != null
                 && customerEntity.getCardId() != null);
+        saveOrderEntities(request, operationEntity);
+        operationEntity.setLoanPercent(commissionUtil.getCommissionPercent(request.getLoanTerm()));
+        operationEntity = operationRepository.save(operationEntity);
+        return operationEntity;
+    }
+
+    private void saveOrderEntities(CreateOrderRequestDto request, OperationEntity operationEntity) {
         var operationCommission = BigDecimal.ZERO;
         var orderEntities = new ArrayList<OrderEntity>();
-        var productEntities = new ArrayList<ProductEntity>();
         for (OrderProductDeliveryInfo deliveryInfo : request.getDeliveryInfo()) {
+            var productEntities = new ArrayList<ProductEntity>();
             var commission =
-                    amountUtil.getCommission(deliveryInfo.getTotalAmount(), request.getLoanTerm());
+                    commissionUtil.getCommission(deliveryInfo.getTotalAmount(),
+                            request.getLoanTerm());
             operationCommission = operationCommission.add(commission);
             var orderEntity = orderMapper.toOrderEntity(deliveryInfo, commission);
             orderEntity.setOperation(operationEntity);
@@ -192,14 +190,11 @@ public class OrderService {
                     productEntities.add(productEntity);
                 }
             }
-            orderEntities.add(orderEntity);
             orderEntity.setProducts(productEntities);
+            orderEntities.add(orderEntity);
         }
-        operationEntity.setLoanPercent(amountUtil.getCommissionPercent(request.getLoanTerm()));
         operationEntity.setCommission(operationCommission);
         operationEntity.setOrders(orderEntities);
-        operationEntity = operationRepository.save(operationEntity);
-        return operationEntity;
     }
 
     private CustomerEntity getCustomerEntity(CreateOrderRequestDto request, UUID customerId) {
@@ -213,18 +208,20 @@ public class OrderService {
                     .findByUmicoUserId(umicoUserId);
             if (customerByUmicoUserId.isPresent()) {
                 if (customerByUmicoUserId.get().getCardId() != null) {
-                    throw new CustomerIdSkippedException(umicoUserId);
+                    throw new CommonException(Error.CUSTOMER_ID_SKIPPED,
+                            "Skipped customer id in request : umicoUserId -" + umicoUserId);
                 }
                 customerEntity = customerByUmicoUserId.get();
                 checkCustomerIncompleteProcess(customerEntity);
             } else {
                 customerEntity = customerMapper.toCustomerEntity(request.getCustomerInfo());
                 customerEntity = customerRepository.save(customerEntity);
-                log.info("New customer was created. customerId - {}", customerEntity.getId());
+                log.info("New customer was created : customerId - {}", customerEntity.getId());
             }
         } else {
             customerEntity = customerRepository.findById(customerId)
-                    .orElseThrow(() -> new CustomerNotFoundException(CUSTOMER_ID_LOG + customerId));
+                    .orElseThrow(() -> new CommonException(Error.CUSTOMER_NOT_FOUND,
+                            CUSTOMER_NOT_FOUND_LOG + CUSTOMER_ID_LOG + customerId));
             validateCustomerBalance(request, customerEntity.getCardId());
         }
         return customerEntity;
@@ -238,8 +235,9 @@ public class OrderService {
                 .existsByCustomerIdAndUmicoDecisionStatuses(customerEntity.getId().toString(),
                         decisions);
         if (isExistsCustomerByDecisionStatus) {
-            throw new CustomerNotCompletedProcessException(
-                    CUSTOMER_ID_LOG + customerEntity.getId());
+            throw new CommonException(Error.CUSTOMER_NOT_COMPLETED_PROCESS,
+                    "Customer has not yet completed the process : " + CUSTOMER_ID_LOG
+                            + customerEntity.getId());
         }
     }
 
@@ -247,7 +245,9 @@ public class OrderService {
         var firstPhoneNumber = request.getCustomerInfo().getAdditionalPhoneNumber1();
         var secondPhoneNumber = request.getCustomerInfo().getAdditionalPhoneNumber2();
         if (firstPhoneNumber.equals(secondPhoneNumber)) {
-            throw new UniqueAdditionalNumberException(firstPhoneNumber, secondPhoneNumber);
+            throw new CommonException(Error.UNIQUE_PHONE_NUMBER, String.format(
+                    "Additional numbers aren't different : additionalPhoneNumber1 = %s ,"
+                            + " additionalPhoneNumber2 = %s", firstPhoneNumber, secondPhoneNumber));
         }
     }
 
@@ -255,10 +255,12 @@ public class OrderService {
         log.info("Check order is started : telesalesOrderId  - {}", telesalesOrderId);
         var operationEntityOptional = operationRepository.findByTelesalesOrderId(telesalesOrderId);
         var operationEntity = operationEntityOptional.orElseThrow(
-                () -> new OperationNotFoundException(TELESALES_ORDER_ID_LOG + telesalesOrderId));
+                () -> new CommonException(Error.OPERATION_NOT_FOUND,
+                        "Operation not found." + TELESALES_ORDER_ID_LOG + telesalesOrderId));
         var scoringStatus = operationEntity.getScoringStatus();
         if (scoringStatus != null) {
-            throw new OperationAlreadyScoredException(TELESALES_ORDER_ID_LOG + telesalesOrderId);
+            throw new CommonException(Error.OPERATION_ALREADY_SCORED,
+                    "Operation had already scored. TelesalesOrderId - " + telesalesOrderId);
         }
         var orderResponseDto = orderMapper.toCheckOrderResponseDto(operationEntity);
         log.info("Check order was finished : telesalesOrderId - {}", telesalesOrderId);
@@ -269,26 +271,29 @@ public class OrderService {
     public void delivery(DeliveryRequestDto request) {
         log.info("Delivery process is started : request - {}", request);
         var order = orderRepository.findByOrderNo(request.getOrderNo())
-                .orElseThrow(() -> new OrderNotFoundException("orderNo - " + request.getOrderNo()));
+                .orElseThrow(() -> new CommonException(Error.ORDER_NOT_FOUND,
+                        "Order not found. orderNo - " + request.getOrderNo()));
 
         var transactionStatus = order.getTransactionStatus();
         if (transactionStatus != PRE_PURCHASE) {
             log.error("No Permission for complete pre purchase in delivery : "
                             + "orderNo - {}, transactionStatus - {}",
                     order.getOrderNo(), order.getTransactionStatus());
-            throw new NoPermissionForTransactionException(ORDER_NO_LOG + order.getOrderNo());
+            throw new CommonException(Error.NO_PERMISSION, ORDER_NO_LOG + order.getOrderNo());
         }
 
         var productEntities = order.getProducts();
         verifyProductIdIsLinkedToOrderNo(request, productEntities);
 
         var customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new CustomerNotFoundException(
-                        CUSTOMER_ID_LOG + request.getCustomerId()));
+                .orElseThrow(
+                        () -> new CommonException(Error.CUSTOMER_NOT_FOUND, "Customer not found : "
+                                + CUSTOMER_ID_LOG + request.getCustomerId()));
 
         var deliveredOrderAmount = getDeliveredOrderAmount(request, productEntities);
         if (deliveredOrderAmount.compareTo(BigDecimal.ZERO) == 0) {
-            throw new NoDeliveryProductsException(ORDER_NO_LOG + order.getOrderNo());
+            throw new CommonException(Error.NO_DELIVERY_PRODUCTS,
+                    "No delivery products for this order." + ORDER_NO_LOG + order.getOrderNo());
         }
 
         completePrePurchaseOrder(order, deliveredOrderAmount, customer.getCardId());
@@ -307,8 +312,10 @@ public class OrderService {
                         .collect(Collectors.toList());
         for (var deliveryProduct : request.getDeliveryProducts()) {
             if (!orderProductIdList.contains(deliveryProduct.getProductId())) {
-                throw new ProductNotLinkedToOrder(deliveryProduct.getProductId(),
-                        request.getOrderNo());
+                throw new CommonException(Error.PRODUCT_NOT_LINKED_TO_ORDER,
+                        String.format(
+                                "Product is not linked to order : productId - %s, orderNo - %s",
+                                deliveryProduct.getProductId(), request.getOrderNo()));
             }
         }
     }
@@ -339,9 +346,9 @@ public class OrderService {
                                           String cardId) {
         var orderNo = order.getOrderNo();
         var percent = order.getOperation().getLoanPercent();
-        var commission = amountUtil.getCommissionByPercent(deliveredOrderAmount, percent);
+        var commission = commissionUtil.getCommissionByPercent(deliveredOrderAmount, percent);
         var totalPayment = commission.add(deliveredOrderAmount);
-        var rrn = GenerateUtil.rrn();
+        var rrn = RrnUtil.generate();
         var completePrePurchaseRequest = CompletePrePurchaseRequest.builder()
                 .id(Long.valueOf(order.getTransactionId())).uid(cardId).amount(totalPayment)
                 .approvalCode(order.getApprovalCode()).rrn(rrn)
@@ -371,7 +378,7 @@ public class OrderService {
         var orderNo = order.getOrderNo();
         var commission = order.getCommission();
         var totalPayment = commission.add(order.getTotalAmount());
-        var rrn = GenerateUtil.rrn();
+        var rrn = RrnUtil.generate();
         var completePrePurchaseRequest = CompletePrePurchaseRequest.builder()
                 .id(Long.valueOf(order.getTransactionId()))
                 .uid(cardId)
@@ -418,7 +425,7 @@ public class OrderService {
     private BigDecimal prePurchaseOrder(String cardId, OrderEntity order) {
         var orderNo = order.getOrderNo();
         var totalOrderAmount = order.getTotalAmount().add(order.getCommission());
-        var rrn = GenerateUtil.rrn();
+        var rrn = RrnUtil.generate();
         var prePurchaseRequest = PrePurchaseRequest.builder()
                 .rrn(rrn).amount(totalOrderAmount).uid(cardId)
                 .description(PRE_PURCHASE_DESCRIPTION + order.getOrderNo()).build();
@@ -446,8 +453,8 @@ public class OrderService {
         var isPrePurchasable = orders.stream()
                 .allMatch(order -> order.getTransactionStatus() == null);
         if (!isPrePurchasable) {
-            log.error("No Permission for pre purchase. trackId - {}", trackId);
-            throw new NoPermissionForTransactionException("trackId - " + trackId);
+            log.error("No Permission for pre purchase : trackId - {}", trackId);
+            throw new CommonException(Error.NO_PERMISSION, "trackId - " + trackId);
         }
     }
 
@@ -485,19 +492,21 @@ public class OrderService {
         log.info("Payback process is started : request - {}", request);
         var orderNo = request.getOrderNo();
         var order = orderRepository.findByOrderNo(orderNo)
-                .orElseThrow(() -> new OrderNotFoundException(ORDER_NO_LOG + orderNo));
+                .orElseThrow(() -> new CommonException(Error.ORDER_NOT_FOUND,
+                        "Order not found : orderNo - " + orderNo));
 
         var transactionStatus = order.getTransactionStatus();
         if (transactionStatus != PRE_PURCHASE) {
             log.error("No Permission for refund in payback : "
                             + "orderNo - {}, transactionStatus - {}",
                     order.getOrderNo(), order.getTransactionStatus());
-            throw new NoPermissionForTransactionException(ORDER_NO_LOG + orderNo);
+            throw new CommonException(Error.NO_PERMISSION, ORDER_NO_LOG + orderNo);
         }
 
         var customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new CustomerNotFoundException(
-                        CUSTOMER_ID_LOG + request.getCustomerId()));
+                .orElseThrow(
+                        () -> new CommonException(Error.CUSTOMER_NOT_FOUND, CUSTOMER_NOT_FOUND_LOG
+                                + CUSTOMER_ID_LOG + request.getCustomerId()));
 
         completePrePurchaseOrder(order, customer.getCardId());
         if (order.getTransactionStatus() == FAIL_IN_COMPLETE_REFUND) {
@@ -516,7 +525,7 @@ public class OrderService {
         var orderNo = order.getOrderNo();
         var transactionId = order.getTransactionId();
         var amountWithCommission = order.getTotalAmount().add(order.getCommission());
-        var rrn = GenerateUtil.rrn();
+        var rrn = RrnUtil.generate();
         var refundRequest = new RefundRequest(amountWithCommission, rrn);
         order.setRrn(rrn);
         try {
@@ -538,7 +547,9 @@ public class OrderService {
         var purchaseAmount = getPurchaseAmount(request);
         var availableBalance = getAvailableBalance(cardId);
         if (purchaseAmount.compareTo(availableBalance) > 0) {
-            throw new NoEnoughBalanceException(availableBalance);
+            throw new CommonException(Error.NO_ENOUGH_BALANCE,
+                    "There is no enough amount in balance : availableBalance - "
+                            + availableBalance);
         }
     }
 
@@ -551,8 +562,11 @@ public class OrderService {
                             OrderProductItem::getProductAmount)
                     .reduce(BigDecimal.ZERO, BigDecimal::add);
             if (order.getTotalAmount().compareTo(productsTotalAmount) != 0) {
-                throw new NoMatchOrderAmountByProductException(order.getTotalAmount(),
-                        productsTotalAmount);
+                throw new CommonException(Error.NO_MATCH_ORDER_AMOUNT_BY_PRODUCTS, String.format(
+                        "Order amount is not equal total product amount : "
+                                + "orderAmount - %s , productsTotalAmount - %s ",
+                        order.getTotalAmount(),
+                        productsTotalAmount));
             }
         }
         var operationTotalAmount = createOrderRequestDto.getTotalAmount();
@@ -560,8 +574,10 @@ public class OrderService {
                 .map(OrderProductDeliveryInfo::getTotalAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         if (calculatedTotalOrderAmount.compareTo(operationTotalAmount) != 0) {
-            throw new NoMatchLoanAmountByOrderException(operationTotalAmount,
-                    calculatedTotalOrderAmount);
+            throw new CommonException(Error.NO_MATCH_LOAN_AMOUNT_BY_ORDERS, String.format(
+                    "Loan amount is not equal total order amount : loanAmount=%s , "
+                            + "totalOrderAmount=%s ", operationTotalAmount,
+                    calculatedTotalOrderAmount));
         }
     }
 
@@ -570,7 +586,9 @@ public class OrderService {
         var minLimitDifference = purchaseAmount.compareTo(BigDecimal.valueOf(50));
         var maxLimitDifference = purchaseAmount.compareTo(BigDecimal.valueOf(15000));
         if (minLimitDifference < 0 || maxLimitDifference > 0) {
-            throw new TotalAmountLimitException(purchaseAmount);
+            throw new CommonException(Error.PURCHASE_AMOUNT_LIMIT,
+                    "Purchase amount must be between 50 and 15000 "
+                            + "in first transaction : purchaseAmount - " + purchaseAmount);
         }
     }
 
@@ -578,7 +596,7 @@ public class OrderService {
         var totalAmount = request.getTotalAmount();
         var loanTerm = request.getLoanTerm();
         var allOrderCommission = request.getDeliveryInfo().stream()
-                .map(order -> amountUtil.getCommission(order.getTotalAmount(), loanTerm))
+                .map(order -> commissionUtil.getCommission(order.getTotalAmount(), loanTerm))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         return totalAmount.add(allOrderCommission);
     }
@@ -588,7 +606,7 @@ public class OrderService {
         var primaryAccount = cardDetailResponse.getAccounts().stream()
                 .filter(x -> x.getStatus() == AccountStatus.OPEN_PRIMARY).findFirst();
         if (primaryAccount.isEmpty()) {
-            log.info("Account not found in open primary status.cardId - {}", cardId);
+            log.info("Account not found in open primary status : cardId - {}", cardId);
             return BigDecimal.ZERO;
         }
         return primaryAccount.get().getAvailableBalance();

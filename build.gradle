@@ -43,6 +43,9 @@ dependencies {
     implementation "org.springframework.cloud:spring-cloud-starter-consul-config:$springCloudVersion"
     implementation "org.springframework.cloud:spring-cloud-starter-vault-config:$springCloudVersion"
     implementation "org.springframework.cloud:spring-cloud-starter-openfeign:$springCloudVersion"
+    implementation "org.keycloak:keycloak-spring-boot-starter:${keycloakVersion}"
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
     implementation "com.oracle.database.jdbc:ojdbc8:$oracleVersion"
     implementation "io.springfox:springfox-swagger2:$swaggerVersion"
     implementation "io.springfox:springfox-swagger-ui:$swaggerVersion"

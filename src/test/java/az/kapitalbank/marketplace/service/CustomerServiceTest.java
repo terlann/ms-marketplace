@@ -1,20 +1,23 @@
 package az.kapitalbank.marketplace.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.model.response.AccountResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.CardDetailResponse;
-import az.kapitalbank.marketplace.client.integration.IamasClient;
+import az.kapitalbank.marketplace.client.integration.IntegrationClient;
 import az.kapitalbank.marketplace.client.integration.model.IamasPerson;
 import az.kapitalbank.marketplace.client.integration.model.IamasResponse;
 import az.kapitalbank.marketplace.constant.AccountStatus;
 import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.dto.response.BalanceResponseDto;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
+import az.kapitalbank.marketplace.exception.CommonException;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
+import feign.FeignException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -35,7 +38,7 @@ class CustomerServiceTest {
     @Mock
     private CustomerRepository customerRepository;
     @Mock
-    private IamasClient iamasClient;
+    private IntegrationClient integrationClient;
     @InjectMocks
     CustomerService customerService;
 
@@ -52,9 +55,37 @@ class CustomerServiceTest {
                 .personAz(iamasPerson)
                 .build();
         var iamasResponses = List.of(iamasResponse);
-        when(iamasClient.findPersonByPin(pin)).thenReturn(iamasResponses);
+        when(integrationClient.findPersonByPin(pin)).thenReturn(iamasResponses);
         customerService.checkPerson(pin);
-        verify(iamasClient).findPersonByPin(pin);
+        verify(integrationClient).findPersonByPin(pin);
+    }
+
+    @Test
+    void checkPersonIsEmpty() {
+        var pin = "AA11B22";
+        var iamasResponse = IamasResponse.builder()
+                .build();
+        var iamasResponses = List.of(iamasResponse);
+        when(integrationClient.findPersonByPin(pin)).thenReturn(iamasResponses);
+        assertThrows(CommonException.class, () -> customerService.checkPerson(pin));
+        verify(integrationClient).findPersonByPin(pin);
+    }
+
+    @Test
+    void checkPersonException() {
+        var pin = "AA11B22";
+        var iamasPerson = IamasPerson.builder()
+                .active(true)
+                .build();
+        var iamasResponse = IamasResponse.builder()
+                .active(true)
+                .documentNumber("")
+                .pin("")
+                .personAz(iamasPerson)
+                .build();
+        var iamasResponses = List.of(iamasResponse);
+        when(integrationClient.findPersonByPin(pin)).thenThrow(FeignException.class);
+        assertThrows(CommonException.class, () -> customerService.checkPerson(pin));
     }
 
     @Test
@@ -87,6 +118,21 @@ class CustomerServiceTest {
         var actual = customerService.getBalance(umicoUserId, customerId);
         assertEquals(expected, actual);
 
+    }
+
+    @Test
+    void getBalance_UmicoUserNotFound() {
+        var umicoUserId = "9eb6e760-9a25-11ec-b909-0242ac120002";
+        var customerId = UUID.fromString("98f12a70-9a25-11ec-b909-0242ac120002");
+        var cardId = "81E8CBF84249D915E0530100007FF443";
+        var customerEntity = CustomerEntity.builder()
+                .umicoUserId("8bb6e760-9a25-11ec-b909-0242ac120002")
+                .isAgreement(true)
+                .cardId(cardId)
+                .build();
+        when(customerRepository.findById(customerId)).thenReturn(Optional.of(customerEntity));
+        assertThrows(CommonException.class,
+                () -> customerService.getBalance(umicoUserId, customerId));
     }
 
     @Test
