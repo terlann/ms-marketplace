@@ -4,7 +4,7 @@ import java.security.SecureRandom;
 import lombok.experimental.UtilityClass;
 
 @UtilityClass
-public class GenerateUtil {
+public class RrnUtil {
 
     private static final SecureRandom random = new SecureRandom();
 

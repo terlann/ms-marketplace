@@ -62,7 +62,7 @@ import az.kapitalbank.marketplace.messaging.publisher.FraudCheckPublisher;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
-import az.kapitalbank.marketplace.util.AmountUtil;
+import az.kapitalbank.marketplace.util.CommissionUtil;
 import feign.FeignException;
 import java.math.BigDecimal;
 import java.util.List;
@@ -81,7 +81,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class OrderServiceTest {
 
     @Mock
-    AmountUtil amountUtil;
+    CommissionUtil commissionUtil;
     @Mock
     OrderMapper orderMapper;
     @Mock
@@ -199,7 +199,7 @@ class OrderServiceTest {
 
         when(customerRepository.findByUmicoUserId(UMICO_USER_ID.getValue()))
                 .thenReturn(Optional.empty());
-        when(amountUtil.getCommission(BigDecimal.valueOf(50), 12))
+        when(commissionUtil.getCommission(BigDecimal.valueOf(50), 12))
                 .thenReturn(BigDecimal.valueOf(12));
         when(customerMapper.toCustomerEntity(request.getCustomerInfo())).thenReturn(
                 getCustomerEntity2());
@@ -228,7 +228,7 @@ class OrderServiceTest {
         var customerEntity = CustomerEntity.builder().cardId(CARD_UID.getValue()).build();
         when(customerRepository.findByUmicoUserId(UMICO_USER_ID.getValue()))
                 .thenReturn(Optional.of(customerEntity));
-        when(amountUtil.getCommission(BigDecimal.valueOf(50), 12))
+        when(commissionUtil.getCommission(BigDecimal.valueOf(50), 12))
                 .thenReturn(BigDecimal.valueOf(12));
         assertThrows(CommonException.class, () -> orderService.createOrder(request));
     }
@@ -240,7 +240,7 @@ class OrderServiceTest {
 
         when(customerRepository.findByUmicoUserId(UMICO_USER_ID.getValue()))
                 .thenReturn(Optional.empty());
-        when(amountUtil.getCommission(BigDecimal.valueOf(50), 12))
+        when(commissionUtil.getCommission(BigDecimal.valueOf(50), 12))
                 .thenReturn(BigDecimal.valueOf(12));
         Optional<CustomerEntity> customerEntity2 = Optional.of(getCustomerEntity2());
         when(customerRepository.findByUmicoUserId(
@@ -262,7 +262,7 @@ class OrderServiceTest {
                 getCreateOrderRequestDto(UUID.fromString("d2a9d8bc-9beb-11ec-b909-0242ac120002"));
         var fraudCheckEvent = FraudCheckEvent.builder().build();
 
-        when(amountUtil.getCommission(BigDecimal.valueOf(50), 12))
+        when(commissionUtil.getCommission(BigDecimal.valueOf(50), 12))
                 .thenReturn(BigDecimal.valueOf(12));
         when(operationMapper.toOperationEntity(request)).thenReturn(getOperationEntity());
         when(orderMapper.toOrderEntity(request.getDeliveryInfo().get(0),
@@ -427,7 +427,7 @@ class OrderServiceTest {
                 .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
                 .build();
         when(orderRepository.findByOrderNo("123")).thenReturn(Optional.of(orderEntity));
-        when(amountUtil.getCommissionByPercent(BigDecimal.ONE, null)).thenReturn(
+        when(commissionUtil.getCommissionByPercent(BigDecimal.ONE, null)).thenReturn(
                 BigDecimal.ONE);
         when(atlasClient.completePrePurchase(any())).thenReturn(purchaseCompleteResponse);
         when(customerRepository.findById(deliveryRequestDto.getCustomerId())).thenReturn(
@@ -513,7 +513,7 @@ class OrderServiceTest {
                 .customerId(UUID.fromString(CUSTOMER_ID.getValue()))
                 .build();
         when(orderRepository.findByOrderNo("123")).thenReturn(Optional.of(orderEntity));
-        when(amountUtil.getCommissionByPercent(BigDecimal.ONE, null)).thenReturn(
+        when(commissionUtil.getCommissionByPercent(BigDecimal.ONE, null)).thenReturn(
                 BigDecimal.ONE);
         when(atlasClient.completePrePurchase(any())).thenReturn(purchaseCompleteResponse);
         when(customerRepository.findById(deliveryRequestDto.getCustomerId())).thenReturn(

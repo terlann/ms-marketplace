@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
-public class AmountUtil {
+public class CommissionUtil {
 
     private final CommissionProperties commissionProperties;
 

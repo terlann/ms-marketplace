@@ -12,4 +12,6 @@ public final class CommonConstant {
     public static final String ORDER_NO_REQUEST_LOG = "orderNo - {}, request - {}";
     public static final String ORDER_NO_RESPONSE_LOG = "orderNo - {}, response - {}";
     public static final String ORDER_NO_EXCEPTION_LOG = "orderNo - {}, exception - {}";
+    public static final String SECURITY_POLICY = "script-src 'self'; form-action 'self'";
+    public static final String TOKEN_PREFIX = "Bearer ";
 }
