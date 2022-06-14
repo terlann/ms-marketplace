@@ -348,7 +348,7 @@ public class OrderService {
         var percent = order.getOperation().getLoanPercent();
         var commission = commissionUtil.getCommissionByPercent(deliveredOrderAmount, percent);
         var totalPayment = commission.add(deliveredOrderAmount);
-        var rrn = RrnUtil.rrn();
+        var rrn = RrnUtil.generate();
         var completePrePurchaseRequest = CompletePrePurchaseRequest.builder()
                 .id(Long.valueOf(order.getTransactionId())).uid(cardId).amount(totalPayment)
                 .approvalCode(order.getApprovalCode()).rrn(rrn)
@@ -378,7 +378,7 @@ public class OrderService {
         var orderNo = order.getOrderNo();
         var commission = order.getCommission();
         var totalPayment = commission.add(order.getTotalAmount());
-        var rrn = RrnUtil.rrn();
+        var rrn = RrnUtil.generate();
         var completePrePurchaseRequest = CompletePrePurchaseRequest.builder()
                 .id(Long.valueOf(order.getTransactionId()))
                 .uid(cardId)
@@ -425,7 +425,7 @@ public class OrderService {
     private BigDecimal prePurchaseOrder(String cardId, OrderEntity order) {
         var orderNo = order.getOrderNo();
         var totalOrderAmount = order.getTotalAmount().add(order.getCommission());
-        var rrn = RrnUtil.rrn();
+        var rrn = RrnUtil.generate();
         var prePurchaseRequest = PrePurchaseRequest.builder()
                 .rrn(rrn).amount(totalOrderAmount).uid(cardId)
                 .description(PRE_PURCHASE_DESCRIPTION + order.getOrderNo()).build();
@@ -525,7 +525,7 @@ public class OrderService {
         var orderNo = order.getOrderNo();
         var transactionId = order.getTransactionId();
         var amountWithCommission = order.getTotalAmount().add(order.getCommission());
-        var rrn = RrnUtil.rrn();
+        var rrn = RrnUtil.generate();
         var refundRequest = new RefundRequest(amountWithCommission, rrn);
         order.setRrn(rrn);
         try {
