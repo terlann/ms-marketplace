@@ -54,8 +54,8 @@ import az.kapitalbank.marketplace.messaging.publisher.FraudCheckPublisher;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
-import az.kapitalbank.marketplace.util.AmountUtil;
-import az.kapitalbank.marketplace.util.GenerateUtil;
+import az.kapitalbank.marketplace.util.CommissionUtil;
+import az.kapitalbank.marketplace.util.RrnUtil;
 import feign.FeignException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -77,7 +77,7 @@ import org.springframework.stereotype.Service;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class OrderService {
 
-    AmountUtil amountUtil;
+    CommissionUtil commissionUtil;
     SmsService smsService;
     OrderMapper orderMapper;
     AtlasClient atlasClient;
@@ -166,12 +166,20 @@ public class OrderService {
         operationEntity.setCustomer(customerEntity);
         operationEntity.setIsOtpOperation(request.getCustomerInfo().getCustomerId() != null
                 && customerEntity.getCardId() != null);
+        saveOrderEntities(request, operationEntity);
+        operationEntity.setLoanPercent(commissionUtil.getCommissionPercent(request.getLoanTerm()));
+        operationEntity = operationRepository.save(operationEntity);
+        return operationEntity;
+    }
+
+    private void saveOrderEntities(CreateOrderRequestDto request, OperationEntity operationEntity) {
         var operationCommission = BigDecimal.ZERO;
         var orderEntities = new ArrayList<OrderEntity>();
-        var productEntities = new ArrayList<ProductEntity>();
         for (OrderProductDeliveryInfo deliveryInfo : request.getDeliveryInfo()) {
+            var productEntities = new ArrayList<ProductEntity>();
             var commission =
-                    amountUtil.getCommission(deliveryInfo.getTotalAmount(), request.getLoanTerm());
+                    commissionUtil.getCommission(deliveryInfo.getTotalAmount(),
+                            request.getLoanTerm());
             operationCommission = operationCommission.add(commission);
             var orderEntity = orderMapper.toOrderEntity(deliveryInfo, commission);
             orderEntity.setOperation(operationEntity);
@@ -182,14 +190,11 @@ public class OrderService {
                     productEntities.add(productEntity);
                 }
             }
-            orderEntities.add(orderEntity);
             orderEntity.setProducts(productEntities);
+            orderEntities.add(orderEntity);
         }
-        operationEntity.setLoanPercent(amountUtil.getCommissionPercent(request.getLoanTerm()));
         operationEntity.setCommission(operationCommission);
         operationEntity.setOrders(orderEntities);
-        operationEntity = operationRepository.save(operationEntity);
-        return operationEntity;
     }
 
     private CustomerEntity getCustomerEntity(CreateOrderRequestDto request, UUID customerId) {
@@ -341,9 +346,9 @@ public class OrderService {
                                           String cardId) {
         var orderNo = order.getOrderNo();
         var percent = order.getOperation().getLoanPercent();
-        var commission = amountUtil.getCommissionByPercent(deliveredOrderAmount, percent);
+        var commission = commissionUtil.getCommissionByPercent(deliveredOrderAmount, percent);
         var totalPayment = commission.add(deliveredOrderAmount);
-        var rrn = GenerateUtil.rrn();
+        var rrn = RrnUtil.generate();
         var completePrePurchaseRequest = CompletePrePurchaseRequest.builder()
                 .id(Long.valueOf(order.getTransactionId())).uid(cardId).amount(totalPayment)
                 .approvalCode(order.getApprovalCode()).rrn(rrn)
@@ -373,7 +378,7 @@ public class OrderService {
         var orderNo = order.getOrderNo();
         var commission = order.getCommission();
         var totalPayment = commission.add(order.getTotalAmount());
-        var rrn = GenerateUtil.rrn();
+        var rrn = RrnUtil.generate();
         var completePrePurchaseRequest = CompletePrePurchaseRequest.builder()
                 .id(Long.valueOf(order.getTransactionId()))
                 .uid(cardId)
@@ -420,7 +425,7 @@ public class OrderService {
     private BigDecimal prePurchaseOrder(String cardId, OrderEntity order) {
         var orderNo = order.getOrderNo();
         var totalOrderAmount = order.getTotalAmount().add(order.getCommission());
-        var rrn = GenerateUtil.rrn();
+        var rrn = RrnUtil.generate();
         var prePurchaseRequest = PrePurchaseRequest.builder()
                 .rrn(rrn).amount(totalOrderAmount).uid(cardId)
                 .description(PRE_PURCHASE_DESCRIPTION + order.getOrderNo()).build();
@@ -520,7 +525,7 @@ public class OrderService {
         var orderNo = order.getOrderNo();
         var transactionId = order.getTransactionId();
         var amountWithCommission = order.getTotalAmount().add(order.getCommission());
-        var rrn = GenerateUtil.rrn();
+        var rrn = RrnUtil.generate();
         var refundRequest = new RefundRequest(amountWithCommission, rrn);
         order.setRrn(rrn);
         try {
@@ -591,7 +596,7 @@ public class OrderService {
         var totalAmount = request.getTotalAmount();
         var loanTerm = request.getLoanTerm();
         var allOrderCommission = request.getDeliveryInfo().stream()
-                .map(order -> amountUtil.getCommission(order.getTotalAmount(), loanTerm))
+                .map(order -> commissionUtil.getCommission(order.getTotalAmount(), loanTerm))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         return totalAmount.add(allOrderCommission);
     }

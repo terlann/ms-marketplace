@@ -1,5 +1,7 @@
 package az.kapitalbank.marketplace.config;
 
+import static az.kapitalbank.marketplace.constant.CommonConstant.SECURITY_POLICY;
+
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableGlobalMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -13,8 +15,7 @@ class SecurityConfiguration extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-        String policy = "script-src 'self'; form-action 'self'";
-        http.headers().contentSecurityPolicy(policy);
+        http.headers().contentSecurityPolicy(SECURITY_POLICY);
         http.csrf().disable();
         http.authorizeRequests()
                 .anyRequest().permitAll()
@@ -26,5 +27,4 @@ class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .logout().disable()
                 .oauth2Client();
     }
-
 }
