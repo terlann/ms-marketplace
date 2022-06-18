@@ -3,6 +3,7 @@ package az.kapitalbank.marketplace.service;
 import static az.kapitalbank.marketplace.constant.AtlasConstant.COMPLETE_PRE_PURCHASE_DESCRIPTION;
 import static az.kapitalbank.marketplace.constant.AtlasConstant.COMPLETE_PRE_PURCHASE_FOR_REFUND_DESCRIPTION;
 import static az.kapitalbank.marketplace.constant.AtlasConstant.PRE_PURCHASE_DESCRIPTION;
+import static az.kapitalbank.marketplace.constant.AtlasConstant.TERMINAL_NAME;
 import static az.kapitalbank.marketplace.constant.CommonConstant.CUSTOMER_ID_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.CUSTOMER_NOT_FOUND_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.ORDER_NO_EXCEPTION_LOG;
@@ -27,6 +28,8 @@ import az.kapitalbank.marketplace.client.atlas.AtlasClient;
 import az.kapitalbank.marketplace.client.atlas.model.request.CompletePrePurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.PrePurchaseRequest;
 import az.kapitalbank.marketplace.client.atlas.model.request.RefundRequest;
+import az.kapitalbank.marketplace.client.atlas.model.response.AtlasErrorResponse;
+import az.kapitalbank.marketplace.client.atlas.model.response.TransactionInfoResponse;
 import az.kapitalbank.marketplace.constant.AccountStatus;
 import az.kapitalbank.marketplace.constant.Error;
 import az.kapitalbank.marketplace.constant.OperationRejectReason;
@@ -55,12 +58,14 @@ import az.kapitalbank.marketplace.repository.CustomerRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
 import az.kapitalbank.marketplace.util.CommissionUtil;
+import az.kapitalbank.marketplace.util.ParserUtil;
 import az.kapitalbank.marketplace.util.RrnUtil;
 import feign.FeignException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -410,6 +415,7 @@ public class OrderService {
         var orders = operationEntity.getOrders();
         validateOrdersForPrePurchase(orders, operationEntity.getId());
         for (var orderEntity : orders) {
+            orderEntity.setRrn(RrnUtil.generate());
             lastTempAmount = lastTempAmount.add(prePurchaseOrder(cardId, orderEntity));
         }
         if (lastTempAmount.compareTo(BigDecimal.ZERO) != 0) {
@@ -425,11 +431,9 @@ public class OrderService {
     private BigDecimal prePurchaseOrder(String cardId, OrderEntity order) {
         var orderNo = order.getOrderNo();
         var totalOrderAmount = order.getTotalAmount().add(order.getCommission());
-        var rrn = RrnUtil.generate();
         var prePurchaseRequest = PrePurchaseRequest.builder()
-                .rrn(rrn).amount(totalOrderAmount).uid(cardId)
+                .rrn(order.getRrn()).amount(totalOrderAmount).uid(cardId)
                 .description(PRE_PURCHASE_DESCRIPTION + order.getOrderNo()).build();
-        order.setRrn(rrn);
         try {
             log.info("Atlas pre purchase is started : "
                     + ORDER_NO_REQUEST_LOG, orderNo, prePurchaseRequest);
@@ -445,7 +449,6 @@ public class OrderService {
             order.setTransactionStatus(FAIL_IN_PRE_PURCHASE);
             log.error("Atlas pre purchase was failed : " + ORDER_NO_EXCEPTION_LOG, orderNo, e);
             return order.getTotalAmount().add(order.getCommission());
-
         }
     }
 
@@ -468,9 +471,9 @@ public class OrderService {
             var orderNo = order.getOrderNo();
             log.info("Auto payback process is started : orderNo - {}", orderNo);
             var cardId = order.getOperation().getCustomer().getCardId();
+            order.setIsAutoPayback(false);
             completePrePurchaseOrder(order, cardId);
             if (order.getTransactionStatus() == FAIL_IN_COMPLETE_REFUND) {
-                order.setIsAutoPayback(false);
                 log.error("Auto payback was failed complete for refund : orderNo - {}",
                         orderNo);
                 return;
@@ -478,13 +481,75 @@ public class OrderService {
 
             refundOrder(order);
             if (order.getTransactionStatus() == FAIL_IN_REFUND) {
-                order.setIsAutoPayback(false);
                 log.error("Auto payback was failed for refund : orderNo - {}", orderNo);
                 return;
             }
             order.setIsAutoPayback(true);
             log.info("Auto payback process was finished : orderNo - {}", orderNo);
         });
+    }
+
+    @Transactional
+    public void retryPrePurchaseOrder() {
+        var operations =
+                operationRepository.findAllOperationByTransactionStatus(FAIL_IN_PRE_PURCHASE);
+        for (OperationEntity operation : operations) {
+            var customer = operation.getCustomer();
+            var orders = operation.getOrders();
+            var purchasedAmount = BigDecimal.ZERO;
+            purchasedAmount = getPrepurchasedOrdersAmount(customer, orders, purchasedAmount);
+            customer.setLastTempAmount(customer.getLastTempAmount().subtract(purchasedAmount));
+            if (operation.getIsOtpOperation() != null
+                    && operation.getIsOtpOperation()
+                    && purchasedAmount.compareTo(BigDecimal.ZERO) != 0) {
+                umicoService.sendPrePurchaseResult(operation.getId());
+                log.info("Retry prePurchase result was sent to umico: trackId - {}",
+                        operation.getId());
+            }
+        }
+    }
+
+    private BigDecimal getPrepurchasedOrdersAmount(CustomerEntity customer,
+                                                   List<OrderEntity> orders,
+                                                   BigDecimal purchasedAmount) {
+        for (OrderEntity order : orders) {
+            if (order.getTransactionStatus() == FAIL_IN_PRE_PURCHASE) {
+                var transactionInfo = findTransactionInfo(order.getRrn(), order.getOrderNo());
+                if (transactionInfo.isPresent()) {
+                    if (transactionInfo.get().isTransactionFound()) {
+                        order.setTransactionId(transactionInfo.get().getId().toString());
+                        order.setTransactionDate(transactionInfo.get().getTransactionDate());
+                        order.setTransactionStatus(PRE_PURCHASE);
+                    } else {
+                        purchasedAmount = purchasedAmount.add(
+                                prePurchaseOrder(customer.getCardId(), order));
+                    }
+                }
+            }
+        }
+        return purchasedAmount;
+    }
+
+    private Optional<TransactionInfoResponse> findTransactionInfo(String rrn, String orderNo) {
+        try {
+            log.info("Atlas transaction info process is started : " + ORDER_NO_REQUEST_LOG,
+                    orderNo, "rrn - " + rrn + ", orderNo - " + orderNo);
+            var transactionInfoResponse = atlasClient.findTransactionInfo(rrn, TERMINAL_NAME);
+            log.info("Atlas transaction info process was finished : " + ORDER_NO_RESPONSE_LOG,
+                    orderNo, transactionInfoResponse);
+            transactionInfoResponse.setTransactionFound(true);
+            return Optional.of(transactionInfoResponse);
+        } catch (FeignException e) {
+            if (e.status() == 400
+                    && ParserUtil.parseTo(e.contentUTF8(), AtlasErrorResponse.class).getCode()
+                    .equals("TRANSACTION_NOT_FOUND")) {
+                log.error("Atlas transaction info not found: orderNo - {}", orderNo);
+                return Optional.of(new TransactionInfoResponse(false));
+            }
+            log.error("Atlas transaction info process was failed : " + ORDER_NO_EXCEPTION_LOG,
+                    orderNo, e);
+            return Optional.empty();
+        }
     }
 
     @Transactional(dontRollbackOn = PaybackException.class)

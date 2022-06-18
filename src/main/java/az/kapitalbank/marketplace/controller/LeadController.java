@@ -32,4 +32,10 @@ public class LeadController {
         leadService.sendLeadManual(sendLeadType);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("order/pre-purchase")
+    public ResponseEntity<Void> retryPrePurchaseOrder() {
+        orderService.retryPrePurchaseOrder();
+        return ResponseEntity.ok().build();
+    }
 }

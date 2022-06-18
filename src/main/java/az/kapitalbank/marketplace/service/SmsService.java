@@ -35,7 +35,8 @@ public class SmsService {
 
     public void sendPrePurchaseSms(OperationEntity operationEntity) {
         String mobileNumber =
-                otpService.getCardLinkedMobileNumber(operationEntity.getCustomer().getCardId());
+                otpService.getCardLinkedMobileNumber(operationEntity.getCustomer().getCardId(),
+                        operationEntity.getId());
         String text = smsProperties.getText().get("pre-purchase");
         var purchasedAmount = operationEntity.getTotalAmount().add(operationEntity.getCommission());
         text = text.replace("{amount}", purchasedAmount.toString());
