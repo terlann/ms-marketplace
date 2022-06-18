@@ -497,11 +497,15 @@ public class OrderService {
             var customer = operation.getCustomer();
             var orders = operation.getOrders();
             var purchasedAmount = BigDecimal.ZERO;
-            purchasedAmount = getPrepurchasedOrdersAmount(customer, orders, purchasedAmount);
+            for (OrderEntity order : orders) {
+                purchasedAmount = getPrePurchasedOrderAmount(customer, order);
+            }
             customer.setLastTempAmount(customer.getLastTempAmount().subtract(purchasedAmount));
+            var isPrePurchasedAllOrders = orders.stream()
+                    .allMatch(order -> order.getTransactionStatus() == PRE_PURCHASE);
             if (operation.getIsOtpOperation() != null
                     && operation.getIsOtpOperation()
-                    && purchasedAmount.compareTo(BigDecimal.ZERO) != 0) {
+                    && isPrePurchasedAllOrders) {
                 umicoService.sendPrePurchaseResult(operation.getId());
                 log.info("Retry prePurchase result was sent to umico: trackId - {}",
                         operation.getId());
@@ -509,20 +513,23 @@ public class OrderService {
         }
     }
 
-    private BigDecimal getPrepurchasedOrdersAmount(CustomerEntity customer,
-                                                   List<OrderEntity> orders,
-                                                   BigDecimal purchasedAmount) {
-        for (OrderEntity order : orders) {
-            if (order.getTransactionStatus() == FAIL_IN_PRE_PURCHASE) {
-                var transactionInfo = findTransactionInfo(order.getRrn(), order.getOrderNo());
-                if (transactionInfo.isPresent()) {
-                    if (transactionInfo.get().isTransactionFound()) {
-                        order.setTransactionId(transactionInfo.get().getId().toString());
-                        order.setTransactionDate(transactionInfo.get().getTransactionDate());
-                        order.setTransactionStatus(PRE_PURCHASE);
-                    } else {
+    private BigDecimal getPrePurchasedOrderAmount(CustomerEntity customer,
+                                                  OrderEntity order) {
+        var purchasedAmount = BigDecimal.ZERO;
+        if (order.getTransactionStatus() == FAIL_IN_PRE_PURCHASE) {
+            var transactionInfo = findTransactionInfo(order.getRrn(), order.getOrderNo());
+            if (transactionInfo.isPresent()) {
+                if (transactionInfo.get().isTransactionFound()) {
+                    order.setTransactionId(transactionInfo.get().getId().toString());
+                    order.setTransactionDate(transactionInfo.get().getTransactionDate());
+                    order.setTransactionStatus(PRE_PURCHASE);
+                    purchasedAmount = purchasedAmount.add(
+                            order.getTotalAmount().add(order.getCommission()));
+                } else {
+                    var lastTempAmount = prePurchaseOrder(customer.getCardId(), order);
+                    if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
                         purchasedAmount = purchasedAmount.add(
-                                prePurchaseOrder(customer.getCardId(), order));
+                                order.getTotalAmount().add(order.getCommission()));
                     }
                 }
             }

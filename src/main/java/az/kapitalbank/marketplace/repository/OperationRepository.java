@@ -34,7 +34,7 @@ public interface OperationRepository extends JpaRepository<OperationEntity, UUID
     List<OperationEntity> findByUmicoDecisionStatusAndIsSendLeadIsFalse(
             UmicoDecisionStatus decisionStatus);
 
-    @Query(value = "SELECT p FROM OperationEntity p JOIN FETCH"
+    @Query(value = "SELECT distinct p FROM OperationEntity p JOIN FETCH"
             + " p.orders o where o.transactionStatus=:transactionStatus")
     List<OperationEntity> findAllOperationByTransactionStatus(TransactionStatus transactionStatus);
 }
