@@ -21,7 +21,6 @@ import az.kapitalbank.marketplace.messaging.event.PrePurchaseEvent;
 import az.kapitalbank.marketplace.messaging.event.ScoringResultEvent;
 import az.kapitalbank.marketplace.messaging.event.VerificationResultEvent;
 import az.kapitalbank.marketplace.repository.OperationRepository;
-import feign.FeignException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -321,13 +320,8 @@ public class LoanFormalizationService {
         var lastTempAmount = orderService.prePurchaseOrders(operationEntity,
                 operationEntity.getCustomer().getCardId());
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
-            try {
-                umicoService.sendPrePurchaseResult(trackId);
-                smsService.sendPrePurchaseSms(operationEntity);
-            } catch (FeignException e) {
-                log.info("Pre purchase result was failed to umico : trackId - {}, exception - {}",
-                        trackId, e);
-            }
+            umicoService.sendPrePurchaseResult(trackId);
+            smsService.sendPrePurchaseSms(operationEntity);
             log.info("Pre purchase result was sent to umico : trackId - {}", trackId);
         }
         log.info("Pre purchase consumer process was finished: trackId - {}", trackId);
