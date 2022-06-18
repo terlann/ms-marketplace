@@ -611,7 +611,7 @@ public class OrderService {
                     orderNo, refundResponse);
         } catch (FeignException e) {
             order.setTransactionStatus(FAIL_IN_REFUND);
-            log.error("Atlas pre purchase was failed : " + ORDER_NO_EXCEPTION_LOG, orderNo, e);
+            log.error("Atlas refund process was failed : " + ORDER_NO_EXCEPTION_LOG, orderNo, e);
         }
     }
 
