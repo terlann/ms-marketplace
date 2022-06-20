@@ -68,8 +68,11 @@ import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
 import az.kapitalbank.marketplace.util.CommissionUtil;
 import feign.FeignException;
+import feign.Request;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -374,6 +377,39 @@ class OrderServiceTest {
                 FAIL_IN_PRE_PURCHASE)).thenReturn(List.of(operation));
         when(atlasClient.findTransactionInfo(eq(null), anyString())).thenReturn(
                 transactionInfoResponse);
+
+        orderService.retryPrePurchaseOrder();
+        verify(operationRepository).findAllOperationByTransactionStatus(
+                FAIL_IN_PRE_PURCHASE);
+    }
+
+    @Test
+    void retryPrePurchaseOrder_findTransactionInfo_Exception() {
+        var operation = OperationEntity.builder()
+                .id(UUID.fromString(TRACK_ID.getValue()))
+                .orders(List.of(OrderEntity.builder()
+                        .products(List.of(getProductEntity()))
+                        .totalAmount(BigDecimal.ONE)
+                        .commission(BigDecimal.ONE)
+                        .transactionStatus(FAIL_IN_PRE_PURCHASE)
+                        .build()))
+                .commission(BigDecimal.valueOf(12))
+                .customer(getCustomerEntity())
+                .totalAmount(BigDecimal.ONE)
+                .isOtpOperation(true)
+                .build();
+        FeignException feignException = new FeignException.BadRequest("salam",
+                Request.create(Request.HttpMethod.GET, "/result", Map.of("salam", List.of("salam")),
+                        "{'code':'400'}".getBytes(
+                                StandardCharsets.UTF_8), null, null),
+                "{\"code\":\"TRANSACTION_NOT_FOUND\"}".getBytes(
+                        StandardCharsets.UTF_8));
+        var purchaseResponse = PrePurchaseResponse.builder().build();
+
+        when(operationRepository.findAllOperationByTransactionStatus(
+                FAIL_IN_PRE_PURCHASE)).thenReturn(List.of(operation));
+        when(atlasClient.findTransactionInfo(eq(null), anyString())).thenThrow(feignException);
+        when(atlasClient.prePurchase(any(PrePurchaseRequest.class))).thenReturn(purchaseResponse);
 
         orderService.retryPrePurchaseOrder();
         verify(operationRepository).findAllOperationByTransactionStatus(
