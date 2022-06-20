@@ -30,6 +30,7 @@ import az.kapitalbank.marketplace.messaging.publisher.FraudCheckPublisher;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -111,7 +112,7 @@ class LeadServiceTest {
 
         when(loanClient.sendLead(eq("0007"), any(LoanRequest.class))).thenReturn(loanResponse);
 
-        leadService.sendLeadLoan(getOperationEntity());
+        leadService.sendLeadLoan(getOperationEntity(), Collections.singletonList(FraudType.PIN));
         verify(loanClient).sendLead(eq("0007"), any(LoanRequest.class));
     }
 
