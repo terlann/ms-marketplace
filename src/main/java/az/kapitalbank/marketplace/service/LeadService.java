@@ -1,6 +1,5 @@
 package az.kapitalbank.marketplace.service;
 
-import static az.kapitalbank.marketplace.constant.OptimusConstant.CARD_PRODUCT_CODE;
 import static az.kapitalbank.marketplace.constant.TelesalesConstant.UMICO_SOURCE_CODE;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PREAPPROVED;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PENDING;
@@ -22,6 +21,7 @@ import az.kapitalbank.marketplace.mapper.TelesalesMapper;
 import az.kapitalbank.marketplace.messaging.publisher.FraudCheckPublisher;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,8 +50,8 @@ public class LeadService {
     OperationRepository operationRepository;
     FraudCheckPublisher fraudCheckPublisher;
 
-    private Optional<String> sendLeadTelesales(OperationEntity operationEntity,
-                                               List<FraudType> fraudTypes) {
+    public Optional<String> sendLeadTelesales(OperationEntity operationEntity,
+                                              List<FraudType> fraudTypes) {
         var trackId = operationEntity.getId();
         try {
             var request = telesalesMapper.toTelesalesOrder(operationEntity, fraudTypes);
@@ -84,19 +84,19 @@ public class LeadService {
         var trackId = operationEntity.getId();
         try {
             var frauds = fraudTypes.stream().map(Object::toString).collect(Collectors.joining(";"));
+            var monthlyPayment =
+                    operationEntity.getTotalAmount().add(operationEntity.getCommission())
+                            .divide(BigDecimal.valueOf(operationEntity.getLoanTerm()), 2,
+                                    RoundingMode.FLOOR);
             LoanRequest loanRequest = LoanRequest.builder().productType(ProductType.BIRKART)
                     .subProductType(SubProductType.UMICO)
                     .phoneNumber(operationEntity.getMobileNumber())
                     .fullName(operationEntity.getFullName()).pinCode(operationEntity.getPin())
-                    .productAmount(
-                            operationEntity.getTotalAmount()
+                    .productAmount(operationEntity.getTotalAmount()
                                     .add(operationEntity.getCommission()))
-                    .monthlyPayment((operationEntity.getTotalAmount()
-                            .add(operationEntity.getCommission())).divide(
-                            BigDecimal.valueOf(operationEntity.getLoanTerm())))
-                    .umicoUserID(operationEntity.getCustomer().getUmicoUserId())
-                    .leadComment(
-                            frauds.isEmpty() ? CARD_PRODUCT_CODE : CARD_PRODUCT_CODE + ";" + frauds)
+                    .monthlyPayment(monthlyPayment)
+                    .umicoUserId(operationEntity.getCustomer().getUmicoUserId())
+                    .leadComment(frauds)
                     .build();
             log.info("Send lead to loan is started : trackId - {}, request - {}",
                     trackId, loanRequest);
@@ -115,9 +115,8 @@ public class LeadService {
         if (fraudTypes == null) {
             fraudTypes = new ArrayList<>();
         }
-        sendLeadTelesales(operationEntity, fraudTypes);
         var leadId = sendLeadLoan(operationEntity, fraudTypes);
-        leadId.ifPresent(operationEntity::setTelesalesOrderId);
+        leadId.ifPresent(operationEntity::setLeadId);
         if (operationEntity.getUmicoDecisionStatus() != PENDING) {
             var umicoDecisionStatus = umicoService.sendPendingDecision(operationEntity.getId());
             smsService.sendPendingSms(operationEntity);

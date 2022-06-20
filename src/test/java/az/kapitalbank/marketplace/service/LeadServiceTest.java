@@ -3,7 +3,9 @@ package az.kapitalbank.marketplace.service;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PREAPPROVED;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PENDING;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PREAPPROVED;
+import static az.kapitalbank.marketplace.constants.ConstantObject.getCustomerEntity;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntity;
+import static az.kapitalbank.marketplace.constants.ConstantObject.getOrderEntity;
 import static az.kapitalbank.marketplace.constants.TestConstants.BUSINESS_KEY;
 import static az.kapitalbank.marketplace.constants.TestConstants.TASK_ID;
 import static az.kapitalbank.marketplace.constants.TestConstants.TRACK_ID;
@@ -110,9 +112,16 @@ class LeadServiceTest {
     void testSendLead_UmicoServiceReturnsAbsent() {
         var loanResponse = new LoanResponse(new LeadResponse("leadId"));
 
-        when(loanClient.sendLead(eq("0007"), any(LoanRequest.class))).thenReturn(loanResponse);
+        var operation = OperationEntity.builder()
+                .orders(List.of(getOrderEntity()))
+                .commission(BigDecimal.valueOf(12))
+                .customer(getCustomerEntity())
+                .totalAmount(BigDecimal.ONE)
+                .loanTerm(6)
+                .build();
 
-        leadService.sendLeadLoan(getOperationEntity(), Collections.singletonList(FraudType.PIN));
+        when(loanClient.sendLead(eq("0007"), any(LoanRequest.class))).thenReturn(loanResponse);
+        leadService.sendLeadLoan(operation, Collections.singletonList(FraudType.PIN));
         verify(loanClient).sendLead(eq("0007"), any(LoanRequest.class));
     }
 

@@ -40,5 +40,5 @@ public class LoanRequest {
     SubProductType subProductType;
     FormalizationMethod formalizationMethod;
     BigDecimal monthlyPayment;
-    String umicoUserID;
+    String umicoUserId;
 }
