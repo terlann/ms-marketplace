@@ -19,13 +19,12 @@ import az.kapitalbank.marketplace.messaging.event.PrePurchaseEvent;
 import az.kapitalbank.marketplace.messaging.publisher.PrePurchasePublisher;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.util.OtpUtil;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import az.kapitalbank.marketplace.util.ParserUtil;
 import feign.FeignException;
 import java.util.UUID;
 import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
-import lombok.SneakyThrows;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -38,7 +37,6 @@ public class OtpService {
 
     OtpClient otpClient;
     AtlasClient atlasClient;
-    ObjectMapper objectMapper;
     PrePurchasePublisher prePurchasePublisher;
     OperationRepository operationRepository;
 
@@ -50,7 +48,7 @@ public class OtpService {
                 .orElseThrow(() -> new CommonException(Error.OPERATION_NOT_FOUND,
                         "Operation not found : trackId" + trackId));
         var cardId = operationEntity.getCustomer().getCardId();
-        String cardLinkedMobileNumber = getCardLinkedMobileNumber(cardId);
+        String cardLinkedMobileNumber = getCardLinkedMobileNumber(cardId, trackId);
         SendOtpRequest sendOtpRequest = SendOtpRequest.builder().phoneNumber(cardLinkedMobileNumber)
                 .definitionId(UUID.fromString(OtpConstant.DEFINITION_ID.getValue()))
                 .data(new ChannelRequest(OTP_SOURCE)).build();
@@ -63,7 +61,9 @@ public class OtpService {
         } catch (FeignException e) {
             log.error("Send otp client process was failed : trackId - {}, exception - {}",
                     trackId, e);
-            throw new OtpException(getOtpClientErrorResponse(e.contentUTF8()).getDetail());
+            var otpClientErrorResponse =
+                    ParserUtil.parseTo(e.contentUTF8(), OtpClientErrorResponse.class);
+            throw new OtpException(otpClientErrorResponse.getDetail());
         }
         log.info("Send otp process was finished : trackId - {}", trackId);
         return new SendOtpResponseDto(OtpUtil.maskMobileNumber(cardLinkedMobileNumber));
@@ -77,7 +77,7 @@ public class OtpService {
                 .orElseThrow(() -> new CommonException(Error.OPERATION_NOT_FOUND,
                         "Operation not found : trackId - " + trackId));
         var cardId = operationEntity.getCustomer().getCardId();
-        String cardLinkedMobileNumber = getCardLinkedMobileNumber(cardId);
+        String cardLinkedMobileNumber = getCardLinkedMobileNumber(cardId, trackId);
         var otpVerifyRequest =
                 VerifyOtpRequest.builder().otp(request.getOtp()).phoneNumber(cardLinkedMobileNumber)
                         .build();
@@ -90,32 +90,32 @@ public class OtpService {
         } catch (FeignException e) {
             log.error("Verify otp client process was failed : trackId - {}, exception - {}",
                     trackId, e);
-            throw new OtpException(getOtpClientErrorResponse(e.contentUTF8()).getDetail());
+            var otpClientErrorResponse =
+                    ParserUtil.parseTo(e.contentUTF8(), OtpClientErrorResponse.class);
+            throw new OtpException(otpClientErrorResponse.getDetail());
         }
         prePurchasePublisher.sendEvent(new PrePurchaseEvent(trackId));
         log.info("Verify otp process was finished : trackId - {}", trackId);
     }
 
-    @SneakyThrows
-    private OtpClientErrorResponse getOtpClientErrorResponse(String otpClientResponse) {
-        return objectMapper.readValue(otpClientResponse, OtpClientErrorResponse.class);
-    }
-
-    public String getCardLinkedMobileNumber(String cardId) {
-        log.info("Card linked mobile number process is started : cardId - {}", cardId);
+    public String getCardLinkedMobileNumber(String cardId, UUID trackId) {
+        log.info("Card linked mobile number process is started : cardId - {}, trackId - {}",
+                cardId, trackId);
         var subscriptionResponse = atlasClient.findAllByUid(cardId, "", "");
-        log.info("AtlasClient subscriptionResponse : {}", subscriptionResponse);
+        log.info("Atlas client subscriptionResponse - {}, trackId - {}",
+                subscriptionResponse, trackId);
         var cardLinkedMobileNumber = subscriptionResponse.getSubscriptions().stream()
                 .filter(subscription -> subscription.getChannel().equals("SMPP_ALL")
                         && subscription.getScheme().contains("3DS"))
                 .findFirst()
                 .orElseThrow(() -> new CommonException(Error.SUBSCRIPTION_NOT_FOUND,
-                        "Card UID related mobile number not found : cardId: " + cardId))
+                        "Card UID related mobile number not found : cardId: "
+                                + cardId + ", trackId: " + trackId))
                 .getAddress();
         log.info(
                 "Card linked mobile number process was finished : "
-                        + "cardId - {}, cardLinkedMobileNumber - {}",
-                cardId, cardLinkedMobileNumber);
+                        + "cardId - {}, cardLinkedMobileNumber - {}, trackId - {}",
+                cardId, cardLinkedMobileNumber, trackId);
         return cardLinkedMobileNumber;
     }
 }

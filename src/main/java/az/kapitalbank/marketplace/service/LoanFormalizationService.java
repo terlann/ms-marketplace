@@ -72,6 +72,8 @@ public class LoanFormalizationService {
             } else {
                 noFraudProcess(operationEntity);
             }
+        } else {
+            log.error("Fraud result process, operation not found : trackId - {}", trackId);
         }
     }
 

@@ -15,15 +15,24 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
-public class PaybackSchedule {
+public class TransactionSchedule {
     OrderService orderService;
 
     @Async("marketplaceThreadPool")
-    @SchedulerLock(name = "PaybackSchedule_autoPayback")
+    @SchedulerLock(name = "TransactionSchedule_autoPayback")
     @Scheduled(cron = "0 0 22 * * ?", zone = "Asia/Baku")
     public void autoPayback() {
         log.info("Auto payback schedule started at {}", LocalDateTime.now());
         orderService.autoPayback();
         log.info("Auto payback schedule finished at {}", LocalDateTime.now());
+    }
+
+    @Async("marketplaceThreadPool")
+    @SchedulerLock(name = "TransactionSchedule_retryPrePurchase")
+    @Scheduled(cron = "0 0 14 * * ?", zone = "Asia/Baku")
+    public void retryPrePurchase() {
+        log.info("Retry prePurchase schedule started at {}", LocalDateTime.now());
+        orderService.retryPrePurchaseOrder();
+        log.info("Retry prePurchase schedule finished at {}", LocalDateTime.now());
     }
 }
