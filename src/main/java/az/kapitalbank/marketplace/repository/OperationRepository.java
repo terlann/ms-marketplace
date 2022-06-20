@@ -1,5 +1,6 @@
 package az.kapitalbank.marketplace.repository;
 
+import az.kapitalbank.marketplace.constant.TransactionStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import java.time.OffsetDateTime;
@@ -32,4 +33,8 @@ public interface OperationRepository extends JpaRepository<OperationEntity, UUID
 
     List<OperationEntity> findByUmicoDecisionStatusAndIsSendLeadIsFalse(
             UmicoDecisionStatus decisionStatus);
+
+    @Query(value = "SELECT distinct p FROM OperationEntity p JOIN FETCH"
+            + " p.orders o where o.transactionStatus=:transactionStatus")
+    List<OperationEntity> findAllOperationByTransactionStatus(TransactionStatus transactionStatus);
 }

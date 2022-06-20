@@ -1,6 +1,7 @@
 package az.kapitalbank.marketplace.service;
 
 import static az.kapitalbank.marketplace.constant.TransactionStatus.FAIL_IN_COMPLETE_REFUND;
+import static az.kapitalbank.marketplace.constant.TransactionStatus.FAIL_IN_PRE_PURCHASE;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PENDING;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.FAIL_IN_PREAPPROVED;
 import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PENDING;
@@ -15,8 +16,10 @@ import static az.kapitalbank.marketplace.constants.ConstantObject.getOrderEntity
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOrderEntityAutoRefund;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getProductEntity;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getProductEntity2;
+import static az.kapitalbank.marketplace.constants.TestConstants.BUSINESS_KEY;
 import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
 import static az.kapitalbank.marketplace.constants.TestConstants.CUSTOMER_ID;
+import static az.kapitalbank.marketplace.constants.TestConstants.TASK_ID;
 import static az.kapitalbank.marketplace.constants.TestConstants.TELESALES_ORDER_ID;
 import static az.kapitalbank.marketplace.constants.TestConstants.TRACK_ID;
 import static az.kapitalbank.marketplace.constants.TestConstants.UMICO_USER_ID;
@@ -35,6 +38,7 @@ import az.kapitalbank.marketplace.client.atlas.model.request.RefundRequest;
 import az.kapitalbank.marketplace.client.atlas.model.response.CompletePrePurchaseResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.PrePurchaseResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.RefundResponse;
+import az.kapitalbank.marketplace.client.atlas.model.response.TransactionInfoResponse;
 import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.TransactionStatus;
@@ -64,8 +68,11 @@ import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
 import az.kapitalbank.marketplace.util.CommissionUtil;
 import feign.FeignException;
+import feign.Request;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -341,6 +348,72 @@ class OrderServiceTest {
         orderService.autoPayback();
         verify(orderRepository).findByTransactionDateBeforeAndTransactionStatus(any(),
                 eq(TransactionStatus.PRE_PURCHASE));
+    }
+
+    @Test
+    void retryPrePurchaseOrder_Success() {
+        var operation = OperationEntity.builder()
+                .id(UUID.fromString(TRACK_ID.getValue()))
+                .orders(List.of(OrderEntity.builder()
+                        .products(List.of(getProductEntity()))
+                        .totalAmount(BigDecimal.ONE)
+                        .commission(BigDecimal.ONE)
+                        .transactionStatus(FAIL_IN_PRE_PURCHASE)
+                        .build()))
+                .commission(BigDecimal.valueOf(12))
+                .customer(getCustomerEntity())
+                .totalAmount(BigDecimal.ONE)
+                .dvsOrderId(12345L)
+                .taskId(TASK_ID.getValue())
+                .businessKey(BUSINESS_KEY.getValue())
+                .scoredAmount(BigDecimal.ONE)
+                .isOtpOperation(true)
+                .build();
+        var transactionInfoResponse = TransactionInfoResponse.builder()
+                .isTransactionFound(true)
+                .id(1L).build();
+
+        when(operationRepository.findAllOperationByTransactionStatus(
+                FAIL_IN_PRE_PURCHASE)).thenReturn(List.of(operation));
+        when(atlasClient.findTransactionInfo(eq(null), anyString())).thenReturn(
+                transactionInfoResponse);
+
+        orderService.retryPrePurchaseOrder();
+        verify(operationRepository).findAllOperationByTransactionStatus(
+                FAIL_IN_PRE_PURCHASE);
+    }
+
+    @Test
+    void retryPrePurchaseOrder_findTransactionInfo_Exception() {
+        var operation = OperationEntity.builder()
+                .id(UUID.fromString(TRACK_ID.getValue()))
+                .orders(List.of(OrderEntity.builder()
+                        .products(List.of(getProductEntity()))
+                        .totalAmount(BigDecimal.ONE)
+                        .commission(BigDecimal.ONE)
+                        .transactionStatus(FAIL_IN_PRE_PURCHASE)
+                        .build()))
+                .commission(BigDecimal.valueOf(12))
+                .customer(getCustomerEntity())
+                .totalAmount(BigDecimal.ONE)
+                .isOtpOperation(true)
+                .build();
+        FeignException feignException = new FeignException.BadRequest("salam",
+                Request.create(Request.HttpMethod.GET, "/result", Map.of("salam", List.of("salam")),
+                        "{'code':'400'}".getBytes(
+                                StandardCharsets.UTF_8), null, null),
+                "{\"code\":\"TRANSACTION_NOT_FOUND\"}".getBytes(
+                        StandardCharsets.UTF_8));
+        var purchaseResponse = PrePurchaseResponse.builder().build();
+
+        when(operationRepository.findAllOperationByTransactionStatus(
+                FAIL_IN_PRE_PURCHASE)).thenReturn(List.of(operation));
+        when(atlasClient.findTransactionInfo(eq(null), anyString())).thenThrow(feignException);
+        when(atlasClient.prePurchase(any(PrePurchaseRequest.class))).thenReturn(purchaseResponse);
+
+        orderService.retryPrePurchaseOrder();
+        verify(operationRepository).findAllOperationByTransactionStatus(
+                FAIL_IN_PRE_PURCHASE);
     }
 
     @Test

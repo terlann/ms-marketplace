@@ -82,6 +82,17 @@ class LoanFormalizationServiceTest {
     }
 
     @Test
+    void fraudResultProcess_NotFoundOperation() {
+        var request = FraudCheckResultEvent.builder()
+                .trackId(UUID.fromString(TRACK_ID.getValue()))
+                .fraudResultStatus(FraudResultStatus.BLACKLIST)
+                .build();
+        when(operationRepository.findById(request.getTrackId())).thenReturn(Optional.empty());
+        loanFormalizationService.fraudResultProcess(request);
+        verify(operationRepository).findById(request.getTrackId());
+    }
+
+    @Test
     void fraudResultProcess_SuspiciousSendTelesales() {
         var request = FraudCheckResultEvent.builder()
                 .trackId(UUID.fromString(TRACK_ID.getValue()))

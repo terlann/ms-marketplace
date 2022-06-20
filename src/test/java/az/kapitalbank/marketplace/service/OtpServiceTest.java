@@ -5,8 +5,6 @@ import static az.kapitalbank.marketplace.constants.TestConstants.RRN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,7 +13,6 @@ import az.kapitalbank.marketplace.client.atlas.model.response.Subscription;
 import az.kapitalbank.marketplace.client.atlas.model.response.SubscriptionResponse;
 import az.kapitalbank.marketplace.client.otp.OtpClient;
 import az.kapitalbank.marketplace.client.otp.model.ChannelRequest;
-import az.kapitalbank.marketplace.client.otp.model.OtpClientErrorResponse;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpRequest;
 import az.kapitalbank.marketplace.client.otp.model.SendOtpResponse;
 import az.kapitalbank.marketplace.client.otp.model.VerifyOtpRequest;
@@ -27,7 +24,7 @@ import az.kapitalbank.marketplace.dto.response.SendOtpResponseDto;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
-import az.kapitalbank.marketplace.exception.CommonException;
+import az.kapitalbank.marketplace.exception.OtpException;
 import az.kapitalbank.marketplace.messaging.publisher.PrePurchasePublisher;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -105,19 +102,18 @@ class OtpServiceTest {
         SubscriptionResponse subscriptionResponse = getSubscriptionResponse();
         FeignException feignException = new FeignException.BadRequest("salam",
                 Request.create(Request.HttpMethod.GET, "/result", Map.of("salam", List.of("salam")),
-                        "salam".getBytes(
-                                StandardCharsets.UTF_8), null, null), null);
-
+                        "{'detail':'salam'}".getBytes(
+                                StandardCharsets.UTF_8), null, null),
+                "{\"detail\":\"salam\"}".getBytes(
+                        StandardCharsets.UTF_8));
         when(operationRepository.findById(trackId)).thenReturn(Optional.of(operationEntity));
         when(atlasClient.findAllByUid(CARD_UID.getValue(), "", "")).thenReturn(
                 subscriptionResponse);
         when(otpClient.send(any(SendOtpRequest.class))).thenThrow(feignException);
-        when(objectMapper.readValue(anyString(), eq(OtpClientErrorResponse.class))).thenThrow(
-                CommonException.class);
 
         var request = SendOtpRequestDto.builder()
                 .trackId(trackId).build();
-        assertThrows(CommonException.class, () -> otpService.send(request));
+        assertThrows(OtpException.class, () -> otpService.send(request));
     }
 
     private SubscriptionResponse getSubscriptionResponse() {
@@ -180,6 +176,33 @@ class OtpServiceTest {
                 .build();
 
         otpService.verify(requestDto);
+
+        verify(otpClient).verify(any(VerifyOtpRequest.class));
+    }
+
+    @Test
+    void verify_Exception() {
+        var trackId = UUID.randomUUID();
+        OperationEntity operationEntity = getOperationEntity();
+        var subscriptionResponse = getSubscriptionResponse();
+        FeignException feignException = new FeignException.BadRequest("salam",
+                Request.create(Request.HttpMethod.GET, "/result", Map.of("salam", List.of("salam")),
+                        "{'detail':'salam'}".getBytes(
+                                StandardCharsets.UTF_8), null, null),
+                "{\"detail\":\"salam\"}".getBytes(
+                        StandardCharsets.UTF_8));
+        var otpVerifyResponse = VerifyOtpResponse.builder().build();
+        when(operationRepository.findById(any()))
+                .thenReturn(Optional.of(operationEntity));
+        when(atlasClient.findAllByUid(CARD_UID.getValue(), "", ""))
+                .thenReturn(subscriptionResponse);
+        when(otpClient.verify(any(VerifyOtpRequest.class))).thenThrow(feignException);
+        var requestDto = VerifyOtpRequestDto.builder()
+                .otp("2222")
+                .trackId(trackId)
+                .build();
+
+        assertThrows(OtpException.class, () -> otpService.verify(requestDto));
 
         verify(otpClient).verify(any(VerifyOtpRequest.class));
     }

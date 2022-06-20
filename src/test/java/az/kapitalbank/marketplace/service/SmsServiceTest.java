@@ -112,7 +112,8 @@ class SmsServiceTest {
                 .build();
         when(commonClient.sendSms(sendSmsRequest)).thenReturn(
                 new SendSmsResponse(UUID.fromString(TRACK_ID.getValue())));
-        when(otpService.getCardLinkedMobileNumber(operationEntity.getCustomer().getCardId()))
+        when(otpService.getCardLinkedMobileNumber(operationEntity.getCustomer().getCardId(),
+                operationEntity.getId()))
                 .thenReturn(MOBILE_NUMBER.getValue());
         smsService.sendPrePurchaseSms(operationEntity);
         verify(commonClient).sendSms(sendSmsRequest);
