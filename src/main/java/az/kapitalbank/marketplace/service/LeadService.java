@@ -8,7 +8,6 @@ import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PREAPPROVE
 import az.kapitalbank.marketplace.client.loan.LoanClient;
 import az.kapitalbank.marketplace.client.loan.model.LoanRequest;
 import az.kapitalbank.marketplace.client.loan.model.LoanResponse;
-import az.kapitalbank.marketplace.client.telesales.TelesalesClient;
 import az.kapitalbank.marketplace.constant.FraudType;
 import az.kapitalbank.marketplace.constant.ProductType;
 import az.kapitalbank.marketplace.constant.SendLeadReason;
@@ -17,10 +16,10 @@ import az.kapitalbank.marketplace.constant.SubProductType;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.mapper.OrderMapper;
-import az.kapitalbank.marketplace.mapper.TelesalesMapper;
 import az.kapitalbank.marketplace.messaging.publisher.FraudCheckPublisher;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -45,39 +44,8 @@ public class LeadService {
     LoanClient loanClient;
     OrderMapper orderMapper;
     UmicoService umicoService;
-    TelesalesClient telesalesClient;
-    TelesalesMapper telesalesMapper;
     OperationRepository operationRepository;
     FraudCheckPublisher fraudCheckPublisher;
-
-    public Optional<String> sendLeadTelesales(OperationEntity operationEntity,
-                                              List<FraudType> fraudTypes) {
-        var trackId = operationEntity.getId();
-        try {
-            var request = telesalesMapper.toTelesalesOrder(operationEntity, fraudTypes);
-            log.info("Send lead to telesales is started : trackId - {}, request - {}",
-                    trackId, request);
-            var createTelesalesOrderResponse =
-                    telesalesClient.sendLead(request);
-            var responseMessage = createTelesalesOrderResponse.getResponse().getMessage();
-            var responseCode = createTelesalesOrderResponse.getResponse().getCode();
-            if (!responseCode.equals("0")) {
-                log.error("Send lead to telesales was failed : trackId - {}, exception - {}",
-                        trackId, responseMessage);
-                operationEntity.setIsSendLead(false);
-                return Optional.empty();
-            }
-            operationEntity.setIsSendLead(true);
-            log.info("Send lead to telesales was finished :" + " trackId - {}, response - {}",
-                    trackId, createTelesalesOrderResponse);
-            return Optional.of(createTelesalesOrderResponse.getOperationId());
-        } catch (Exception e) {
-            log.error("Send lead to telesales was failed :"
-                    + " trackId - {}, exception - {}", trackId, e);
-            operationEntity.setIsSendLead(false);
-            return Optional.empty();
-        }
-    }
 
     public Optional<String> sendLeadLoan(OperationEntity operationEntity,
                                          List<FraudType> fraudTypes) {
@@ -86,14 +54,14 @@ public class LeadService {
             var frauds = fraudTypes.stream().map(Object::toString).collect(Collectors.joining(";"));
             var monthlyPayment =
                     operationEntity.getTotalAmount().add(operationEntity.getCommission())
-                            .divide(BigDecimal.valueOf(operationEntity.getLoanTerm()), 2,
-                                    RoundingMode.FLOOR);
+                            .divide(BigDecimal.valueOf(operationEntity.getLoanTerm()),
+                                    MathContext.DECIMAL128).setScale(2, RoundingMode.FLOOR);
             LoanRequest loanRequest = LoanRequest.builder().productType(ProductType.BIRKART)
                     .subProductType(SubProductType.UMICO)
                     .phoneNumber(operationEntity.getMobileNumber())
                     .fullName(operationEntity.getFullName()).pinCode(operationEntity.getPin())
                     .productAmount(operationEntity.getTotalAmount()
-                                    .add(operationEntity.getCommission()))
+                            .add(operationEntity.getCommission()))
                     .monthlyPayment(monthlyPayment)
                     .umicoUserId(operationEntity.getCustomer().getUmicoUserId())
                     .leadComment(frauds)

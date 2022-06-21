@@ -4,6 +4,7 @@ import az.kapitalbank.marketplace.config.CommissionProperties;
 import az.kapitalbank.marketplace.constant.Error;
 import az.kapitalbank.marketplace.exception.CommonException;
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -17,7 +18,8 @@ public class CommissionUtil {
     public BigDecimal getCommission(BigDecimal amount, int loanTerm) {
         return amount
                 .multiply(getCommissionPercent(loanTerm))
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                .divide(BigDecimal.valueOf(100), MathContext.DECIMAL128)
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     public BigDecimal getCommissionPercent(int loanTerm) {
@@ -32,6 +34,7 @@ public class CommissionUtil {
     public BigDecimal getCommissionByPercent(BigDecimal amount, BigDecimal loanPercent) {
         return amount
                 .multiply(loanPercent)
-                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                .divide(BigDecimal.valueOf(100), MathContext.DECIMAL128)
+                .setScale(2, RoundingMode.HALF_UP);
     }
 }
