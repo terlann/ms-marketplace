@@ -4,7 +4,6 @@ import az.kapitalbank.marketplace.config.CommissionProperties;
 import az.kapitalbank.marketplace.constant.Error;
 import az.kapitalbank.marketplace.exception.CommonException;
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.math.RoundingMode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
