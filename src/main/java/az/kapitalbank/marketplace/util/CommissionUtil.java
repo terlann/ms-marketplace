@@ -18,8 +18,7 @@ public class CommissionUtil {
     public BigDecimal getCommission(BigDecimal amount, int loanTerm) {
         return amount
                 .multiply(getCommissionPercent(loanTerm))
-                .divide(BigDecimal.valueOf(100), MathContext.DECIMAL128)
-                .setScale(2, RoundingMode.HALF_UP);
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
     }
 
     public BigDecimal getCommissionPercent(int loanTerm) {
@@ -34,7 +33,6 @@ public class CommissionUtil {
     public BigDecimal getCommissionByPercent(BigDecimal amount, BigDecimal loanPercent) {
         return amount
                 .multiply(loanPercent)
-                .divide(BigDecimal.valueOf(100), MathContext.DECIMAL128)
-                .setScale(2, RoundingMode.HALF_UP);
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
     }
 }

@@ -55,7 +55,7 @@ public class LeadService {
             var monthlyPayment =
                     operationEntity.getTotalAmount().add(operationEntity.getCommission())
                             .divide(BigDecimal.valueOf(operationEntity.getLoanTerm()),
-                                    MathContext.DECIMAL128).setScale(2, RoundingMode.FLOOR);
+                                    2, RoundingMode.FLOOR);
             LoanRequest loanRequest = LoanRequest.builder().productType(ProductType.BIRKART)
                     .subProductType(SubProductType.UMICO)
                     .phoneNumber(operationEntity.getMobileNumber())
