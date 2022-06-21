@@ -498,7 +498,7 @@ public class OrderService {
             var orders = operation.getOrders();
             var purchasedAmount = BigDecimal.ZERO;
             for (OrderEntity order : orders) {
-                purchasedAmount = getPrePurchasedOrderAmount(customer, order);
+                purchasedAmount = purchasedAmount.add(getPrePurchasedOrderAmount(customer, order));
             }
             customer.setLastTempAmount(customer.getLastTempAmount().subtract(purchasedAmount));
             var isPrePurchasedAllOrders = orders.stream()
