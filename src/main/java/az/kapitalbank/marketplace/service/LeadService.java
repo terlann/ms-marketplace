@@ -47,7 +47,7 @@ public class LeadService {
     FraudCheckPublisher fraudCheckPublisher;
 
     private Optional<String> sendLeadLoan(OperationEntity operationEntity,
-                                         List<FraudType> fraudTypes) {
+                                          List<FraudType> fraudTypes) {
         var trackId = operationEntity.getId();
         try {
             var frauds = fraudTypes.stream().map(Object::toString).collect(Collectors.joining(";"));
