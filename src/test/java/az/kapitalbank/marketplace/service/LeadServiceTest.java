@@ -12,11 +12,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import az.kapitalbank.marketplace.client.loan.LoanClient;
-import az.kapitalbank.marketplace.client.loan.model.LeadResponse;
-import az.kapitalbank.marketplace.client.loan.model.LoanRequest;
-import az.kapitalbank.marketplace.client.loan.model.LoanResponse;
 import az.kapitalbank.marketplace.client.telesales.TelesalesClient;
-import az.kapitalbank.marketplace.constant.FraudType;
 import az.kapitalbank.marketplace.constant.SendLeadReason;
 import az.kapitalbank.marketplace.constant.SendLeadType;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
@@ -56,6 +52,7 @@ class LeadServiceTest {
     FraudCheckPublisher fraudCheckPublisher;
     @InjectMocks
     private LeadService leadService;
+
 
     @Test
     void sendLeadSchedule_Success() {
