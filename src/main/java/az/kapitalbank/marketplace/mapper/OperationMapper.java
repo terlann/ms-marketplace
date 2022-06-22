@@ -22,6 +22,7 @@ public interface OperationMapper {
     @Mapping(source = "customerInfo.workPlace", target = "workPlace")
     @Mapping(source = "customerInfo.mobileNumber", target = "mobileNumber")
     @Mapping(source = "customerInfo.fullName", target = "fullName")
+    @Mapping(source = "customerInfo.deviceTokenId", target = "deviceTokenId")
     @Mapping(source = "customerInfo.additionalPhoneNumber1", target = "additionalPhoneNumber1")
     @Mapping(source = "customerInfo.additionalPhoneNumber2", target = "additionalPhoneNumber2")
     OperationEntity toOperationEntity(CreateOrderRequestDto source);
