@@ -46,7 +46,7 @@ public class LeadService {
     OperationRepository operationRepository;
     FraudCheckPublisher fraudCheckPublisher;
 
-    public Optional<String> sendLeadLoan(OperationEntity operationEntity,
+    private Optional<String> sendLeadLoan(OperationEntity operationEntity,
                                          List<FraudType> fraudTypes) {
         var trackId = operationEntity.getId();
         try {

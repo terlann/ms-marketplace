@@ -57,17 +57,6 @@ class LeadServiceTest {
     @InjectMocks
     private LeadService leadService;
 
-
-    @Test
-    void testSendLead_UmicoServiceReturnsAbsent() {
-        var loanResponse = new LoanResponse(new LeadResponse("leadId"));
-
-        when(loanClient.sendLead(eq("0007"), any(LoanRequest.class))).thenReturn(loanResponse);
-
-        leadService.sendLeadLoan(getOperationEntityForMonthlyPayment(), List.of(FraudType.PIN));
-        verify(loanClient).sendLead(eq("0007"), any(LoanRequest.class));
-    }
-
     @Test
     void sendLeadSchedule_Success() {
         when(operationRepository.findByUpdatedAtBeforeAndUmicoDecisionStatusIn(
