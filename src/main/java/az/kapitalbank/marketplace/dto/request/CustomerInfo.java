@@ -34,4 +34,5 @@ public class CustomerInfo {
     String ip;
     @NotNull
     String userAgent;
+    String deviceTokenId;
 }
