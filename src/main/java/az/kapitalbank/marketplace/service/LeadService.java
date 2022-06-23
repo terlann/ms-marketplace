@@ -55,16 +55,17 @@ public class LeadService {
                     operationEntity.getTotalAmount().add(operationEntity.getCommission())
                             .divide(BigDecimal.valueOf(operationEntity.getLoanTerm()),
                                     2, RoundingMode.FLOOR);
-            LoanRequest loanRequest = LoanRequest.builder().productType(ProductType.UMICO_MARKETPLACE)
-                    .subProductType(SubProductType.UMICO)
-                    .phoneNumber(operationEntity.getMobileNumber())
-                    .fullName(operationEntity.getFullName()).pinCode(operationEntity.getPin())
-                    .productAmount(operationEntity.getTotalAmount()
-                            .add(operationEntity.getCommission()))
-                    .monthlyPayment(monthlyPayment)
-                    .umicoUserId(operationEntity.getCustomer().getUmicoUserId())
-                    .leadComment(frauds)
-                    .build();
+            LoanRequest loanRequest =
+                    LoanRequest.builder().productType(ProductType.UMICO_MARKETPLACE)
+                            .subProductType(SubProductType.UMICO)
+                            .phoneNumber(operationEntity.getMobileNumber())
+                            .fullName(operationEntity.getFullName())
+                            .pinCode(operationEntity.getPin())
+                            .productAmount(operationEntity.getTotalAmount()
+                                    .add(operationEntity.getCommission()))
+                            .monthlyPayment(monthlyPayment)
+                            .umicoUserId(operationEntity.getCustomer().getUmicoUserId())
+                            .leadComment(frauds).build();
             log.info("Send lead to loan is started : trackId - {}, request - {}",
                     trackId, loanRequest);
             LoanResponse response = loanClient.sendLead(UMICO_SOURCE_CODE, loanRequest);
@@ -72,8 +73,7 @@ public class LeadService {
                     response);
             return Optional.of(response.getData().getLeadId());
         } catch (Exception e) {
-            log.error("Send lead to loan was failed : trackId - {}, exception - {}", trackId,
-                    e);
+            log.error("Send lead to loan was failed : trackId - {}, exception - {}", trackId, e);
             return Optional.empty();
         }
     }
