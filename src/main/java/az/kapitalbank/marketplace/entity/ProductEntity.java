@@ -31,6 +31,7 @@ public class ProductEntity extends BaseEntity {
     String itemType;
     String partnerCmsId;
     Boolean deliveryStatus;
+    Integer categoryId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false, updatable = false)

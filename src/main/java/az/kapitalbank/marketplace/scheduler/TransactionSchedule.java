@@ -27,7 +27,7 @@ public class TransactionSchedule {
         log.info("Auto payback schedule finished at {}", LocalDateTime.now());
     }
 
-    @Async("marketplaceThreadPool")
+    @Async("threadPoolExecutor")
     @SchedulerLock(name = "TransactionSchedule_retryPrePurchase")
     @Scheduled(cron = "0 0 14 * * ?", zone = "Asia/Baku")
     public void retryPrePurchase() {

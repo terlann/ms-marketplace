@@ -44,7 +44,7 @@ public interface AtlasClient {
                                       @RequestParam String channel,
                                       @RequestParam String schema);
 
-    @GetMapping("/transaction-info")
+    @GetMapping("/transfers/transaction-info")
     TransactionInfoResponse findTransactionInfo(@RequestParam String rrn,
                                                 @RequestParam String terminalName);
 
