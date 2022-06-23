@@ -55,7 +55,7 @@ public class LeadService {
                     operationEntity.getTotalAmount().add(operationEntity.getCommission())
                             .divide(BigDecimal.valueOf(operationEntity.getLoanTerm()),
                                     2, RoundingMode.FLOOR);
-            LoanRequest loanRequest = LoanRequest.builder().productType(ProductType.BIRKART)
+            LoanRequest loanRequest = LoanRequest.builder().productType(ProductType.UMICO_MARKETPLACE)
                     .subProductType(SubProductType.UMICO)
                     .phoneNumber(operationEntity.getMobileNumber())
                     .fullName(operationEntity.getFullName()).pinCode(operationEntity.getPin())
