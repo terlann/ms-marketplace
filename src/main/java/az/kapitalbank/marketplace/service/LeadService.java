@@ -57,7 +57,6 @@ public class LeadService {
                                     2, RoundingMode.FLOOR);
             LoanRequest loanRequest =
                     LoanRequest.builder().productType(ProductType.UMICO_MARKETPLACE)
-                            .subProductType(SubProductType.UMICO)
                             .phoneNumber(operationEntity.getMobileNumber())
                             .fullName(operationEntity.getFullName())
                             .pinCode(operationEntity.getPin())
