@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 public class TransactionSchedule {
     OrderService orderService;
 
-    @Async("marketplaceThreadPool")
+    @Async("threadPoolExecutor")
     @SchedulerLock(name = "TransactionSchedule_autoPayback")
     @Scheduled(cron = "0 0 22 * * ?", zone = "Asia/Baku")
     public void autoPayback() {
