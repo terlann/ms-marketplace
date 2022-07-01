@@ -173,7 +173,7 @@ public class OrderService {
                 && customerEntity.getCardId() != null);
         saveOrderEntities(request, operationEntity);
         operationEntity.setLoanPercent(commissionUtil.getCommissionPercent(request.getLoanTerm()));
-        operationEntity = operationRepository.save(operationEntity);
+        operationEntity = operationRepository.saveAndFlush(operationEntity);
         return operationEntity;
     }
 
