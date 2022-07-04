@@ -27,6 +27,7 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+
 @ExtendWith(MockitoExtension.class)
 class SmsServiceTest {
     @Mock
@@ -43,7 +44,9 @@ class SmsServiceTest {
     void start() {
         ReflectionTestUtils.setField(this.smsProperties, "text",
                 Map.of("complete-scoring",
-                        "Kredit sorgunuz testiqlendi. Kredit xetti {amount} AZN teshkil edir.",
+                        "{ contractNumber } sayli  sorgunuz uzre {amount} AZN kredit xetti"
+                                + " tesdiqlendi. Minimal odenish meblegi her ayin 1-10 "
+                                + "araligindadir. Musteri kodu - {cif}",
                         "pre-purchase",
                         "Marketplace kredit xetti uzre {amount} AZN odenis ugurla tamamlandi."));
     }
@@ -69,7 +72,10 @@ class SmsServiceTest {
         var operationEntity = OperationEntity.builder()
                 .id(UUID.fromString(TRACK_ID.getValue()))
                 .mobileNumber(MOBILE_NUMBER.getValue())
+                .cif("1234567")
+                .cardCreditContractNumber("BUMM123456789")
                 .build();
+
         doThrow(FeignException.class).when(commonClient)
                 .sendSms(new SendSmsRequest(any(), MOBILE_NUMBER.getValue()));
         smsService.sendPreapproveSms(operationEntity);
@@ -82,9 +88,12 @@ class SmsServiceTest {
                 .id(UUID.fromString(TRACK_ID.getValue()))
                 .mobileNumber(MOBILE_NUMBER.getValue())
                 .scoredAmount(BigDecimal.valueOf(55))
+                .cardCreditContractNumber("BUMM123456789")
+                .cif("1234567")
                 .build();
         var sendSmsRequest = SendSmsRequest.builder()
-                .body("Kredit sorgunuz testiqlendi. Kredit xetti 55 AZN teshkil edir.")
+                .body("BUMM123456789 sayli  sorgunuz uzre 55 AZN kredit xetti tesdiqlendi. Minimal"
+                        + " odenish meblegi her ayin 1-10 araligindadir. Musteri kodu - 1234567")
                 .phoneNumber(operationEntity.getMobileNumber())
                 .build();
 

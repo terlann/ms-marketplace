@@ -29,7 +29,9 @@ public class SmsService {
 
     public void sendCompleteScoringSms(OperationEntity operationEntity) {
         var text = smsProperties.getText().get("complete-scoring")
-                .replace("{amount}", operationEntity.getScoredAmount().toString());
+                .replace("{ contractNumber }", operationEntity.getCardCreditContractNumber())
+                .replace("{amount}", operationEntity.getScoredAmount().toString())
+                .replace("{cif}", operationEntity.getCif());
         send(operationEntity.getId(), operationEntity.getMobileNumber(), text);
     }
 
