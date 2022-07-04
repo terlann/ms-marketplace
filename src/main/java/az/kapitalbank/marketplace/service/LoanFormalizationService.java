@@ -216,6 +216,9 @@ public class LoanFormalizationService {
         operationEntity.setLoanContractEndDate(end);
         operationEntity.setTaskId(taskId);
         operationEntity.setDvsOrderId(dvsId);
+        operationEntity.setCif(processResponse.getVariables().getCif());
+        operationEntity.setContractNumber(processResponse.getVariables()
+                .getCardCreditContractNumber());
         var trackId = operationEntity.getId();
         var dvsUrl = verificationService.getDvsUrl(trackId, dvsId);
         if (dvsUrl.isPresent()) {

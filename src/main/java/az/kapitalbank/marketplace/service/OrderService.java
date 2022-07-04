@@ -107,6 +107,8 @@ public class OrderService {
                     "Operation had already scored." + TELESALES_ORDER_ID_LOG + telesalesOrderId);
         }
         operationEntity.setScoringDate(LocalDateTime.now());
+        operationEntity.setCif(request.getCif());
+        operationEntity.setContractNumber(request.getContractNumber());
         if (request.getScoringStatus() == ScoringStatus.REJECTED) {
             var umicoDecisionStatus = umicoService.sendRejectedDecision(operationEntity.getId());
             operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
