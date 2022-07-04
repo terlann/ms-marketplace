@@ -73,7 +73,7 @@ class SmsServiceTest {
                 .id(UUID.fromString(TRACK_ID.getValue()))
                 .mobileNumber(MOBILE_NUMBER.getValue())
                 .cif("1234567")
-                .cardCreditContractNumber("BUMM123456789")
+                .contractNumber("BUMM123456789")
                 .build();
 
         doThrow(FeignException.class).when(commonClient)
@@ -88,7 +88,7 @@ class SmsServiceTest {
                 .id(UUID.fromString(TRACK_ID.getValue()))
                 .mobileNumber(MOBILE_NUMBER.getValue())
                 .scoredAmount(BigDecimal.valueOf(55))
-                .cardCreditContractNumber("BUMM123456789")
+                .contractNumber("BUMM123456789")
                 .cif("1234567")
                 .build();
         var sendSmsRequest = SendSmsRequest.builder()

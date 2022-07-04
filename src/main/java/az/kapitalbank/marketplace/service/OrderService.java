@@ -108,7 +108,7 @@ public class OrderService {
         }
         operationEntity.setScoringDate(LocalDateTime.now());
         operationEntity.setCif(request.getCif());
-        operationEntity.setCardCreditContractNumber(request.getContractNumber());
+        operationEntity.setContractNumber(request.getContractNumber());
         if (request.getScoringStatus() == ScoringStatus.REJECTED) {
             var umicoDecisionStatus = umicoService.sendRejectedDecision(operationEntity.getId());
             operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);

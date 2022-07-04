@@ -76,7 +76,7 @@ public class OperationEntity extends BaseEntity {
     String businessErrorReason;
     String deviceTokenId;
     String cif;
-    String cardCreditContractNumber;
+    String contractNumber;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false, updatable = false)
     CustomerEntity customer;
