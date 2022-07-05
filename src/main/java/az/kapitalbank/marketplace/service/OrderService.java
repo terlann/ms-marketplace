@@ -520,6 +520,7 @@ public class OrderService {
             var transactionInfo = findTransactionInfo(order.getRrn(), order.getOrderNo());
             if (transactionInfo.isPresent()) {
                 if (transactionInfo.get().isTransactionFound()) {
+                    order.setApprovalCode(transactionInfo.get().getApprovalCode());
                     order.setTransactionId(transactionInfo.get().getId().toString());
                     order.setTransactionDate(transactionInfo.get().getTransactionDate());
                     order.setTransactionStatus(PRE_PURCHASE);
