@@ -34,6 +34,7 @@ public class TransactionInfoResponse {
     String terminalOwner;
     LocalDateTime transactionDate;
     String type;
+    String approvalCode;
     boolean isTransactionFound;
 
     public TransactionInfoResponse(boolean isTransactionFound) {
