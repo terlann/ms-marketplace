@@ -175,7 +175,7 @@ public class OrderService {
                 && customerEntity.getCardId() != null);
         saveOrderEntities(request, operationEntity);
         operationEntity.setLoanPercent(commissionUtil.getCommissionPercent(request.getLoanTerm()));
-        operationEntity = operationRepository.save(operationEntity);
+        operationEntity = operationRepository.saveAndFlush(operationEntity);
         return operationEntity;
     }
 
@@ -522,6 +522,7 @@ public class OrderService {
             var transactionInfo = findTransactionInfo(order.getRrn(), order.getOrderNo());
             if (transactionInfo.isPresent()) {
                 if (transactionInfo.get().isTransactionFound()) {
+                    order.setApprovalCode(transactionInfo.get().getApprovalCode());
                     order.setTransactionId(transactionInfo.get().getId().toString());
                     order.setTransactionDate(transactionInfo.get().getTransactionDate());
                     order.setTransactionStatus(PRE_PURCHASE);
