@@ -233,7 +233,10 @@ public class LoanFormalizationService {
         var trackId = operationEntity.getId();
         log.info("Complete scoring result : trackId - {}, businessKey - {}",
                 trackId, operationEntity.getBusinessKey());
-        checkGetProcess(operationEntity);
+        operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
+        operationEntity.setScoringDate(LocalDateTime.now());
+        operationEntity.setScoringStatus(ScoringStatus.APPROVED);
+        updateCifAndContractByGetProcessData(operationEntity);
         Optional<String> cardId = scoringService.getCardId(operationEntity, UID);
         if (cardId.isEmpty()) {
             return;
@@ -256,18 +259,12 @@ public class LoanFormalizationService {
                 + "trackId - {} , customerId - {}", trackId, customerId);
     }
 
-    private void checkGetProcess(OperationEntity operationEntity) {
+    private void updateCifAndContractByGetProcessData(OperationEntity operationEntity) {
         var processResponse = scoringService.getProcess(operationEntity);
         if (processResponse.isPresent()) {
-            operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
-            operationEntity.setScoringDate(LocalDateTime.now());
-            operationEntity.setScoringStatus(ScoringStatus.APPROVED);
             operationEntity.setCif(processResponse.get().getVariables().getCif());
             operationEntity.setContractNumber(
                     processResponse.get().getVariables().getCardCreditContractNumber());
-        } else {
-            operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_GET_PROCESS);
-            leadService.sendLead(operationEntity, null);
         }
     }
 
