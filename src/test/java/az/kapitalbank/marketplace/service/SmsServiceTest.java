@@ -44,7 +44,7 @@ class SmsServiceTest {
     void start() {
         ReflectionTestUtils.setField(this.smsProperties, "text",
                 Map.of("complete-scoring",
-                        "contractNumber sayli  sorgunuz uzre {amount} AZN kredit xetti"
+                        "{contractNumber} sayli  sorgunuz uzre {amount} AZN kredit xetti"
                                 + " tesdiqlendi. Minimal odenish meblegi her ayin 1-10 "
                                 + "araligindadir. Musteri kodu - {cif}",
                         "pre-purchase",
