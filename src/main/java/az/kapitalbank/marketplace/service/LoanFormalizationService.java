@@ -216,9 +216,6 @@ public class LoanFormalizationService {
         operationEntity.setLoanContractEndDate(end);
         operationEntity.setTaskId(taskId);
         operationEntity.setDvsOrderId(dvsId);
-        operationEntity.setCif(processResponse.getVariables().getCif());
-        operationEntity.setContractNumber(processResponse.getVariables()
-                .getCardCreditContractNumber());
         var trackId = operationEntity.getId();
         var dvsUrl = verificationService.getDvsUrl(trackId, dvsId);
         if (dvsUrl.isPresent()) {
@@ -236,9 +233,7 @@ public class LoanFormalizationService {
         var trackId = operationEntity.getId();
         log.info("Complete scoring result : trackId - {}, businessKey - {}",
                 trackId, operationEntity.getBusinessKey());
-        operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
-        operationEntity.setScoringDate(LocalDateTime.now());
-        operationEntity.setScoringStatus(ScoringStatus.APPROVED);
+        checkGetProcess(operationEntity);
         Optional<String> cardId = scoringService.getCardId(operationEntity, UID);
         if (cardId.isEmpty()) {
             return;
@@ -259,6 +254,21 @@ public class LoanFormalizationService {
         operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
         log.info("Scoring complete result : Customer was finished end-to-end process : "
                 + "trackId - {} , customerId - {}", trackId, customerId);
+    }
+
+    private void checkGetProcess(OperationEntity operationEntity) {
+        var processResponse = scoringService.getProcess(operationEntity);
+        if (processResponse.isPresent()) {
+            operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
+            operationEntity.setScoringDate(LocalDateTime.now());
+            operationEntity.setScoringStatus(ScoringStatus.APPROVED);
+            operationEntity.setCif(processResponse.get().getVariables().getCif());
+            operationEntity.setContractNumber(
+                    processResponse.get().getVariables().getCardCreditContractNumber());
+        } else {
+            operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_GET_PROCESS);
+            leadService.sendLead(operationEntity, null);
+        }
     }
 
     private void noFraudProcess(OperationEntity operationEntity) {
