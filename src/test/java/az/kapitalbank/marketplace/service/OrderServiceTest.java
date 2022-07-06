@@ -52,7 +52,6 @@ import az.kapitalbank.marketplace.dto.request.DeliveryRequestDto;
 import az.kapitalbank.marketplace.dto.request.PaybackRequestDto;
 import az.kapitalbank.marketplace.dto.request.TelesalesResultRequestDto;
 import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
-import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
@@ -217,14 +216,11 @@ class OrderServiceTest {
                 BigDecimal.valueOf(12))).thenReturn(getOrderEntity());
         when(orderMapper.toProductEntity(request.getProducts().get(0))).thenReturn(
                 getProductEntity());
-        when(operationRepository.save(any(OperationEntity.class))).thenReturn(
+        when(operationRepository.saveAndFlush(any(OperationEntity.class))).thenReturn(
                 getOperationEntityFirstCustomer());
         when(orderMapper.toFraudCheckEvent(request)).thenReturn(FraudCheckEvent.builder().build());
-
-        var actual = orderService.createOrder(request);
-        var expected = CreateOrderResponse.of(UUID.fromString(TRACK_ID.getValue()));
-        assertEquals(expected, actual);
-        verify(operationRepository).save(any(OperationEntity.class));
+        orderService.createOrder(request);
+        verify(operationRepository).saveAndFlush(any(OperationEntity.class));
     }
 
     @Test
@@ -276,7 +272,8 @@ class OrderServiceTest {
                 BigDecimal.valueOf(12))).thenReturn(getOrderEntity());
         when(orderMapper.toProductEntity(request.getProducts().get(0))).thenReturn(
                 getProductEntity());
-        when(operationRepository.save(any(OperationEntity.class))).thenReturn(getOperationEntity());
+        when(operationRepository.saveAndFlush(any(OperationEntity.class))).thenReturn(
+                getOperationEntity());
         when(customerRepository.findById(request.getCustomerInfo().getCustomerId())).thenReturn(
                 Optional.of(getCustomerEntity()));
         when(atlasClient.findCardByUid(CARD_UID.getValue(), ResultType.ACCOUNT)).thenReturn(

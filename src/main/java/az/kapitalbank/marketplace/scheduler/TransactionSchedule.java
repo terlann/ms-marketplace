@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 public class TransactionSchedule {
     OrderService orderService;
 
-    @Async("marketplaceThreadPool")
+    @Async("threadPoolExecutor")
     @SchedulerLock(name = "TransactionSchedule_autoPayback")
     @Scheduled(cron = "0 0 22 * * ?", zone = "Asia/Baku")
     public void autoPayback() {
@@ -27,7 +27,7 @@ public class TransactionSchedule {
         log.info("Auto payback schedule finished at {}", LocalDateTime.now());
     }
 
-    @Async("marketplaceThreadPool")
+    @Async("threadPoolExecutor")
     @SchedulerLock(name = "TransactionSchedule_retryPrePurchase")
     @Scheduled(cron = "0 0 14 * * ?", zone = "Asia/Baku")
     public void retryPrePurchase() {

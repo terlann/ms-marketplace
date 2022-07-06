@@ -107,6 +107,8 @@ public class OrderService {
                     "Operation had already scored." + TELESALES_ORDER_ID_LOG + telesalesOrderId);
         }
         operationEntity.setScoringDate(LocalDateTime.now());
+        operationEntity.setCif(request.getCif());
+        operationEntity.setContractNumber(request.getContractNumber());
         if (request.getScoringStatus() == ScoringStatus.REJECTED) {
             var umicoDecisionStatus = umicoService.sendRejectedDecision(operationEntity.getId());
             operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
@@ -173,7 +175,7 @@ public class OrderService {
                 && customerEntity.getCardId() != null);
         saveOrderEntities(request, operationEntity);
         operationEntity.setLoanPercent(commissionUtil.getCommissionPercent(request.getLoanTerm()));
-        operationEntity = operationRepository.save(operationEntity);
+        operationEntity = operationRepository.saveAndFlush(operationEntity);
         return operationEntity;
     }
 
@@ -498,7 +500,7 @@ public class OrderService {
             var orders = operation.getOrders();
             var purchasedAmount = BigDecimal.ZERO;
             for (OrderEntity order : orders) {
-                purchasedAmount = getPrePurchasedOrderAmount(customer, order);
+                purchasedAmount = purchasedAmount.add(getPrePurchasedOrderAmount(customer, order));
             }
             customer.setLastTempAmount(customer.getLastTempAmount().subtract(purchasedAmount));
             var isPrePurchasedAllOrders = orders.stream()
@@ -520,6 +522,7 @@ public class OrderService {
             var transactionInfo = findTransactionInfo(order.getRrn(), order.getOrderNo());
             if (transactionInfo.isPresent()) {
                 if (transactionInfo.get().isTransactionFound()) {
+                    order.setApprovalCode(transactionInfo.get().getApprovalCode());
                     order.setTransactionId(transactionInfo.get().getId().toString());
                     order.setTransactionDate(transactionInfo.get().getTransactionDate());
                     order.setTransactionStatus(PRE_PURCHASE);
