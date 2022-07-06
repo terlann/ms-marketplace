@@ -269,6 +269,26 @@ class LoanFormalizationServiceTest {
     }
 
     @Test
+    void scoringResultProcess_GetProcessIsNull() {
+        BusinessErrorData[] arr = new BusinessErrorData[] {
+                BusinessErrorData.builder().id("RULE_HAS_WRITTEN_OF_CREDIT").build()};
+        var request = ScoringResultEvent.builder()
+                .processStatus(ProcessStatus.COMPLETED)
+                .data(arr)
+                .businessKey(BUSINESS_KEY.getValue()).build();
+        when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
+                Optional.of(getOperationEntity()));
+        when(scoringService.getProcess(any(OperationEntity.class))).thenReturn(
+                Optional.of(getProcessResponse()));
+        when(scoringService.getCardId(any(OperationEntity.class), eq("uid"))).thenReturn(
+                Optional.of(CARD_UID.getValue()));
+        when(orderService.prePurchaseOrders(any(OperationEntity.class),
+                eq(getCustomerEntity().getCardId()))).thenReturn(BigDecimal.ZERO);
+        loanFormalizationService.scoringResultProcess(request);
+        verify(operationRepository).findByBusinessKey(request.getBusinessKey());
+    }
+
+    @Test
     void scoringResultProcess_Completed_NoCardId() {
         BusinessErrorData[] arr = new BusinessErrorData[] {
                 BusinessErrorData.builder().id("RULE_HAS_WRITTEN_OF_CREDIT").build()};
