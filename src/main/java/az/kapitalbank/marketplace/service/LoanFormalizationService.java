@@ -11,7 +11,6 @@ import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.SendLeadReason;
 import az.kapitalbank.marketplace.constant.TaskDefinitionKey;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
-import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.exception.CommonException;
 import az.kapitalbank.marketplace.messaging.event.BusinessErrorData;
@@ -240,8 +239,9 @@ public class LoanFormalizationService {
         if (processVariables.isEmpty()) {
             return;
         }
-        var customerEntity =
-                updateCifAndContractByGetProcessData(operationEntity, processVariables.get());
+        updateCifAndContractByGetProcessData(operationEntity, processVariables.get());
+        var customerEntity = operationEntity.getCustomer();
+        customerEntity.setCardId(processVariables.get().getUid());
         var lastTempAmount =
                 orderService.prePurchaseOrders(operationEntity, processVariables.get().getUid());
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
@@ -259,14 +259,11 @@ public class LoanFormalizationService {
                 + "trackId - {} , customerId - {}", trackId, customerId);
     }
 
-    private CustomerEntity updateCifAndContractByGetProcessData(OperationEntity operationEntity,
-                                                                ProcessVariableResponse
-                                                                        processVariables) {
+    private void updateCifAndContractByGetProcessData(OperationEntity operationEntity,
+                                                      ProcessVariableResponse
+                                                              processVariables) {
         operationEntity.setCif(processVariables.getCif());
         operationEntity.setContractNumber(processVariables.getCardCreditContractNumber());
-        var customerEntity = operationEntity.getCustomer();
-        customerEntity.setCardId(processVariables.getUid());
-        return customerEntity;
     }
 
 
