@@ -6,6 +6,7 @@ import static az.kapitalbank.marketplace.constant.OptimusConstant.OPTIMUS_CLIENT
 
 import az.kapitalbank.marketplace.client.optimus.OptimusClient;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
+import az.kapitalbank.marketplace.client.optimus.model.process.ProcessVariableResponse;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.CompleteScoringRequest;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.CreateScoringRequest;
 import az.kapitalbank.marketplace.client.optimus.model.scoring.CustomerContact;
@@ -51,16 +52,18 @@ public class ScoringService {
         }
     }
 
-    public Optional<String> getCardId(OperationEntity operationEntity, String variableName) {
+    public Optional<ProcessVariableResponse> getProcessVariable(OperationEntity operationEntity,
+                                                                String variableName) {
         var trackId = operationEntity.getId();
         var businessKey = operationEntity.getBusinessKey();
         log.info("Get card uid process is started : trackId - {}, businessKey - {}",
                 trackId, businessKey);
         try {
-            var cardId = optimusClient.getProcessVariable(businessKey, variableName).getUid();
+            var processVariableResponse =
+                    optimusClient.getProcessVariable(businessKey, variableName);
             log.info("Get card uid was finished : trackId - {}, businessKey - {}, cardId - {}",
-                    trackId, businessKey, cardId);
-            return Optional.of(cardId);
+                    trackId, businessKey, processVariableResponse.getUid());
+            return Optional.of(processVariableResponse);
         } catch (FeignException e) {
             log.error("Get card uid process was failed :"
                             + " trackId - {}, businessKey - {}, exception - {}",

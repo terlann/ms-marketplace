@@ -1,8 +1,7 @@
 package az.kapitalbank.marketplace.service;
 
-import static az.kapitalbank.marketplace.constant.AtlasConstant.UID;
-
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
+import az.kapitalbank.marketplace.client.optimus.model.process.ProcessVariableResponse;
 import az.kapitalbank.marketplace.constant.DvsStatus;
 import az.kapitalbank.marketplace.constant.Error;
 import az.kapitalbank.marketplace.constant.FraudResultStatus;
@@ -12,6 +11,7 @@ import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.constant.SendLeadReason;
 import az.kapitalbank.marketplace.constant.TaskDefinitionKey;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
+import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.exception.CommonException;
 import az.kapitalbank.marketplace.messaging.event.BusinessErrorData;
@@ -236,14 +236,14 @@ public class LoanFormalizationService {
         operationEntity.setUmicoDecisionStatus(UmicoDecisionStatus.APPROVED);
         operationEntity.setScoringDate(LocalDateTime.now());
         operationEntity.setScoringStatus(ScoringStatus.APPROVED);
-        updateCifAndContractByGetProcessData(operationEntity);
-        Optional<String> cardId = scoringService.getCardId(operationEntity, UID);
-        if (cardId.isEmpty()) {
+        var processVariables = scoringService.getProcessVariable(operationEntity, null);
+        if (processVariables.isEmpty()) {
             return;
         }
-        var customerEntity = operationEntity.getCustomer();
-        customerEntity.setCardId(cardId.get());
-        var lastTempAmount = orderService.prePurchaseOrders(operationEntity, cardId.get());
+        var customerEntity =
+                updateCifAndContractByGetProcessData(operationEntity, processVariables.get());
+        var lastTempAmount =
+                orderService.prePurchaseOrders(operationEntity, processVariables.get().getUid());
         if (lastTempAmount.compareTo(BigDecimal.ZERO) == 0) {
             log.info("Scoring complete result : Pre purchase was finished : trackId - {}", trackId);
             smsService.sendCompleteScoringSms(operationEntity);
@@ -259,14 +259,16 @@ public class LoanFormalizationService {
                 + "trackId - {} , customerId - {}", trackId, customerId);
     }
 
-    private void updateCifAndContractByGetProcessData(OperationEntity operationEntity) {
-        var processResponse = scoringService.getProcess(operationEntity);
-        if (processResponse.isPresent()) {
-            operationEntity.setCif(processResponse.get().getVariables().getCif());
-            operationEntity.setContractNumber(
-                    processResponse.get().getVariables().getCardCreditContractNumber());
-        }
+    private CustomerEntity updateCifAndContractByGetProcessData(OperationEntity operationEntity,
+                                                                ProcessVariableResponse
+                                                                        processVariables) {
+        operationEntity.setCif(processVariables.getCif());
+        operationEntity.setContractNumber(processVariables.getCardCreditContractNumber());
+        var customerEntity = operationEntity.getCustomer();
+        customerEntity.setCardId(processVariables.getUid());
+        return customerEntity;
     }
+
 
     private void noFraudProcess(OperationEntity operationEntity) {
         var businessKey =
