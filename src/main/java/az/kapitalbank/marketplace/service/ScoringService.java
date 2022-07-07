@@ -65,7 +65,7 @@ public class ScoringService {
                     trackId, businessKey, processVariableResponse.getUid());
             return Optional.of(processVariableResponse);
         } catch (FeignException e) {
-            log.error("Get card uid process was failed :"
+            log.error("Get process variable was failed :"
                             + " trackId - {}, businessKey - {}, exception - {}",
                     trackId, businessKey, e);
             return Optional.empty();
