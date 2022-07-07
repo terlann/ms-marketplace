@@ -41,8 +41,9 @@ public class ScoringService {
         log.info("Start scoring process is started : trackId - {}, request - {}", trackId,
                 startScoringRequest);
         try {
-            var startScoringResponse = optimusClient.scoringStart(startScoringRequest);
-            log.info("Start scoring process was finished : trackId - {}," + " response - {}",
+            var startScoringResponse = optimusClient
+                    .scoringStart(startScoringRequest);
+            log.info("Start scoring process was finished : trackId - {}, response - {}",
                     trackId, startScoringResponse);
             return Optional.of(startScoringResponse.getBusinessKey());
         } catch (FeignException e) {
@@ -61,7 +62,9 @@ public class ScoringService {
         try {
             var processVariableResponse =
                     optimusClient.getProcessVariable(businessKey, variableName);
-            log.info("Get process variable was finished : trackId - {}, businessKey - {}, cardId - {}",
+            log.info(
+                    "Get process variable was "
+                            + "finished : trackId - {}, businessKey - {}, cardId - {}",
                     trackId, businessKey, processVariableResponse.getUid());
             return Optional.of(processVariableResponse);
         } catch (FeignException e) {
