@@ -56,12 +56,12 @@ public class ScoringService {
                                                                 String variableName) {
         var trackId = operationEntity.getId();
         var businessKey = operationEntity.getBusinessKey();
-        log.info("Get card uid process is started : trackId - {}, businessKey - {}",
+        log.info("Get process variable is started : trackId - {}, businessKey - {}",
                 trackId, businessKey);
         try {
             var processVariableResponse =
                     optimusClient.getProcessVariable(businessKey, variableName);
-            log.info("Get card uid was finished : trackId - {}, businessKey - {}, cardId - {}",
+            log.info("Get process variable was finished : trackId - {}, businessKey - {}, cardId - {}",
                     trackId, businessKey, processVariableResponse.getUid());
             return Optional.of(processVariableResponse);
         } catch (FeignException e) {
