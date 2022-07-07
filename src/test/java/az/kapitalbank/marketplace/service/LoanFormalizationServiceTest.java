@@ -1,10 +1,8 @@
 package az.kapitalbank.marketplace.service;
 
-import static az.kapitalbank.marketplace.constants.ConstantObject.getCustomerEntity;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getOperationEntity;
 import static az.kapitalbank.marketplace.constants.ConstantObject.getProcessResponse;
 import static az.kapitalbank.marketplace.constants.TestConstants.BUSINESS_KEY;
-import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
 import static az.kapitalbank.marketplace.constants.TestConstants.MOBILE_NUMBER;
 import static az.kapitalbank.marketplace.constants.TestConstants.TRACK_ID;
 import static org.mockito.ArgumentMatchers.any;
@@ -18,6 +16,7 @@ import az.kapitalbank.marketplace.client.optimus.model.process.CreateCardCreditR
 import az.kapitalbank.marketplace.client.optimus.model.process.Offer;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessData;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
+import az.kapitalbank.marketplace.client.optimus.model.process.ProcessVariableResponse;
 import az.kapitalbank.marketplace.client.optimus.model.process.SelectedOffer;
 import az.kapitalbank.marketplace.config.SmsProperties;
 import az.kapitalbank.marketplace.constant.FraudResultStatus;
@@ -254,36 +253,18 @@ class LoanFormalizationServiceTest {
     void scoringResultProcess_Completed() {
         BusinessErrorData[] arr = new BusinessErrorData[] {
                 BusinessErrorData.builder().id("RULE_HAS_WRITTEN_OF_CREDIT").build()};
+        var processVariableResponse =
+                new ProcessVariableResponse("pan", "uid", "0130179", "BUMM123");
         var request = ScoringResultEvent.builder()
                 .processStatus(ProcessStatus.COMPLETED)
                 .data(arr)
                 .businessKey(BUSINESS_KEY.getValue()).build();
         when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
                 Optional.of(getOperationEntity()));
-        when(scoringService.getCardId(any(OperationEntity.class), eq("uid"))).thenReturn(
-                Optional.of(CARD_UID.getValue()));
+        when(scoringService.getProcessVariable(any(OperationEntity.class), eq(null))).thenReturn(
+                Optional.of(processVariableResponse));
         when(orderService.prePurchaseOrders(any(OperationEntity.class),
-                eq(getCustomerEntity().getCardId()))).thenReturn(BigDecimal.ZERO);
-        loanFormalizationService.scoringResultProcess(request);
-        verify(operationRepository).findByBusinessKey(request.getBusinessKey());
-    }
-
-    @Test
-    void scoringResultProcess_GetProcessIsNull() {
-        BusinessErrorData[] arr = new BusinessErrorData[] {
-                BusinessErrorData.builder().id("RULE_HAS_WRITTEN_OF_CREDIT").build()};
-        var request = ScoringResultEvent.builder()
-                .processStatus(ProcessStatus.COMPLETED)
-                .data(arr)
-                .businessKey(BUSINESS_KEY.getValue()).build();
-        when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
-                Optional.of(getOperationEntity()));
-        when(scoringService.getProcess(any(OperationEntity.class))).thenReturn(
-                Optional.of(getProcessResponse()));
-        when(scoringService.getCardId(any(OperationEntity.class), eq("uid"))).thenReturn(
-                Optional.of(CARD_UID.getValue()));
-        when(orderService.prePurchaseOrders(any(OperationEntity.class),
-                eq(getCustomerEntity().getCardId()))).thenReturn(BigDecimal.ZERO);
+                eq(processVariableResponse.getUid()))).thenReturn(BigDecimal.ZERO);
         loanFormalizationService.scoringResultProcess(request);
         verify(operationRepository).findByBusinessKey(request.getBusinessKey());
     }
@@ -292,16 +273,17 @@ class LoanFormalizationServiceTest {
     void scoringResultProcess_Completed_NoCardId() {
         BusinessErrorData[] arr = new BusinessErrorData[] {
                 BusinessErrorData.builder().id("RULE_HAS_WRITTEN_OF_CREDIT").build()};
+        var processVariableResponse = ProcessVariableResponse.builder().build();
         var request = ScoringResultEvent.builder()
                 .processStatus(ProcessStatus.COMPLETED)
                 .data(arr)
                 .businessKey(BUSINESS_KEY.getValue()).build();
         when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
                 Optional.of(getOperationEntity()));
-        when(scoringService.getCardId(any(OperationEntity.class), eq("uid"))).thenReturn(
-                Optional.of(CARD_UID.getValue()));
+        when(scoringService.getProcessVariable(any(OperationEntity.class), eq(null))).thenReturn(
+                Optional.of(processVariableResponse));
         when(orderService.prePurchaseOrders(any(OperationEntity.class),
-                eq(CARD_UID.getValue()))).thenReturn(BigDecimal.ONE);
+                eq(processVariableResponse.getUid()))).thenReturn(BigDecimal.ONE);
         loanFormalizationService.scoringResultProcess(request);
         verify(operationRepository).findByBusinessKey(request.getBusinessKey());
     }
