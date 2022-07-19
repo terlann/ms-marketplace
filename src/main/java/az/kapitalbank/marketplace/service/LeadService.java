@@ -8,6 +8,7 @@ import static az.kapitalbank.marketplace.constant.UmicoDecisionStatus.PREAPPROVE
 import az.kapitalbank.marketplace.client.loan.LoanClient;
 import az.kapitalbank.marketplace.client.loan.model.LoanRequest;
 import az.kapitalbank.marketplace.client.loan.model.LoanResponse;
+import az.kapitalbank.marketplace.client.telesales.TelesalesClient;
 import az.kapitalbank.marketplace.constant.FraudType;
 import az.kapitalbank.marketplace.constant.ProductType;
 import az.kapitalbank.marketplace.constant.SendLeadReason;
@@ -15,6 +16,7 @@ import az.kapitalbank.marketplace.constant.SendLeadType;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.mapper.OrderMapper;
+import az.kapitalbank.marketplace.mapper.TelesalesMapper;
 import az.kapitalbank.marketplace.messaging.publisher.FraudCheckPublisher;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import java.math.BigDecimal;
@@ -42,8 +44,40 @@ public class LeadService {
     LoanClient loanClient;
     OrderMapper orderMapper;
     UmicoService umicoService;
+    TelesalesClient telesalesClient;
     OperationRepository operationRepository;
     FraudCheckPublisher fraudCheckPublisher;
+    TelesalesMapper telesalesMapper;
+
+    private Optional<String> sendLeadTelesales(OperationEntity operationEntity,
+                                               List<FraudType> fraudTypes) {
+        var trackId = operationEntity.getId();
+        try {
+            var request = telesalesMapper.toTelesalesOrder(operationEntity, fraudTypes);
+            log.info("Send lead to telesales is started : trackId - {}, request - {}",
+                    trackId, request);
+            var createTelesalesOrderResponse =
+                    telesalesClient.sendLead(request);
+            var responseMessage = createTelesalesOrderResponse.getResponse().getMessage();
+            var responseCode = createTelesalesOrderResponse.getResponse().getCode();
+            if (!responseCode.equals("0")) {
+                log.error("Send lead to telesales was failed : trackId - {}, exception - {}",
+                        trackId, responseMessage);
+                operationEntity.setIsSendLead(false);
+                return Optional.empty();
+            }
+            operationEntity.setIsSendLead(true);
+            log.info("Send lead to telesales was finished :" + " trackId - {}, response - {}",
+                    trackId, createTelesalesOrderResponse);
+            return Optional.of(createTelesalesOrderResponse.getOperationId());
+        } catch (Exception e) {
+            log.error("Send lead to telesales was failed :"
+                    + " trackId - {}, exception - {}", trackId, e);
+            operationEntity.setIsSendLead(false);
+            return Optional.empty();
+        }
+    }
+
 
     private Optional<String> sendLeadLoan(OperationEntity operationEntity,
                                           List<FraudType> fraudTypes) {
@@ -81,7 +115,9 @@ public class LeadService {
             fraudTypes = new ArrayList<>();
         }
         var leadId = sendLeadLoan(operationEntity, fraudTypes);
-        leadId.ifPresent(operationEntity::setTelesalesOrderId);
+        leadId.ifPresent(operationEntity::setLeadId);
+        var telesalesOrderId = sendLeadTelesales(operationEntity, fraudTypes);
+        telesalesOrderId.ifPresent(operationEntity::setTelesalesOrderId);
         if (operationEntity.getUmicoDecisionStatus() != PENDING) {
             var umicoDecisionStatus = umicoService.sendPendingDecision(operationEntity.getId());
             smsService.sendPendingSms(operationEntity);

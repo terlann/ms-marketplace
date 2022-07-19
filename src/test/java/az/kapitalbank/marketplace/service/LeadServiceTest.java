@@ -13,6 +13,9 @@ import static org.mockito.Mockito.when;
 
 import az.kapitalbank.marketplace.client.loan.LoanClient;
 import az.kapitalbank.marketplace.client.telesales.TelesalesClient;
+import az.kapitalbank.marketplace.client.telesales.model.CreateTelesalesOrderRequest;
+import az.kapitalbank.marketplace.client.telesales.model.CreateTelesalesOrderResponse;
+import az.kapitalbank.marketplace.constant.FraudType;
 import az.kapitalbank.marketplace.constant.SendLeadReason;
 import az.kapitalbank.marketplace.constant.SendLeadType;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
@@ -27,6 +30,8 @@ import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -53,6 +58,24 @@ class LeadServiceTest {
     @InjectMocks
     private LeadService leadService;
 
+    @ParameterizedTest
+    @CsvSource({
+            "1, 100",
+            "0, hello"
+    })
+    void sendLead_Success(String code, String message) {
+        var createTelesalesOrderRequest = CreateTelesalesOrderRequest.builder().build();
+        var createTelesalesOrderResponse = CreateTelesalesOrderResponse.builder()
+                .response(new CreateTelesalesOrderResponse.Response(code, message)).build();
+        when(telesalesMapper.toTelesalesOrder(any(OperationEntity.class),
+                eq(List.of(FraudType.PIN)))).thenReturn(createTelesalesOrderRequest);
+        when(telesalesClient.sendLead(any(CreateTelesalesOrderRequest.class))).thenReturn(
+                createTelesalesOrderResponse);
+
+        leadService.sendLead(getOperationEntity(), List.of(FraudType.PIN));
+        verify(telesalesMapper).toTelesalesOrder(any(OperationEntity.class),
+                eq(List.of(FraudType.PIN)));
+    }
 
     @Test
     void sendLeadSchedule_Success() {
