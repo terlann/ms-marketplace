@@ -44,9 +44,10 @@ class SmsServiceTest {
     void start() {
         ReflectionTestUtils.setField(this.smsProperties, "text",
                 Map.of("complete-scoring",
-                        "{contractNumber} sayli  sorgunuz uzre {amount} AZN kredit xetti"
-                                + " tesdiqlendi. Minimal odenish meblegi her ayin 1-10 "
-                                + "araligindadir. Musteri kodu - {cif}",
+                        "Hormetli musteri, Umico Market-den elde etdiyiniz {contractNumber} "
+                                + "krediti uzre {amount} AZN kredit xetti tesdiqlendi."
+                                + " Ayliq borcunuzu her ayin 1-10 araliginda odeye bilersiniz. "
+                                + "Musteri kodu - {cif}",
                         "pre-purchase",
                         "Marketplace kredit xetti uzre {amount} AZN odenis ugurla tamamlandi."));
     }
@@ -92,8 +93,9 @@ class SmsServiceTest {
                 .cif("1234567")
                 .build();
         var sendSmsRequest = SendSmsRequest.builder()
-                .body("BUMM123456789 sayli  sorgunuz uzre 55 AZN kredit xetti tesdiqlendi. Minimal"
-                        + " odenish meblegi her ayin 1-10 araligindadir. Musteri kodu - 1234567")
+                .body("Hormetli musteri, Umico Market-den elde etdiyiniz BUMM123456789 krediti "
+                        + "uzre 55 AZN kredit xetti tesdiqlendi. Ayliq borcunuzu her ayin"
+                        + " 1-10 araliginda odeye bilersiniz. Musteri kodu - 1234567")
                 .phoneNumber(operationEntity.getMobileNumber())
                 .build();
 
