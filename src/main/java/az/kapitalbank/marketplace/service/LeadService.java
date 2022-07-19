@@ -114,8 +114,7 @@ public class LeadService {
         if (fraudTypes == null) {
             fraudTypes = new ArrayList<>();
         }
-        var leadId = sendLeadLoan(operationEntity, fraudTypes);
-        leadId.ifPresent(operationEntity::setLeadId);
+        sendLeadLoan(operationEntity, fraudTypes);
         var telesalesOrderId = sendLeadTelesales(operationEntity, fraudTypes);
         telesalesOrderId.ifPresent(operationEntity::setTelesalesOrderId);
         if (operationEntity.getUmicoDecisionStatus() != PENDING) {
