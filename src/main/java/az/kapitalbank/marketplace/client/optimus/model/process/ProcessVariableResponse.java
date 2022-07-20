@@ -15,4 +15,6 @@ import lombok.experimental.FieldDefaults;
 public class ProcessVariableResponse {
     String pan;
     String uid;
+    String cif;
+    String cardCreditContractNumber;
 }

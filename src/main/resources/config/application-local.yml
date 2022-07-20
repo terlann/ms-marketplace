@@ -103,6 +103,6 @@ commission:
 sms:
   text:
     preapprove: Kredit muracietiniz qeyde alindi. Shexsiyyetin eynileshdirilmesi ucun uz tanima prosesi ile davam edin.
-    complete-scoring: {contractNumber} sayli  sorgunuz uzre {amount} AZN kredit xetti tesdiqlendi. Minimal odenish meblegi her ayin 1-10 araligindadir. Musteri kodu - {cif}
+    complete-scoring: "{contractNumber} sayli  sorgunuz uzre {amount} AZN kredit xetti tesdiqlendi. Minimal odenish meblegi her ayin 1-10 araligindadir. Musteri kodu - {cif}"
     pre-purchase: Marketplace kredit xetti uzre {amount} AZN odenis ugurla tamamlandi.
     pending: Sizinle tezlikle elaqe saxlanilacaq.
