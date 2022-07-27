@@ -51,20 +51,21 @@ class ScoringServiceTest {
 
     @Test
     void getCardId() {
-        var processVariableResponse = new ProcessVariableResponse("pan", "uid");
-        when(optimusClient.getProcessVariable(BUSINESS_KEY.getValue(), "uid"))
+        var processVariableResponse =
+                new ProcessVariableResponse("pan", "uid", "0130179", "BUMM123");
+        when(optimusClient.getProcessVariable(BUSINESS_KEY.getValue(), null))
                 .thenReturn(processVariableResponse);
 
-        scoringService.getCardId(getOperationEntity(), "uid");
-        verify(optimusClient).getProcessVariable(BUSINESS_KEY.getValue(), "uid");
+        scoringService.getProcessVariable(getOperationEntity(), null);
+        verify(optimusClient).getProcessVariable(BUSINESS_KEY.getValue(),null);
     }
 
     @Test
     void getCardId_OptimusClientException() {
-        when(optimusClient.getProcessVariable(BUSINESS_KEY.getValue(), "uid"))
+        when(optimusClient.getProcessVariable(BUSINESS_KEY.getValue(), null))
                 .thenThrow(FeignException.class);
-        scoringService.getCardId(getOperationEntity(), "uid");
-        verify(optimusClient).getProcessVariable(BUSINESS_KEY.getValue(), "uid");
+        scoringService.getProcessVariable(getOperationEntity(), null);
+        verify(optimusClient).getProcessVariable(BUSINESS_KEY.getValue(), null);
     }
 
     @Test
