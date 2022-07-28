@@ -29,4 +29,5 @@ public class OrderProductItem {
     @NotBlank
     String partnerCmsId;
     Integer categoryId;
+    String brand;
 }
