@@ -38,7 +38,6 @@ import lombok.experimental.SuperBuilder;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class OperationEntity extends BaseEntity {
     String telesalesOrderId;
-    String leadId;
     BigDecimal totalAmount;
     BigDecimal commission;
     Integer loanTerm;
