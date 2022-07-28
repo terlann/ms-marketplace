@@ -63,6 +63,17 @@ public class ConstantObject {
                 .build();
     }
 
+    public static OperationEntity getOperationEntityForMonthlyPayment() {
+        return OperationEntity.builder()
+                .id(UUID.fromString(TRACK_ID.getValue()))
+                .orders(List.of(getOrderEntity()))
+                .commission(BigDecimal.valueOf(12))
+                .customer(getCustomerEntity())
+                .totalAmount(BigDecimal.ONE)
+                .loanTerm(3)
+                .build();
+    }
+
     public static ProcessResponse getProcessResponse() {
         return ProcessResponse.builder()
                 .variables(ProcessData.builder()

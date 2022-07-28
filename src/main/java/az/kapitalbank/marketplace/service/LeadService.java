@@ -13,18 +13,20 @@ import az.kapitalbank.marketplace.constant.FraudType;
 import az.kapitalbank.marketplace.constant.ProductType;
 import az.kapitalbank.marketplace.constant.SendLeadReason;
 import az.kapitalbank.marketplace.constant.SendLeadType;
-import az.kapitalbank.marketplace.constant.SubProductType;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.mapper.OrderMapper;
 import az.kapitalbank.marketplace.mapper.TelesalesMapper;
 import az.kapitalbank.marketplace.messaging.publisher.FraudCheckPublisher;
 import az.kapitalbank.marketplace.repository.OperationRepository;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -43,9 +45,9 @@ public class LeadService {
     OrderMapper orderMapper;
     UmicoService umicoService;
     TelesalesClient telesalesClient;
-    TelesalesMapper telesalesMapper;
     OperationRepository operationRepository;
     FraudCheckPublisher fraudCheckPublisher;
+    TelesalesMapper telesalesMapper;
 
     private Optional<String> sendLeadTelesales(OperationEntity operationEntity,
                                                List<FraudType> fraudTypes) {
@@ -76,17 +78,26 @@ public class LeadService {
         }
     }
 
-    public Optional<String> sendLeadLoan(OperationEntity operationEntity) {
+
+    private Optional<String> sendLeadLoan(OperationEntity operationEntity,
+                                          List<FraudType> fraudTypes) {
         var trackId = operationEntity.getId();
         try {
-            LoanRequest loanRequest = LoanRequest.builder().productType(ProductType.BIRKART)
-                    .subProductType(SubProductType.UMICO)
-                    .phoneNumber(operationEntity.getMobileNumber())
-                    .fullName(operationEntity.getFullName()).pinCode(operationEntity.getPin())
-                    .productAmount(
-                            operationEntity.getTotalAmount()
+            var frauds = fraudTypes.stream().map(Object::toString).collect(Collectors.joining(";"));
+            var monthlyPayment =
+                    operationEntity.getTotalAmount().add(operationEntity.getCommission())
+                            .divide(BigDecimal.valueOf(operationEntity.getLoanTerm()),
+                                    2, RoundingMode.FLOOR);
+            LoanRequest loanRequest =
+                    LoanRequest.builder().productType(ProductType.UMICO_MARKETPLACE)
+                            .phoneNumber(operationEntity.getMobileNumber())
+                            .fullName(operationEntity.getFullName())
+                            .pinCode(operationEntity.getPin())
+                            .productAmount(operationEntity.getTotalAmount()
                                     .add(operationEntity.getCommission()))
-                    .build();
+                            .monthlyPayment(monthlyPayment)
+                            .umicoUserId(operationEntity.getCustomer().getUmicoUserId())
+                            .leadComment(frauds).build();
             log.info("Send lead to loan is started : trackId - {}, request - {}",
                     trackId, loanRequest);
             LoanResponse response = loanClient.sendLead(UMICO_SOURCE_CODE, loanRequest);
@@ -94,8 +105,7 @@ public class LeadService {
                     response);
             return Optional.of(response.getData().getLeadId());
         } catch (Exception e) {
-            log.error("Send lead to loan was failed : trackId - {}, exception - {}", trackId,
-                    e);
+            log.error("Send lead to loan was failed : trackId - {}, exception - {}", trackId, e);
             return Optional.empty();
         }
     }
@@ -104,6 +114,7 @@ public class LeadService {
         if (fraudTypes == null) {
             fraudTypes = new ArrayList<>();
         }
+        sendLeadLoan(operationEntity, fraudTypes);
         var telesalesOrderId = sendLeadTelesales(operationEntity, fraudTypes);
         telesalesOrderId.ifPresent(operationEntity::setTelesalesOrderId);
         if (operationEntity.getUmicoDecisionStatus() != PENDING) {
