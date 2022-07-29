@@ -97,6 +97,7 @@ public class LeadService {
                                     .add(operationEntity.getCommission()))
                             .monthlyPayment(monthlyPayment)
                             .umicoUserId(operationEntity.getCustomer().getUmicoUserId())
+                            .productDuration(operationEntity.getLoanTerm())
                             .leadComment(frauds).build();
             log.info("Send lead to loan is started : trackId - {}, request - {}",
                     trackId, loanRequest);
