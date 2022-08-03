@@ -76,6 +76,9 @@ public class OperationEntity extends BaseEntity {
     String deviceTokenId;
     String cif;
     String contractNumber;
+    Integer birbankUserId;
+    String birbankDeviceId;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false, updatable = false)
     CustomerEntity customer;

@@ -35,4 +35,6 @@ public class CustomerInfo {
     @NotNull
     String userAgent;
     String deviceTokenId;
+    Integer birbankUserId;
+    String birbankDeviceId;
 }
