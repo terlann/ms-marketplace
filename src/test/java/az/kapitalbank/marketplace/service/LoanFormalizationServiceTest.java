@@ -20,7 +20,7 @@ import az.kapitalbank.marketplace.client.optimus.model.process.ProcessVariableRe
 import az.kapitalbank.marketplace.client.optimus.model.process.SelectedOffer;
 import az.kapitalbank.marketplace.config.SmsProperties;
 import az.kapitalbank.marketplace.constant.FraudResultStatus;
-import az.kapitalbank.marketplace.constant.ProcessStatus;
+import az.kapitalbank.marketplace.constant.OptimusProcessStatus;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.messaging.event.BusinessErrorData;
@@ -70,7 +70,7 @@ class LoanFormalizationServiceTest {
     void fraudResultProcess_BlackList() {
         var request = FraudCheckResultEvent.builder()
                 .trackId(UUID.fromString(TRACK_ID.getValue()))
-                .fraudResultStatus(FraudResultStatus.BLACKLIST)
+                .fraudResultStatus(FraudResultStatus.BLACKLIST.name())
                 .build();
         when(operationRepository.findById(request.getTrackId())).thenReturn(
                 Optional.of(getOperationEntity()));
@@ -84,7 +84,7 @@ class LoanFormalizationServiceTest {
     void fraudResultProcess_NotFoundOperation() {
         var request = FraudCheckResultEvent.builder()
                 .trackId(UUID.fromString(TRACK_ID.getValue()))
-                .fraudResultStatus(FraudResultStatus.BLACKLIST)
+                .fraudResultStatus(FraudResultStatus.BLACKLIST.name())
                 .build();
         when(operationRepository.findById(request.getTrackId())).thenReturn(Optional.empty());
         loanFormalizationService.fraudResultProcess(request);
@@ -95,7 +95,7 @@ class LoanFormalizationServiceTest {
     void fraudResultProcess_SuspiciousSendTelesales() {
         var request = FraudCheckResultEvent.builder()
                 .trackId(UUID.fromString(TRACK_ID.getValue()))
-                .fraudResultStatus(FraudResultStatus.SUSPICIOUS_TELESALES)
+                .fraudResultStatus(FraudResultStatus.SUSPICIOUS_TELESALES.name())
                 .build();
         when(operationRepository.findById(request.getTrackId())).thenReturn(
                 Optional.of(getOperationEntity()));
@@ -107,7 +107,7 @@ class LoanFormalizationServiceTest {
     void fraudResultProcess_SuspiciousSendUmico() {
         var request = FraudCheckResultEvent.builder()
                 .trackId(UUID.fromString(TRACK_ID.getValue()))
-                .fraudResultStatus(FraudResultStatus.SUSPICIOUS_UMICO)
+                .fraudResultStatus(FraudResultStatus.SUSPICIOUS_UMICO.name())
                 .build();
         when(operationRepository.findById(request.getTrackId())).thenReturn(
                 Optional.of(getOperationEntity()));
@@ -145,7 +145,7 @@ class LoanFormalizationServiceTest {
         var inUserActivityData = InUserActivityData.builder()
                 .taskDefinitionKey("USER_TASK_SIGN_DOCUMENTS").build();
         var request = ScoringResultEvent.builder()
-                .processStatus(ProcessStatus.IN_USER_ACTIVITY)
+                .processStatus(OptimusProcessStatus.IN_USER_ACTIVITY)
                 .data(inUserActivityData)
                 .businessKey(BUSINESS_KEY.getValue()).build();
         var operationEntity = OperationEntity.builder()
@@ -167,11 +167,28 @@ class LoanFormalizationServiceTest {
     }
 
     @Test
+    void scoringResultProcess_GetProcessFail() {
+        var inUserActivityData = InUserActivityData.builder()
+                .taskDefinitionKey("USER_TASK_SIGN_DOCUMENTS").build();
+        var request = ScoringResultEvent.builder()
+                .processStatus(OptimusProcessStatus.IN_USER_ACTIVITY)
+                .data(inUserActivityData)
+                .businessKey(BUSINESS_KEY.getValue()).build();
+        when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
+                Optional.of(getOperationEntity()));
+        when(scoringService.getProcess(any(OperationEntity.class))).thenReturn(
+                Optional.empty());
+        loanFormalizationService.scoringResultProcess(request);
+        verify(operationRepository).findByBusinessKey(request.getBusinessKey());
+    }
+
+
+    @Test
     void scoringResultProcess_InUserActivity_UserTaskSignDocuments_NoDvsUrl() {
         var inUserActivityData = InUserActivityData.builder()
                 .taskDefinitionKey("USER_TASK_SIGN_DOCUMENTS").build();
         var request = ScoringResultEvent.builder()
-                .processStatus(ProcessStatus.IN_USER_ACTIVITY)
+                .processStatus(OptimusProcessStatus.IN_USER_ACTIVITY)
                 .data(inUserActivityData)
                 .businessKey(BUSINESS_KEY.getValue()).build();
         var processResponse = ProcessResponse.builder()
@@ -202,7 +219,7 @@ class LoanFormalizationServiceTest {
         var inUserActivityData = InUserActivityData.builder()
                 .taskDefinitionKey("USER_TASK_SCORING").build();
         var request = ScoringResultEvent.builder()
-                .processStatus(ProcessStatus.IN_USER_ACTIVITY)
+                .processStatus(OptimusProcessStatus.IN_USER_ACTIVITY)
                 .data(inUserActivityData)
                 .businessKey(BUSINESS_KEY.getValue()).build();
         var processResponse = ProcessResponse.builder()
@@ -229,7 +246,7 @@ class LoanFormalizationServiceTest {
         var inUserActivityData = InUserActivityData.builder()
                 .taskDefinitionKey("USER_TASK_SCORING").build();
         var request = ScoringResultEvent.builder()
-                .processStatus(ProcessStatus.IN_USER_ACTIVITY)
+                .processStatus(OptimusProcessStatus.IN_USER_ACTIVITY)
                 .data(inUserActivityData)
                 .businessKey(BUSINESS_KEY.getValue()).build();
         var processResponse = ProcessResponse.builder()
@@ -256,7 +273,7 @@ class LoanFormalizationServiceTest {
         var processVariableResponse =
                 new ProcessVariableResponse("pan", "uid", "0130179", "BUMM123");
         var request = ScoringResultEvent.builder()
-                .processStatus(ProcessStatus.COMPLETED)
+                .processStatus(OptimusProcessStatus.COMPLETED)
                 .data(arr)
                 .businessKey(BUSINESS_KEY.getValue()).build();
         when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
@@ -275,7 +292,7 @@ class LoanFormalizationServiceTest {
                 BusinessErrorData.builder().id("RULE_HAS_WRITTEN_OF_CREDIT").build()};
         var processVariableResponse = ProcessVariableResponse.builder().build();
         var request = ScoringResultEvent.builder()
-                .processStatus(ProcessStatus.COMPLETED)
+                .processStatus(OptimusProcessStatus.COMPLETED)
                 .data(arr)
                 .businessKey(BUSINESS_KEY.getValue()).build();
         when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
@@ -293,7 +310,7 @@ class LoanFormalizationServiceTest {
         BusinessErrorData[] arr = new BusinessErrorData[] {
                 BusinessErrorData.builder().id("RULE_HAS_WRITTEN_OF_CREDIT").build()};
         var request = ScoringResultEvent.builder()
-                .processStatus(ProcessStatus.BUSINESS_ERROR)
+                .processStatus(OptimusProcessStatus.BUSINESS_ERROR)
                 .data(arr)
                 .businessKey(BUSINESS_KEY.getValue()).build();
         when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
@@ -308,7 +325,7 @@ class LoanFormalizationServiceTest {
         BusinessErrorData[] arr = new BusinessErrorData[] {
                 BusinessErrorData.builder().id("test").build()};
         var request = ScoringResultEvent.builder()
-                .processStatus(ProcessStatus.BUSINESS_ERROR)
+                .processStatus(OptimusProcessStatus.BUSINESS_ERROR)
                 .data(arr)
                 .businessKey(BUSINESS_KEY.getValue()).build();
         when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
@@ -321,7 +338,7 @@ class LoanFormalizationServiceTest {
     @Test
     void scoringResultProcess_Incident() {
         var request = ScoringResultEvent.builder()
-                .processStatus(ProcessStatus.INCIDENT_HAPPENED)
+                .processStatus(OptimusProcessStatus.INCIDENT_HAPPENED)
                 .businessKey(BUSINESS_KEY.getValue()).build();
         when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(
                 Optional.of(getOperationEntity()));
@@ -374,7 +391,7 @@ class LoanFormalizationServiceTest {
         var inUserActivityData = InUserActivityData.builder()
                 .taskDefinitionKey("USER_TASK_SIGN_DOCUMENTS").build();
         var request = ScoringResultEvent.builder()
-                .processStatus(ProcessStatus.IN_USER_ACTIVITY)
+                .processStatus(OptimusProcessStatus.IN_USER_ACTIVITY)
                 .data(inUserActivityData)
                 .businessKey(BUSINESS_KEY.getValue()).build();
         when(operationRepository.findByBusinessKey(request.getBusinessKey())).thenReturn(

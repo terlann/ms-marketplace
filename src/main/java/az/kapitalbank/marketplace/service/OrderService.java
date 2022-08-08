@@ -32,7 +32,7 @@ import az.kapitalbank.marketplace.client.atlas.model.response.AtlasErrorResponse
 import az.kapitalbank.marketplace.client.atlas.model.response.TransactionInfoResponse;
 import az.kapitalbank.marketplace.constant.AccountStatus;
 import az.kapitalbank.marketplace.constant.Error;
-import az.kapitalbank.marketplace.constant.OperationRejectReason;
+import az.kapitalbank.marketplace.constant.ProcessStatus;
 import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
@@ -46,6 +46,7 @@ import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
+import az.kapitalbank.marketplace.entity.ProcessStepEntity;
 import az.kapitalbank.marketplace.entity.ProductEntity;
 import az.kapitalbank.marketplace.exception.CommonException;
 import az.kapitalbank.marketplace.exception.DeliveryException;
@@ -64,6 +65,7 @@ import feign.FeignException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -110,10 +112,15 @@ public class OrderService {
         operationEntity.setCif(request.getCif());
         operationEntity.setContractNumber(request.getContractNumber());
         if (request.getScoringStatus() == ScoringStatus.REJECTED) {
+            var processStatus =
+                    ProcessStatus.TELESALES_REJECT_CODE_PREFIX + request.getRejectReasonCode();
+            operationEntity.setProcessStatus(processStatus);
+            var processStep = ProcessStepEntity.builder().value(processStatus).build();
+            operationEntity.setProcessSteps(Collections.singletonList(processStep));
+            operationEntity.setScoringStatus(ScoringStatus.REJECTED);
+            processStep.setOperation(operationEntity);
             var umicoDecisionStatus = umicoService.sendRejectedDecision(operationEntity.getId());
             operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
-            operationEntity.setRejectReason(OperationRejectReason.TELESALES);
-            operationEntity.setScoringStatus(ScoringStatus.REJECTED);
             log.info("Telesales result : Customer was failed telesales process : "
                     + "trackId - {} , scoringStatus - {}", trackId, request.getScoringStatus());
             return;

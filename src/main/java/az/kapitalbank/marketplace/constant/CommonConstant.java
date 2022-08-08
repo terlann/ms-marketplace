@@ -1,5 +1,6 @@
 package az.kapitalbank.marketplace.constant;
 
+import java.util.List;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -14,4 +15,6 @@ public final class CommonConstant {
     public static final String ORDER_NO_EXCEPTION_LOG = "orderNo - {}, exception - {}";
     public static final String SECURITY_POLICY = "script-src 'self'; form-action 'self'";
     public static final String TOKEN_PREFIX = "Bearer ";
+    public static final List<String> UMICO_REJECT_LIST_BY_FRAUD =
+            List.of("BLACKLIST", "OTHER_UMICO_USER_ID_APPROVED_WITH_CURRENT_PIN");
 }

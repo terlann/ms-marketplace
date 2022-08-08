@@ -78,6 +78,7 @@ public class OperationEntity extends BaseEntity {
     String contractNumber;
     Integer birbankUserId;
     String birbankDeviceId;
+    String processStatus;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false, updatable = false)
@@ -86,4 +87,7 @@ public class OperationEntity extends BaseEntity {
     @Builder.Default
     @OneToMany(mappedBy = "operation", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderEntity> orders = new ArrayList<>();
+
+    @OneToMany(mappedBy = "operation", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ProcessStepEntity> processSteps;
 }

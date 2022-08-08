@@ -1,6 +1,6 @@
 package az.kapitalbank.marketplace.messaging.event;
 
-import az.kapitalbank.marketplace.constant.ProcessStatus;
+import az.kapitalbank.marketplace.constant.OptimusProcessStatus;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import lombok.AccessLevel;
@@ -16,7 +16,7 @@ import lombok.experimental.FieldDefaults;
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ScoringResultEvent {
-    ProcessStatus processStatus;
+    OptimusProcessStatus processStatus;
     String businessKey;
     String username;
     String messageType;
