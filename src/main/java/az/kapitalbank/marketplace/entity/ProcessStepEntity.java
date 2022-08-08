@@ -17,7 +17,7 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "KB_MARKETPLACE_OPERATION_STEP")
+@Table(name = "KB_MARKETPLACE_PROCESS_STEP")
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ProcessStepEntity extends BaseEntity {
 
