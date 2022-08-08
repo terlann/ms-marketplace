@@ -1,9 +1,7 @@
 package az.kapitalbank.marketplace.entity;
 
 import az.kapitalbank.marketplace.constant.DvsStatus;
-import az.kapitalbank.marketplace.constant.OperationRejectReason;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
-import az.kapitalbank.marketplace.constant.SendLeadReason;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -65,14 +63,9 @@ public class OperationEntity extends BaseEntity {
     DvsStatus dvsOrderStatus;
     @Enumerated(EnumType.STRING)
     UmicoDecisionStatus umicoDecisionStatus;
-    @Enumerated(EnumType.STRING)
-    OperationRejectReason rejectReason;
     Boolean isSendLead;
-    @Enumerated(EnumType.STRING)
-    SendLeadReason sendLeadReason;
     BigDecimal scoredAmount;
     Boolean isOtpOperation;
-    String businessErrorReason;
     String deviceTokenId;
     String cif;
     String contractNumber;

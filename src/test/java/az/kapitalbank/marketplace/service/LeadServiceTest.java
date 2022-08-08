@@ -15,7 +15,6 @@ import az.kapitalbank.marketplace.client.loan.LoanClient;
 import az.kapitalbank.marketplace.client.telesales.TelesalesClient;
 import az.kapitalbank.marketplace.client.telesales.model.CreateTelesalesOrderRequest;
 import az.kapitalbank.marketplace.client.telesales.model.CreateTelesalesOrderResponse;
-import az.kapitalbank.marketplace.constant.SendLeadReason;
 import az.kapitalbank.marketplace.constant.SendLeadType;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.entity.OperationEntity;
@@ -90,7 +89,7 @@ class LeadServiceTest {
     void retrySendLead_Fraud() {
         OperationEntity operationEntity =
                 OperationEntity.builder().id(UUID.fromString(TRACK_ID.getValue()))
-                        .sendLeadReason(SendLeadReason.FRAUD_LIST).build();
+                        .build();
 
         when(operationRepository.findByUmicoDecisionStatusAndIsSendLeadIsFalse(
                 UmicoDecisionStatus.PENDING)).thenReturn(List.of(operationEntity));
@@ -103,7 +102,7 @@ class LeadServiceTest {
     void retrySendLead_Success() {
         OperationEntity operationEntity =
                 OperationEntity.builder().id(UUID.fromString(TRACK_ID.getValue()))
-                        .sendLeadReason(SendLeadReason.OPTIMUS_FAIL_GET_PROCESS).build();
+                        .build();
 
         when(operationRepository.findByUmicoDecisionStatusAndIsSendLeadIsFalse(
                 UmicoDecisionStatus.PENDING)).thenReturn(
