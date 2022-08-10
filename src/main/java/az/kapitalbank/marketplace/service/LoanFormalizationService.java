@@ -1,11 +1,10 @@
 package az.kapitalbank.marketplace.service;
 
-import static az.kapitalbank.marketplace.constant.CommonConstant.UMICO_REJECT_LIST_BY_FRAUD;
-
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessResponse;
 import az.kapitalbank.marketplace.client.optimus.model.process.ProcessVariableResponse;
 import az.kapitalbank.marketplace.constant.DvsStatus;
 import az.kapitalbank.marketplace.constant.Error;
+import az.kapitalbank.marketplace.constant.FraudResultStatus;
 import az.kapitalbank.marketplace.constant.ProcessStatus;
 import az.kapitalbank.marketplace.constant.RejectedBusinessError;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
@@ -57,12 +56,12 @@ public class LoanFormalizationService {
             if (fraudResultStatus == null) {
                 noFraudProcess(operationEntity);
             } else {
-                var processStatus = ProcessStatus.FRAUD_PREFIX + fraudResultStatus;
-                operationEntity.setProcessStatus(processStatus);
-                var processStep = ProcessStepEntity.builder().value(processStatus).build();
+                operationEntity.setProcessStatus(fraudResultStatus.name());
+                var processStep =
+                        ProcessStepEntity.builder().value(fraudResultStatus.name()).build();
                 operationEntity.setProcessSteps(Collections.singletonList(processStep));
                 processStep.setOperation(operationEntity);
-                if (UMICO_REJECT_LIST_BY_FRAUD.contains(fraudResultStatus)) {
+                if (FraudResultStatus.exists(fraudResultStatus)) {
                     log.info("It was rejected by fraud : trackId - {}, fraudReason - {}",
                             trackId, fraudResultStatus);
                     var umicoDecisionStatus = umicoService.sendRejectedDecision(trackId);
