@@ -81,6 +81,6 @@ public class OperationEntity extends BaseEntity {
     @OneToMany(mappedBy = "operation", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderEntity> orders = new ArrayList<>();
 
-    @OneToMany(mappedBy = "operation", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "operation", cascade = CascadeType.ALL)
     private List<ProcessStepEntity> processSteps = new ArrayList<>();
 }
