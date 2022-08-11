@@ -159,7 +159,7 @@ public class OrderService {
         var umicoUserId = customerEntity.getUmicoUserId();
         var processStatus = operationEntity.getProcessStatus();
         if (Objects.equals(processStatus, FRAUD_PIN_AND_UMICO_USER_ID_SUSPICIOUS.name())) {
-            pinAndUmicoUserIdSuspicious(request, pin, umicoUserId, processStatus);
+            pinAndUmicoUserIdSuspiciousProcess(request, pin, umicoUserId, processStatus);
         } else if (Objects.equals(processStatus, FRAUD_PIN_SUSPICIOUS.name())) {
             pinSuspiciousProcess(request, pin, processStatus);
         } else if (Objects.equals(processStatus, FRAUD_UMICO_USER_ID_SUSPICIOUS.name())) {
@@ -203,9 +203,9 @@ public class OrderService {
         }
     }
 
-    private void pinAndUmicoUserIdSuspicious(TelesalesResultRequestDto request, String pin,
-                                             String umicoUserId,
-                                             String processStatus) {
+    private void pinAndUmicoUserIdSuspiciousProcess(TelesalesResultRequestDto request, String pin,
+                                                    String umicoUserId,
+                                                    String processStatus) {
         if (request.getScoringStatus() == ScoringStatus.REJECTED
                 && CUSTOM_REJECT_REASON_CODES.contains(request.getRejectReasonCode())) {
             var blacklist =
