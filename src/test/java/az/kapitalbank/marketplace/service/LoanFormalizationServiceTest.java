@@ -21,7 +21,6 @@ import az.kapitalbank.marketplace.client.optimus.model.process.SelectedOffer;
 import az.kapitalbank.marketplace.config.SmsProperties;
 import az.kapitalbank.marketplace.constant.FraudResultStatus;
 import az.kapitalbank.marketplace.constant.OptimusProcessStatus;
-import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.messaging.event.BusinessErrorData;
 import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
@@ -67,35 +66,10 @@ class LoanFormalizationServiceTest {
     private LoanFormalizationService loanFormalizationService;
 
     @Test
-    void fraudResultProcess_BlackList() {
-        var request = FraudCheckResultEvent.builder()
-                .trackId(UUID.fromString(TRACK_ID.getValue()))
-                .fraudResultStatus(FraudResultStatus.BLACKLIST.name())
-                .build();
-        when(operationRepository.findById(request.getTrackId())).thenReturn(
-                Optional.of(getOperationEntity()));
-        when(umicoService.sendRejectedDecision(request.getTrackId())).thenReturn(
-                UmicoDecisionStatus.REJECTED);
-        loanFormalizationService.fraudResultProcess(request);
-        verify(operationRepository).findById(request.getTrackId());
-    }
-
-    @Test
-    void fraudResultProcess_NotFoundOperation() {
-        var request = FraudCheckResultEvent.builder()
-                .trackId(UUID.fromString(TRACK_ID.getValue()))
-                .fraudResultStatus(FraudResultStatus.BLACKLIST.name())
-                .build();
-        when(operationRepository.findById(request.getTrackId())).thenReturn(Optional.empty());
-        loanFormalizationService.fraudResultProcess(request);
-        verify(operationRepository).findById(request.getTrackId());
-    }
-
-    @Test
     void fraudResultProcess_SuspiciousSendTelesales() {
         var request = FraudCheckResultEvent.builder()
                 .trackId(UUID.fromString(TRACK_ID.getValue()))
-                .fraudResultStatus(FraudResultStatus.SUSPICIOUS_TELESALES.name())
+                .fraudResultStatus(FraudResultStatus.FRAUD_PIN_SUSPICIOUS)
                 .build();
         when(operationRepository.findById(request.getTrackId())).thenReturn(
                 Optional.of(getOperationEntity()));
@@ -107,7 +81,7 @@ class LoanFormalizationServiceTest {
     void fraudResultProcess_SuspiciousSendUmico() {
         var request = FraudCheckResultEvent.builder()
                 .trackId(UUID.fromString(TRACK_ID.getValue()))
-                .fraudResultStatus(FraudResultStatus.SUSPICIOUS_UMICO.name())
+                .fraudResultStatus(FraudResultStatus.FRAUD_BLACKLIST)
                 .build();
         when(operationRepository.findById(request.getTrackId())).thenReturn(
                 Optional.of(getOperationEntity()));
@@ -136,6 +110,17 @@ class LoanFormalizationServiceTest {
                 Optional.of(getOperationEntity()));
         when(scoringService.startScoring(any(OperationEntity.class))).thenReturn(
                 Optional.of("asdf"));
+        loanFormalizationService.fraudResultProcess(request);
+        verify(operationRepository).findById(request.getTrackId());
+    }
+
+    @Test
+    void fraudResultProcess_OperationNotFound() {
+        var request = FraudCheckResultEvent.builder()
+                .trackId(UUID.fromString(TRACK_ID.getValue()))
+                .build();
+        when(operationRepository.findById(request.getTrackId())).thenReturn(
+                Optional.empty());
         loanFormalizationService.fraudResultProcess(request);
         verify(operationRepository).findById(request.getTrackId());
     }

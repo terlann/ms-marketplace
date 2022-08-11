@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -62,7 +63,9 @@ import az.kapitalbank.marketplace.mapper.OperationMapper;
 import az.kapitalbank.marketplace.mapper.OrderMapper;
 import az.kapitalbank.marketplace.messaging.event.FraudCheckEvent;
 import az.kapitalbank.marketplace.messaging.publisher.FraudCheckPublisher;
+import az.kapitalbank.marketplace.repository.BlacklistRepository;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
+import az.kapitalbank.marketplace.repository.FraudRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
 import az.kapitalbank.marketplace.util.CommissionUtil;
@@ -79,6 +82,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -87,7 +92,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class OrderServiceTest {
 
     @Mock
-    CommissionUtil commissionUtil;
+    SmsService smsService;
     @Mock
     OrderMapper orderMapper;
     @Mock
@@ -97,11 +102,13 @@ class OrderServiceTest {
     @Mock
     CustomerMapper customerMapper;
     @Mock
+    CommissionUtil commissionUtil;
+    @Mock
     OrderRepository orderRepository;
     @Mock
-    OperationMapper operationMapper;
+    FraudRepository fraudRepository;
     @Mock
-    CustomerService customerService;
+    OperationMapper operationMapper;
     @Mock
     CustomerRepository customerRepository;
     @Mock
@@ -109,7 +116,7 @@ class OrderServiceTest {
     @Mock
     OperationRepository operationRepository;
     @Mock
-    SmsService smsService;
+    BlacklistRepository blacklistRepository;
     @InjectMocks
     OrderService orderService;
 
@@ -145,7 +152,7 @@ class OrderServiceTest {
     }
 
     @Test
-    void telesalesResult_Approved() {
+    void telesalesResult_validateOrdersForPrePurchase_NoPermission() {
         var request = TelesalesResultRequestDto.builder()
                 .telesalesOrderId(TELESALES_ORDER_ID.getValue())
                 .scoringStatus(ScoringStatus.APPROVED)
@@ -167,7 +174,7 @@ class OrderServiceTest {
     }
 
     @Test
-    void telesalesResult_validateOrdersForPrePurchase_NoPermission() {
+    void telesalesResult_Approved() {
         var request = TelesalesResultRequestDto.builder()
                 .telesalesOrderId(TELESALES_ORDER_ID.getValue())
                 .scoringStatus(ScoringStatus.APPROVED)
@@ -196,6 +203,55 @@ class OrderServiceTest {
         orderService.telesalesResult(request);
         verify(operationRepository).findByTelesalesOrderId(TELESALES_ORDER_ID.getValue());
     }
+
+    @CsvSource({
+            "FRAUD_PIN_AND_UMICO_USER_ID_SUSPICIOUS, APPROVED, 7017",
+            "FRAUD_PIN_AND_UMICO_USER_ID_SUSPICIOUS, REJECTED, 7017",
+            "FRAUD_PIN_SUSPICIOUS, APPROVED, 7017",
+            "FRAUD_PIN_SUSPICIOUS, REJECTED, 7017",
+            "FRAUD_UMICO_USER_ID_SUSPICIOUS, APPROVED, 7017",
+            "FRAUD_UMICO_USER_ID_SUSPICIOUS, REJECTED, 7017",
+            "FRAUD_UMICO_USER_ID_SUSPICIOUS, REJECTED, 0",
+            "FRAUD_OTHER_UMICO_USER_ID_REJECTED_WITH_CURRENT_PIN, REJECTED, 7017",
+            "FRAUD_OTHER_UMICO_USER_ID_REJECTED_WITH_CURRENT_PIN, REJECTED, 0",
+            "FRAUD_OTHER_PIN_REJECTED_WITH_CURRENT_UMICO_USER_ID, REJECTED, 7017",
+            "FRAUD_OTHER_PIN_REJECTED_WITH_CURRENT_UMICO_USER_ID, REJECTED, 0"
+    })
+    @ParameterizedTest
+    void telesalesResult_Fraud(String processStatus, ScoringStatus scoringStatus,
+                               Long rejectReasonCode) {
+
+        var operationEntity = OperationEntity.builder()
+                .id(UUID.fromString(TRACK_ID.getValue()))
+                .orders(List.of(getOrderEntity()))
+                .commission(BigDecimal.valueOf(12))
+                .customer(getCustomerEntity())
+                .processStatus(processStatus)
+                .totalAmount(BigDecimal.ONE)
+                .dvsOrderId(12345L)
+                .taskId(TASK_ID.getValue())
+                .businessKey(BUSINESS_KEY.getValue())
+                .scoredAmount(BigDecimal.ONE)
+                .pin("AA11BB2")
+                .build();
+
+        when(operationRepository.findByTelesalesOrderId(anyString())).thenReturn(
+                Optional.of(operationEntity));
+        lenient().when(atlasClient.prePurchase(any(PrePurchaseRequest.class))).thenThrow(
+                FeignException.class);
+        lenient().when(operationRepository.getRejectedPinWithCurrentUmicoUserId(anyString()))
+                .thenReturn(List.of(UMICO_USER_ID.getValue()));
+
+        var request = TelesalesResultRequestDto.builder()
+                .telesalesOrderId(TELESALES_ORDER_ID.getValue())
+                .scoringStatus(scoringStatus)
+                .uid(CARD_UID.getValue())
+                .rejectReasonCode(rejectReasonCode)
+                .build();
+        orderService.telesalesResult(request);
+        verify(operationRepository).findByTelesalesOrderId(TELESALES_ORDER_ID.getValue());
+    }
+
 
     @Test
     void createOrder_firstOperation() {

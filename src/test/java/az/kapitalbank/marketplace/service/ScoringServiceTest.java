@@ -57,7 +57,7 @@ class ScoringServiceTest {
                 .thenReturn(processVariableResponse);
 
         scoringService.getProcessVariable(getOperationEntity(), null);
-        verify(optimusClient).getProcessVariable(BUSINESS_KEY.getValue(),null);
+        verify(optimusClient).getProcessVariable(BUSINESS_KEY.getValue(), null);
     }
 
     @Test

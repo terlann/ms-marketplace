@@ -61,7 +61,7 @@ public class LoanFormalizationService {
                         ProcessStepEntity.builder().value(fraudResultStatus.name()).build();
                 operationEntity.setProcessSteps(Collections.singletonList(processStep));
                 processStep.setOperation(operationEntity);
-                if (FraudResultStatus.exists(fraudResultStatus)) {
+                if (FraudResultStatus.existRejected(fraudResultStatus)) {
                     log.info("It was rejected by fraud : trackId - {}, fraudReason - {}",
                             trackId, fraudResultStatus);
                     var umicoDecisionStatus = umicoService.sendRejectedDecision(trackId);

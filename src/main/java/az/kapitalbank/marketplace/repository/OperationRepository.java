@@ -45,6 +45,7 @@ public interface OperationRepository extends JpaRepository<OperationEntity, UUID
                     + "             WHERE  c.ID = o.CUSTOMER_ID "
                     + "                    AND c.UMICO_USER_ID = :umicoUserId"
                     +
-                    "                    AND o.UMICO_DECISION_STATUS = 'REJECTED') ", nativeQuery = true)
+                    "                    AND o.UMICO_DECISION_STATUS = 'REJECTED') ",
+            nativeQuery = true)
     List<String> getRejectedPinWithCurrentUmicoUserId(String umicoUserId);
 }
