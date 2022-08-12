@@ -181,11 +181,9 @@ public class OrderService {
             var blacklist =
                     new BlacklistEntity(BlacklistType.PIN, pin, processStatus);
             blacklistRepository.save(blacklist);
-            // fin send to blacklist
         } else {
             var fraud = new FraudEntity(FraudType.PIN, pin, processStatus);
             fraudRepository.save(fraud);
-            // fin add fraud list
         }
     }
 
@@ -196,10 +194,8 @@ public class OrderService {
             var blacklist =
                     new BlacklistEntity(BlacklistType.PIN, pin, processStatus);
             blacklistRepository.save(blacklist);
-            // fin send to blacklist
         } else if (request.getScoringStatus() == ScoringStatus.APPROVED) {
-            blacklistRepository.deleteByValueIn(Set.of(pin));
-            // fin remove from blacklist
+            fraudRepository.deleteByValueIn(Set.of(pin));
         }
     }
 
@@ -213,10 +209,8 @@ public class OrderService {
                             new BlacklistEntity(BlacklistType.UMICO_USER_ID, umicoUserId,
                                     processStatus));
             blacklistRepository.saveAll(blacklist);
-            // fin ve umico id send to blacklist
         } else if (request.getScoringStatus() == ScoringStatus.APPROVED) {
-            blacklistRepository.deleteByValueIn(Set.of(pin, umicoUserId));
-            // fin ve umico id remove from blacklist
+            fraudRepository.deleteByValueIn(Set.of(pin, umicoUserId));
         }
     }
 
@@ -234,11 +228,9 @@ public class OrderService {
                 fraudEntities.add(new FraudEntity(FraudType.PIN, p, processStatus));
             }
             fraudRepository.saveAll(fraudEntities);
-            // umico id send to blacklist, all fin add fraud list
         } else {
             var fraud = new FraudEntity(FraudType.UMICO_USER_ID, umicoUserId, processStatus);
             fraudRepository.save(fraud);
-            // umico id  add fraud list
         }
     }
 
@@ -254,11 +246,9 @@ public class OrderService {
             blacklistRepository.save(blacklist);
             var fraud = new FraudEntity(FraudType.PIN, pin, processStatus);
             fraudRepository.save(fraud);
-            // umico id send to blacklist, fin add fraud list
         } else {
             var fraud = new FraudEntity(FraudType.PIN, pin, processStatus);
             fraudRepository.save(fraud);
-            // fin add fraud list
         }
     }
 
