@@ -182,7 +182,7 @@ public class OrderService {
                     new BlacklistEntity(BlacklistType.PIN, pin, processStatus);
             blacklistRepository.save(blacklist);
         } else {
-            var fraud = new FraudEntity(FraudType.PIN, pin, processStatus);
+            var fraud = new FraudEntity(FraudType.PIN, pin, processStatus, false);
             fraudRepository.save(fraud);
         }
     }
@@ -195,7 +195,7 @@ public class OrderService {
                     new BlacklistEntity(BlacklistType.PIN, pin, processStatus);
             blacklistRepository.save(blacklist);
         } else if (request.getScoringStatus() == ScoringStatus.APPROVED) {
-            fraudRepository.deleteByValueIn(Set.of(pin));
+            fraudRepository.updateByValueIn(Set.of(pin));
         }
     }
 
@@ -210,7 +210,7 @@ public class OrderService {
                                     processStatus));
             blacklistRepository.saveAll(blacklist);
         } else if (request.getScoringStatus() == ScoringStatus.APPROVED) {
-            fraudRepository.deleteByValueIn(Set.of(pin, umicoUserId));
+            fraudRepository.updateByValueIn(Set.of(pin, umicoUserId));
         }
     }
 
@@ -225,11 +225,11 @@ public class OrderService {
             var pins = operationRepository.getRejectedPinWithCurrentUmicoUserId(umicoUserId);
             var fraudEntities = new ArrayList<FraudEntity>();
             for (String p : pins) {
-                fraudEntities.add(new FraudEntity(FraudType.PIN, p, processStatus));
+                fraudEntities.add(new FraudEntity(FraudType.PIN, p, processStatus, false));
             }
             fraudRepository.saveAll(fraudEntities);
         } else {
-            var fraud = new FraudEntity(FraudType.UMICO_USER_ID, umicoUserId, processStatus);
+            var fraud = new FraudEntity(FraudType.UMICO_USER_ID, umicoUserId, processStatus, false);
             fraudRepository.save(fraud);
         }
     }
@@ -238,16 +238,16 @@ public class OrderService {
                                               String umicoUserId,
                                               String processStatus) {
         if (request.getScoringStatus() == ScoringStatus.APPROVED) {
-            fraudRepository.deleteByValueIn(Set.of(umicoUserId));
+            fraudRepository.updateByValueIn(Set.of(umicoUserId));
         } else if (request.getScoringStatus() == ScoringStatus.REJECTED
                 && CUSTOM_REJECT_REASON_CODES.contains(request.getRejectReasonCode())) {
             var blacklist = new BlacklistEntity(BlacklistType.UMICO_USER_ID, umicoUserId,
                     processStatus);
             blacklistRepository.save(blacklist);
-            var fraud = new FraudEntity(FraudType.PIN, pin, processStatus);
+            var fraud = new FraudEntity(FraudType.PIN, pin, processStatus, false);
             fraudRepository.save(fraud);
         } else {
-            var fraud = new FraudEntity(FraudType.PIN, pin, processStatus);
+            var fraud = new FraudEntity(FraudType.PIN, pin, processStatus, false);
             fraudRepository.save(fraud);
         }
     }

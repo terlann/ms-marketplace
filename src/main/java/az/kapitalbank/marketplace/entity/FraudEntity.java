@@ -33,4 +33,6 @@ public class FraudEntity extends BaseEntity {
 
     String reason;
 
+    Boolean isDeleted;
+
 }
