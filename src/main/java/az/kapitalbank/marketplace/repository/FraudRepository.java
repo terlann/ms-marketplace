@@ -14,5 +14,5 @@ public interface FraudRepository extends JpaRepository<FraudEntity, UUID> {
             value = "UPDATE KB_MARKETPLACE_FRAUD "
                     + "SET isDeleted = 1 "
                     + "WHERE value IN :value")
-    void updateByValueIn(Set<String> values);
+    void softDeleteByValueIn(Set<String> values);
 }

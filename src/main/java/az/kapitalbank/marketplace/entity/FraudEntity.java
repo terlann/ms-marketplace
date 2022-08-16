@@ -7,6 +7,7 @@ import javax.persistence.Enumerated;
 import javax.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.NonNull;
@@ -33,6 +34,7 @@ public class FraudEntity extends BaseEntity {
 
     String reason;
 
-    Boolean isDeleted;
+    @Builder.Default
+    Boolean isDeleted = false;
 
 }
