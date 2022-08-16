@@ -13,6 +13,6 @@ public interface FraudRepository extends JpaRepository<FraudEntity, UUID> {
     @Query(nativeQuery = true,
             value = "UPDATE KB_MARKETPLACE_FRAUD "
                     + "SET is_deleted = 1 "
-                    + "WHERE value IN :value")
-    void softDeleteByValuesIn(Set<String> values);
+                    + "WHERE value IN :values")
+    void softDeleteByValueIn(Set<String> values);
 }

@@ -195,7 +195,7 @@ public class OrderService {
                     new BlacklistEntity(BlacklistType.PIN, pin, processStatus);
             blacklistRepository.save(blacklist);
         } else if (request.getScoringStatus() == ScoringStatus.APPROVED) {
-            fraudRepository.softDeleteByValuesIn(Set.of(pin));
+            fraudRepository.softDeleteByValueIn(Set.of(pin));
         }
     }
 
@@ -210,7 +210,7 @@ public class OrderService {
                                     processStatus));
             blacklistRepository.saveAll(blacklist);
         } else if (request.getScoringStatus() == ScoringStatus.APPROVED) {
-            fraudRepository.softDeleteByValuesIn(Set.of(pin, umicoUserId));
+            fraudRepository.softDeleteByValueIn(Set.of(pin, umicoUserId));
         }
     }
 
@@ -238,7 +238,7 @@ public class OrderService {
                                               String umicoUserId,
                                               String processStatus) {
         if (request.getScoringStatus() == ScoringStatus.APPROVED) {
-            fraudRepository.softDeleteByValuesIn(Set.of(umicoUserId));
+            fraudRepository.softDeleteByValueIn(Set.of(umicoUserId));
         } else if (request.getScoringStatus() == ScoringStatus.REJECTED
                 && CUSTOM_REJECT_REASON_CODES.contains(request.getRejectReasonCode())) {
             var blacklist = new BlacklistEntity(BlacklistType.UMICO_USER_ID, umicoUserId,
