@@ -177,7 +177,8 @@ public class OrderService {
 
     private void otherUmicoUserIdRejectedWithCurrentPinProcess(TelesalesResultRequestDto request,
                                                                String pin, String processStatus) {
-        if (CUSTOM_REJECT_REASON_CODES.contains(request.getRejectReasonCode())) {
+        if (Objects.nonNull(request.getRejectReasonCode())
+                && CUSTOM_REJECT_REASON_CODES.contains(request.getRejectReasonCode())) {
             var blacklist =
                     new BlacklistEntity(BlacklistType.PIN, pin, processStatus);
             blacklistRepository.save(blacklist);
@@ -190,6 +191,7 @@ public class OrderService {
     private void pinSuspiciousProcess(TelesalesResultRequestDto request, String pin,
                                       String processStatus) {
         if (request.getScoringStatus() == ScoringStatus.REJECTED
+                && Objects.nonNull(request.getRejectReasonCode())
                 && CUSTOM_REJECT_REASON_CODES.contains(request.getRejectReasonCode())) {
             var blacklist =
                     new BlacklistEntity(BlacklistType.PIN, pin, processStatus);
@@ -203,6 +205,7 @@ public class OrderService {
                                                     String umicoUserId,
                                                     String processStatus) {
         if (request.getScoringStatus() == ScoringStatus.REJECTED
+                && Objects.nonNull(request.getRejectReasonCode())
                 && CUSTOM_REJECT_REASON_CODES.contains(request.getRejectReasonCode())) {
             var blacklist =
                     List.of(new BlacklistEntity(BlacklistType.PIN, pin, processStatus),
@@ -217,7 +220,8 @@ public class OrderService {
     private void otherPinRejectedWithCurrentUmicoUserIdProcess(TelesalesResultRequestDto request,
                                                                String umicoUserId,
                                                                String processStatus) {
-        if (CUSTOM_REJECT_REASON_CODES.contains(request.getRejectReasonCode())) {
+        if (Objects.nonNull(request.getRejectReasonCode())
+                && CUSTOM_REJECT_REASON_CODES.contains(request.getRejectReasonCode())) {
             var blacklistUmicoId =
                     new BlacklistEntity(BlacklistType.UMICO_USER_ID, umicoUserId,
                             processStatus);
@@ -240,6 +244,7 @@ public class OrderService {
         if (request.getScoringStatus() == ScoringStatus.APPROVED) {
             fraudRepository.softDeleteByValueIn(Set.of(umicoUserId));
         } else if (request.getScoringStatus() == ScoringStatus.REJECTED
+                && Objects.nonNull(request.getRejectReasonCode())
                 && CUSTOM_REJECT_REASON_CODES.contains(request.getRejectReasonCode())) {
             var blacklist = new BlacklistEntity(BlacklistType.UMICO_USER_ID, umicoUserId,
                     processStatus);
