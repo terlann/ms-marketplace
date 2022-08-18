@@ -5,13 +5,13 @@ import az.kapitalbank.marketplace.client.optimus.model.process.ProcessVariableRe
 import az.kapitalbank.marketplace.constant.DvsStatus;
 import az.kapitalbank.marketplace.constant.Error;
 import az.kapitalbank.marketplace.constant.FraudResultStatus;
-import az.kapitalbank.marketplace.constant.OperationRejectReason;
+import az.kapitalbank.marketplace.constant.ProcessStatus;
 import az.kapitalbank.marketplace.constant.RejectedBusinessError;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
-import az.kapitalbank.marketplace.constant.SendLeadReason;
 import az.kapitalbank.marketplace.constant.TaskDefinitionKey;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.entity.OperationEntity;
+import az.kapitalbank.marketplace.entity.ProcessStepEntity;
 import az.kapitalbank.marketplace.exception.CommonException;
 import az.kapitalbank.marketplace.messaging.event.BusinessErrorData;
 import az.kapitalbank.marketplace.messaging.event.FraudCheckResultEvent;
@@ -23,7 +23,7 @@ import az.kapitalbank.marketplace.repository.OperationRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
-import java.util.Optional;
+import java.util.Collections;
 import javax.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -53,23 +53,24 @@ public class LoanFormalizationService {
         var operationOptional = operationRepository.findById(trackId);
         if (operationOptional.isPresent()) {
             var operationEntity = operationOptional.get();
-            if (fraudResultStatus == FraudResultStatus.BLACKLIST) {
-                log.info("This operation was found in blacklist : trackId - {}", trackId);
-                var umicoDecisionStatus = umicoService.sendRejectedDecision(trackId);
-                operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
-                operationEntity.setRejectReason(OperationRejectReason.BLACKLIST);
-            } else if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_TELESALES) {
-                log.info("Fraud case was found and sent to Telesales : trackId - {}",
-                        trackId);
-                operationEntity.setSendLeadReason(SendLeadReason.FRAUD_LIST);
-                leadService.sendLead(operationEntity, fraudCheckResultEvent.getTypes());
-            } else if (fraudResultStatus == FraudResultStatus.SUSPICIOUS_UMICO) {
-                log.info("Fraud case was found and sent to umico : trackId - {}", trackId);
-                var umicoDecisionStatus = umicoService.sendRejectedDecision(trackId);
-                operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
-                operationEntity.setRejectReason(OperationRejectReason.FRAUD_RULE);
-            } else {
+            if (fraudResultStatus == null) {
                 noFraudProcess(operationEntity);
+            } else {
+                operationEntity.setProcessStatus(fraudResultStatus.name());
+                var processStep =
+                        ProcessStepEntity.builder().value(fraudResultStatus.name()).build();
+                operationEntity.setProcessSteps(Collections.singletonList(processStep));
+                processStep.setOperation(operationEntity);
+                if (FraudResultStatus.existRejected(fraudResultStatus)) {
+                    log.info("It was rejected by fraud : trackId - {}, fraudReason - {}",
+                            trackId, fraudResultStatus);
+                    var umicoDecisionStatus = umicoService.sendRejectedDecision(trackId);
+                    operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+                } else {
+                    log.info("It was sent to telesales by fraud : trackId - {}, fraudReason - {}",
+                            trackId, fraudResultStatus);
+                    leadService.sendLead(operationEntity);
+                }
             }
         } else {
             log.error("Fraud result process, operation not found : trackId - {}", trackId);
@@ -133,17 +134,25 @@ public class LoanFormalizationService {
         operationEntity.setDvsOrderStatus(DvsStatus.CONFIRMED);
         var completeScoring = scoringService.completeScoring(operationEntity);
         if (completeScoring.isEmpty()) {
-            operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_COMPLETE_SCORING);
-            leadService.sendLead(operationEntity, null);
+            var processStatus = ProcessStatus.OPTIMUS_FAIL_COMPLETE_SCORING;
+            operationEntity.setProcessStatus(processStatus);
+            var processStep = ProcessStepEntity.builder().value(processStatus).build();
+            operationEntity.setProcessSteps(Collections.singletonList(processStep));
+            processStep.setOperation(operationEntity);
+            leadService.sendLead(operationEntity);
         }
     }
 
     private void onVerificationRejected(OperationEntity operationEntity) {
         log.info("Verification status result rejected : trackId - {}", operationEntity.getId());
+        var processStatus = ProcessStatus.DVS_REJECT;
+        operationEntity.setProcessStatus(processStatus);
+        var processStep = ProcessStepEntity.builder().value(processStatus).build();
+        operationEntity.setProcessSteps(Collections.singletonList(processStep));
+        processStep.setOperation(operationEntity);
+        operationEntity.setDvsOrderStatus(DvsStatus.REJECTED);
         var umicoDecisionStatus = umicoService.sendRejectedDecision(operationEntity.getId());
         operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
-        operationEntity.setRejectReason(OperationRejectReason.DVS);
-        operationEntity.setDvsOrderStatus(DvsStatus.REJECTED);
     }
 
     private void onVerificationPending(OperationEntity operationEntity) {
@@ -170,8 +179,12 @@ public class LoanFormalizationService {
                 userTaskSignDocumentsProcess(operationEntity, processResponse.get(), taskId);
             }
         } else {
-            operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_GET_PROCESS);
-            leadService.sendLead(operationEntity, null);
+            var processStatus = ProcessStatus.OPTIMUS_FAIL_GET_PROCESS;
+            operationEntity.setProcessStatus(processStatus);
+            var processStep = ProcessStepEntity.builder().value(processStatus).build();
+            operationEntity.setProcessSteps(Collections.singletonList(processStep));
+            processStep.setOperation(operationEntity);
+            leadService.sendLead(operationEntity);
         }
     }
 
@@ -183,23 +196,29 @@ public class LoanFormalizationService {
         operationEntity.setTaskId(taskId);
         operationEntity.setScoredAmount(scoredAmount);
         var selectedAmount = operationEntity.getTotalAmount().add(operationEntity.getCommission());
+        String processStatus = null;
         if (scoredAmount.compareTo(BigDecimal.ZERO) == 0) {
             log.info("Start scoring result - Scoring amount is zero : trackId - {}",
                     operationEntity.getId());
-            leadService.sendLead(operationEntity, null);
-            operationEntity.setSendLeadReason(SendLeadReason.SCORED_AMOUNT_ZERO);
+            processStatus = ProcessStatus.OPTIMUS_SCORED_AMOUNT_ZERO;
         } else if (scoredAmount.compareTo(selectedAmount) < 0) {
             log.info("Start scoring result - No enough amount : selectedAmount - {},"
                             + " scoredAmount - {}, trackId - {}", selectedAmount, scoredAmount,
                     operationEntity.getId());
-            operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_NO_ENOUGH_AMOUNT);
-            leadService.sendLead(operationEntity, null);
+            processStatus = ProcessStatus.OPTIMUS_NO_ENOUGH_AMOUNT;
         } else {
             var createScoring = scoringService.createScoring(operationEntity);
             if (createScoring.isEmpty()) {
-                operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_CREATE_SCORING);
-                leadService.sendLead(operationEntity, null);
+                processStatus = ProcessStatus.OPTIMUS_FAIL_CREATE_SCORING;
             }
+        }
+
+        if (processStatus != null) {
+            operationEntity.setProcessStatus(processStatus);
+            var processStep = ProcessStepEntity.builder().value(processStatus).build();
+            operationEntity.setProcessSteps(Collections.singletonList(processStep));
+            processStep.setOperation(operationEntity);
+            leadService.sendLead(operationEntity);
         }
     }
 
@@ -223,8 +242,12 @@ public class LoanFormalizationService {
             smsService.sendPreapproveSms(operationEntity);
             operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
         } else {
-            operationEntity.setSendLeadReason(SendLeadReason.DVS_URL_FAIL);
-            leadService.sendLead(operationEntity, null);
+            var processStatus = ProcessStatus.DVS_FAIL_URL;
+            operationEntity.setProcessStatus(processStatus);
+            var processStep = ProcessStepEntity.builder().value(processStatus).build();
+            operationEntity.setProcessSteps(Collections.singletonList(processStep));
+            processStep.setOperation(operationEntity);
+            leadService.sendLead(operationEntity);
         }
     }
 
@@ -271,8 +294,12 @@ public class LoanFormalizationService {
         var businessKey =
                 scoringService.startScoring(operationEntity);
         if (businessKey.isEmpty()) {
-            operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_START_SCORING);
-            leadService.sendLead(operationEntity, null);
+            var processStatus = ProcessStatus.OPTIMUS_FAIL_START_SCORING;
+            operationEntity.setProcessStatus(processStatus);
+            var processStep = ProcessStepEntity.builder().value(processStatus).build();
+            operationEntity.setProcessSteps(Collections.singletonList(processStep));
+            processStep.setOperation(operationEntity);
+            leadService.sendLead(operationEntity);
         } else {
             operationEntity.setBusinessKey(businessKey.get());
         }
@@ -283,17 +310,19 @@ public class LoanFormalizationService {
         var businessErrorData = (BusinessErrorData[]) scoringResultEvent.getData();
         log.error("Scoring result : business error , trackId - {}, response - {}",
                 operationEntity.getId(), Arrays.toString(businessErrorData));
-        if (businessErrorData != null && businessErrorData[0] != null) {
-            operationEntity.setBusinessErrorReason(businessErrorData[0].getId());
-        }
-        var rejectedBusinessError = checkRejectedBusinessErrors(businessErrorData);
-        if (rejectedBusinessError.isPresent()) {
+
+        var processStatus = businessErrorData == null ? ProcessStatus.BUSINESS_ERROR_EMPTY :
+                ProcessStatus.BUSINESS_ERROR_PREFIX + businessErrorData[0].getId();
+        operationEntity.setProcessStatus(processStatus);
+        var processStep = ProcessStepEntity.builder().value(processStatus).build();
+        operationEntity.setProcessSteps(Collections.singletonList(processStep));
+        processStep.setOperation(operationEntity);
+
+        if (businessErrorData != null && isRejectedBusinessErrors(businessErrorData)) {
             var umicoDecisionStatus = umicoService.sendRejectedDecision(operationEntity.getId());
             operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
-            operationEntity.setRejectReason(OperationRejectReason.BUSINESS_ERROR);
         } else {
-            leadService.sendLead(operationEntity, null);
-            operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_BUSINESS_ERROR);
+            leadService.sendLead(operationEntity);
         }
     }
 
@@ -301,25 +330,25 @@ public class LoanFormalizationService {
                                         OperationEntity operationEntity) {
         log.error("Scoring result : incident happened , trackId - {}, response - {}",
                 operationEntity.getId(), scoringResultEvent.getData());
-        leadService.sendLead(operationEntity, null);
-        operationEntity.setSendLeadReason(SendLeadReason.OPTIMUS_FAIL_INCIDENT_HAPPENED);
+        var processStatus = ProcessStatus.OPTIMUS_INCIDENT_HAPPENED;
+        operationEntity.setProcessStatus(processStatus);
+        var processStep = ProcessStepEntity.builder().value(processStatus).build();
+        operationEntity.setProcessSteps(Collections.singletonList(processStep));
+        processStep.setOperation(operationEntity);
+        leadService.sendLead(operationEntity);
     }
 
-    private Optional<String> checkRejectedBusinessErrors(BusinessErrorData[] businessErrors) {
-        if (businessErrors == null) {
-            return Optional.empty();
-        }
+    private boolean isRejectedBusinessErrors(BusinessErrorData[] businessErrors) {
         for (var businessError : businessErrors) {
             try {
-                var rejectedBusinessError = RejectedBusinessError.valueOf(businessError.getId());
-                return Optional.of(rejectedBusinessError.name());
+                RejectedBusinessError.valueOf(businessError.getId());
+                return true;
             } catch (Exception ex) {
-                log.error(
-                        "Optimus business error not found in rejected business error,"
-                                + " businessError - {}", businessError);
+                log.error("Optimus business error not found in rejected business error,"
+                        + " businessError - {}", businessError);
             }
         }
-        return Optional.empty();
+        return false;
     }
 
     @Transactional

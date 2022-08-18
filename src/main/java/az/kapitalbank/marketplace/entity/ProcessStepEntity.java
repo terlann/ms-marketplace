@@ -1,16 +1,12 @@
 package az.kapitalbank.marketplace.entity;
 
-import az.kapitalbank.marketplace.constant.FraudType;
 import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
+import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.NonNull;
 import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import lombok.experimental.SuperBuilder;
@@ -21,20 +17,12 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "KB_MARKETPLACE_FRAUD")
+@Table(name = "KB_MARKETPLACE_PROCESS_STEP")
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class FraudEntity extends BaseEntity {
+public class ProcessStepEntity extends BaseEntity {
 
-    @NonNull
-    @Enumerated(EnumType.STRING)
-    FraudType type;
-
-    @NonNull
     String value;
 
-    String reason;
-
-    @Builder.Default
-    Boolean isDeleted = false;
-
+    @ManyToOne
+    OperationEntity operation;
 }

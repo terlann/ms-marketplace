@@ -6,11 +6,17 @@ import static az.kapitalbank.marketplace.constant.AtlasConstant.PRE_PURCHASE_DES
 import static az.kapitalbank.marketplace.constant.AtlasConstant.TERMINAL_NAME;
 import static az.kapitalbank.marketplace.constant.CommonConstant.CUSTOMER_ID_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.CUSTOMER_NOT_FOUND_LOG;
+import static az.kapitalbank.marketplace.constant.CommonConstant.CUSTOM_REJECT_REASON_CODES;
 import static az.kapitalbank.marketplace.constant.CommonConstant.ORDER_NO_EXCEPTION_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.ORDER_NO_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.ORDER_NO_REQUEST_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.ORDER_NO_RESPONSE_LOG;
 import static az.kapitalbank.marketplace.constant.CommonConstant.TELESALES_ORDER_ID_LOG;
+import static az.kapitalbank.marketplace.constant.FraudResultStatus.FRAUD_OTHER_PIN_REJECTED_WITH_CURRENT_UMICO_USER_ID;
+import static az.kapitalbank.marketplace.constant.FraudResultStatus.FRAUD_OTHER_UMICO_USER_ID_REJECTED_WITH_CURRENT_PIN;
+import static az.kapitalbank.marketplace.constant.FraudResultStatus.FRAUD_PIN_AND_UMICO_USER_ID_SUSPICIOUS;
+import static az.kapitalbank.marketplace.constant.FraudResultStatus.FRAUD_PIN_SUSPICIOUS;
+import static az.kapitalbank.marketplace.constant.FraudResultStatus.FRAUD_UMICO_USER_ID_SUSPICIOUS;
 import static az.kapitalbank.marketplace.constant.TransactionStatus.COMPLETE_PRE_PURCHASE;
 import static az.kapitalbank.marketplace.constant.TransactionStatus.FAIL_IN_COMPLETE_PRE_PURCHASE;
 import static az.kapitalbank.marketplace.constant.TransactionStatus.FAIL_IN_COMPLETE_REFUND;
@@ -31,8 +37,10 @@ import az.kapitalbank.marketplace.client.atlas.model.request.RefundRequest;
 import az.kapitalbank.marketplace.client.atlas.model.response.AtlasErrorResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.TransactionInfoResponse;
 import az.kapitalbank.marketplace.constant.AccountStatus;
+import az.kapitalbank.marketplace.constant.BlacklistType;
 import az.kapitalbank.marketplace.constant.Error;
-import az.kapitalbank.marketplace.constant.OperationRejectReason;
+import az.kapitalbank.marketplace.constant.FraudType;
+import az.kapitalbank.marketplace.constant.ProcessStatus;
 import az.kapitalbank.marketplace.constant.ResultType;
 import az.kapitalbank.marketplace.constant.ScoringStatus;
 import az.kapitalbank.marketplace.dto.OrderProductDeliveryInfo;
@@ -43,9 +51,12 @@ import az.kapitalbank.marketplace.dto.request.PaybackRequestDto;
 import az.kapitalbank.marketplace.dto.request.TelesalesResultRequestDto;
 import az.kapitalbank.marketplace.dto.response.CheckOrderResponseDto;
 import az.kapitalbank.marketplace.dto.response.CreateOrderResponse;
+import az.kapitalbank.marketplace.entity.BlacklistEntity;
 import az.kapitalbank.marketplace.entity.CustomerEntity;
+import az.kapitalbank.marketplace.entity.FraudEntity;
 import az.kapitalbank.marketplace.entity.OperationEntity;
 import az.kapitalbank.marketplace.entity.OrderEntity;
+import az.kapitalbank.marketplace.entity.ProcessStepEntity;
 import az.kapitalbank.marketplace.entity.ProductEntity;
 import az.kapitalbank.marketplace.exception.CommonException;
 import az.kapitalbank.marketplace.exception.DeliveryException;
@@ -54,7 +65,9 @@ import az.kapitalbank.marketplace.mapper.CustomerMapper;
 import az.kapitalbank.marketplace.mapper.OperationMapper;
 import az.kapitalbank.marketplace.mapper.OrderMapper;
 import az.kapitalbank.marketplace.messaging.publisher.FraudCheckPublisher;
+import az.kapitalbank.marketplace.repository.BlacklistRepository;
 import az.kapitalbank.marketplace.repository.CustomerRepository;
+import az.kapitalbank.marketplace.repository.FraudRepository;
 import az.kapitalbank.marketplace.repository.OperationRepository;
 import az.kapitalbank.marketplace.repository.OrderRepository;
 import az.kapitalbank.marketplace.util.CommissionUtil;
@@ -64,8 +77,11 @@ import feign.FeignException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -82,17 +98,19 @@ import org.springframework.stereotype.Service;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class OrderService {
 
-    CommissionUtil commissionUtil;
     SmsService smsService;
     OrderMapper orderMapper;
     AtlasClient atlasClient;
     UmicoService umicoService;
     CustomerMapper customerMapper;
+    CommissionUtil commissionUtil;
     OrderRepository orderRepository;
+    FraudRepository fraudRepository;
     OperationMapper operationMapper;
     CustomerRepository customerRepository;
     FraudCheckPublisher fraudCheckPublisher;
     OperationRepository operationRepository;
+    BlacklistRepository blacklistRepository;
 
     @Transactional
     public void telesalesResult(TelesalesResultRequestDto request) {
@@ -109,26 +127,144 @@ public class OrderService {
         operationEntity.setScoringDate(LocalDateTime.now());
         operationEntity.setCif(request.getCif());
         operationEntity.setContractNumber(request.getContractNumber());
+        var customerEntity = operationEntity.getCustomer();
+        fraudCaseActions(request, operationEntity, customerEntity);
         if (request.getScoringStatus() == ScoringStatus.REJECTED) {
-            var umicoDecisionStatus = umicoService.sendRejectedDecision(operationEntity.getId());
-            operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
-            operationEntity.setRejectReason(OperationRejectReason.TELESALES);
-            operationEntity.setScoringStatus(ScoringStatus.REJECTED);
-            log.info("Telesales result : Customer was failed telesales process : "
-                    + "trackId - {} , scoringStatus - {}", trackId, request.getScoringStatus());
-            return;
+            telesalesResultRejectProcess(request, operationEntity, trackId);
+        } else {
+            telesalesResultApproveProcess(request, operationEntity, customerEntity);
         }
-        telesalesResultApproveProcess(request, operationEntity);
+    }
+
+    private void telesalesResultRejectProcess(TelesalesResultRequestDto request,
+                                              OperationEntity operationEntity,
+                                              UUID trackId) {
+        var processStatus =
+                ProcessStatus.TELESALES_REJECT_CODE_PREFIX + request.getRejectReasonCode();
+        operationEntity.setProcessStatus(processStatus);
+        var processStep = ProcessStepEntity.builder().value(processStatus).build();
+        operationEntity.setProcessSteps(Collections.singletonList(processStep));
+        operationEntity.setScoringStatus(ScoringStatus.REJECTED);
+        processStep.setOperation(operationEntity);
+        var umicoDecisionStatus = umicoService.sendRejectedDecision(operationEntity.getId());
+        operationEntity.setUmicoDecisionStatus(umicoDecisionStatus);
+        log.info("Telesales result : Customer was failed telesales process : "
+                + "trackId - {} , scoringStatus - {}", trackId, request.getScoringStatus());
+    }
+
+    private void fraudCaseActions(TelesalesResultRequestDto request,
+                                  OperationEntity operationEntity,
+                                  CustomerEntity customerEntity) {
+        var pin = operationEntity.getPin();
+        var umicoUserId = customerEntity.getUmicoUserId();
+        var processStatus = operationEntity.getProcessStatus();
+        if (Objects.equals(processStatus, FRAUD_PIN_AND_UMICO_USER_ID_SUSPICIOUS.name())) {
+            pinAndUmicoUserIdSuspiciousProcess(request, pin, umicoUserId, processStatus);
+        } else if (Objects.equals(processStatus, FRAUD_PIN_SUSPICIOUS.name())) {
+            pinSuspiciousProcess(request, pin, processStatus);
+        } else if (Objects.equals(processStatus, FRAUD_UMICO_USER_ID_SUSPICIOUS.name())) {
+            umicoUserIdSuspiciousProcess(request, pin, umicoUserId, processStatus);
+        } else if (Objects.equals(processStatus,
+                FRAUD_OTHER_UMICO_USER_ID_REJECTED_WITH_CURRENT_PIN.name())
+                && request.getScoringStatus() == ScoringStatus.REJECTED) {
+            otherUmicoUserIdRejectedWithCurrentPinProcess(request, pin, processStatus);
+        } else if (Objects.equals(processStatus,
+                FRAUD_OTHER_PIN_REJECTED_WITH_CURRENT_UMICO_USER_ID.name())
+                && request.getScoringStatus() == ScoringStatus.REJECTED) {
+            otherPinRejectedWithCurrentUmicoUserIdProcess(request, umicoUserId, processStatus);
+        }
+    }
+
+    private void otherUmicoUserIdRejectedWithCurrentPinProcess(TelesalesResultRequestDto request,
+                                                               String pin, String processStatus) {
+        if (Objects.nonNull(request.getRejectReasonCode())
+                && CUSTOM_REJECT_REASON_CODES.contains(request.getRejectReasonCode())) {
+            var blacklist =
+                    new BlacklistEntity(BlacklistType.PIN, pin, processStatus);
+            blacklistRepository.save(blacklist);
+        } else {
+            var fraud = new FraudEntity(FraudType.PIN, pin, processStatus, false);
+            fraudRepository.save(fraud);
+        }
+    }
+
+    private void pinSuspiciousProcess(TelesalesResultRequestDto request, String pin,
+                                      String processStatus) {
+        if (request.getScoringStatus() == ScoringStatus.REJECTED
+                && Objects.nonNull(request.getRejectReasonCode())
+                && CUSTOM_REJECT_REASON_CODES.contains(request.getRejectReasonCode())) {
+            var blacklist =
+                    new BlacklistEntity(BlacklistType.PIN, pin, processStatus);
+            blacklistRepository.save(blacklist);
+        } else if (request.getScoringStatus() == ScoringStatus.APPROVED) {
+            fraudRepository.softDeleteByValueIn(Set.of(pin));
+        }
+    }
+
+    private void pinAndUmicoUserIdSuspiciousProcess(TelesalesResultRequestDto request, String pin,
+                                                    String umicoUserId,
+                                                    String processStatus) {
+        if (request.getScoringStatus() == ScoringStatus.REJECTED
+                && Objects.nonNull(request.getRejectReasonCode())
+                && CUSTOM_REJECT_REASON_CODES.contains(request.getRejectReasonCode())) {
+            var blacklist =
+                    List.of(new BlacklistEntity(BlacklistType.PIN, pin, processStatus),
+                            new BlacklistEntity(BlacklistType.UMICO_USER_ID, umicoUserId,
+                                    processStatus));
+            blacklistRepository.saveAll(blacklist);
+        } else if (request.getScoringStatus() == ScoringStatus.APPROVED) {
+            fraudRepository.softDeleteByValueIn(Set.of(pin, umicoUserId));
+        }
+    }
+
+    private void otherPinRejectedWithCurrentUmicoUserIdProcess(TelesalesResultRequestDto request,
+                                                               String umicoUserId,
+                                                               String processStatus) {
+        if (Objects.nonNull(request.getRejectReasonCode())
+                && CUSTOM_REJECT_REASON_CODES.contains(request.getRejectReasonCode())) {
+            var blacklistUmicoId =
+                    new BlacklistEntity(BlacklistType.UMICO_USER_ID, umicoUserId,
+                            processStatus);
+            blacklistRepository.save(blacklistUmicoId);
+            var pins = operationRepository.getRejectedPinWithCurrentUmicoUserId(umicoUserId);
+            var fraudEntities = new ArrayList<FraudEntity>();
+            for (String p : pins) {
+                fraudEntities.add(new FraudEntity(FraudType.PIN, p, processStatus, false));
+            }
+            fraudRepository.saveAll(fraudEntities);
+        } else {
+            var fraud = new FraudEntity(FraudType.UMICO_USER_ID, umicoUserId, processStatus, false);
+            fraudRepository.save(fraud);
+        }
+    }
+
+    private void umicoUserIdSuspiciousProcess(TelesalesResultRequestDto request, String pin,
+                                              String umicoUserId,
+                                              String processStatus) {
+        if (request.getScoringStatus() == ScoringStatus.APPROVED) {
+            fraudRepository.softDeleteByValueIn(Set.of(umicoUserId));
+        } else if (request.getScoringStatus() == ScoringStatus.REJECTED
+                && Objects.nonNull(request.getRejectReasonCode())
+                && CUSTOM_REJECT_REASON_CODES.contains(request.getRejectReasonCode())) {
+            var blacklist = new BlacklistEntity(BlacklistType.UMICO_USER_ID, umicoUserId,
+                    processStatus);
+            blacklistRepository.save(blacklist);
+            var fraud = new FraudEntity(FraudType.PIN, pin, processStatus, false);
+            fraudRepository.save(fraud);
+        } else {
+            var fraud = new FraudEntity(FraudType.PIN, pin, processStatus, false);
+            fraudRepository.save(fraud);
+        }
     }
 
     private void telesalesResultApproveProcess(TelesalesResultRequestDto request,
-                                               OperationEntity operationEntity) {
+                                               OperationEntity operationEntity,
+                                               CustomerEntity customerEntity) {
         operationEntity.setUmicoDecisionStatus(APPROVED);
         operationEntity.setScoringStatus(ScoringStatus.APPROVED);
         operationEntity.setLoanContractStartDate(request.getLoanContractStartDate());
         operationEntity.setLoanContractEndDate(request.getLoanContractEndDate());
         operationEntity.setScoredAmount(request.getScoredAmount());
-        var customerEntity = operationEntity.getCustomer();
         var cardId = request.getUid();
         customerEntity.setCardId(cardId);
         var trackId = operationEntity.getId();

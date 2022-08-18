@@ -12,6 +12,7 @@ import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionRequest;
 import az.kapitalbank.marketplace.client.umico.model.UmicoDecisionResponse;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.constants.TestConstants;
+import az.kapitalbank.marketplace.entity.OperationEntity;
 import feign.FeignException;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -68,6 +69,19 @@ class UmicoServiceTest {
         umicoService.sendPreApprovedDecision(
                 UUID.fromString("70e5bb3d-0120-456a-a5d3-fa953bcd5d7b"), "dvsUrl",
                 UmicoDecisionStatus.APPROVED);
+        verify(umicoClient).sendDecision(any(UmicoDecisionRequest.class), eq(null));
+    }
+
+    @Test
+    void sendApprovedDecision_Success() {
+        OperationEntity operationEntity = OperationEntity.builder()
+                .umicoDecisionStatus(UmicoDecisionStatus.APPROVED)
+                .build();
+        when(umicoClient.sendDecision(any(UmicoDecisionRequest.class), eq(null)))
+                .thenReturn(new UmicoDecisionResponse("status", 0));
+
+        umicoService.sendApprovedDecision(operationEntity,
+                UUID.fromString("70e5bb3d-0120-456a-a5d3-fa953bcd5d7b"));
         verify(umicoClient).sendDecision(any(UmicoDecisionRequest.class), eq(null));
     }
 }

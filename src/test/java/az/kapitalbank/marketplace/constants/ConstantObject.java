@@ -5,6 +5,7 @@ import static az.kapitalbank.marketplace.constants.TestConstants.CARD_UID;
 import static az.kapitalbank.marketplace.constants.TestConstants.CUSTOMER_ID;
 import static az.kapitalbank.marketplace.constants.TestConstants.TASK_ID;
 import static az.kapitalbank.marketplace.constants.TestConstants.TRACK_ID;
+import static az.kapitalbank.marketplace.constants.TestConstants.UMICO_USER_ID;
 
 import az.kapitalbank.marketplace.client.atlas.model.response.AccountResponse;
 import az.kapitalbank.marketplace.client.atlas.model.response.CardDetailResponse;
@@ -27,6 +28,7 @@ public class ConstantObject {
 
     public static CustomerEntity getCustomerEntity() {
         return CustomerEntity.builder()
+                .umicoUserId(UMICO_USER_ID.getValue())
                 .cardId(CARD_UID.getValue()).build();
     }
 

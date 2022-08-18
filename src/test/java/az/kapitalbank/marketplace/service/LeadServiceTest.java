@@ -15,8 +15,6 @@ import az.kapitalbank.marketplace.client.loan.LoanClient;
 import az.kapitalbank.marketplace.client.telesales.TelesalesClient;
 import az.kapitalbank.marketplace.client.telesales.model.CreateTelesalesOrderRequest;
 import az.kapitalbank.marketplace.client.telesales.model.CreateTelesalesOrderResponse;
-import az.kapitalbank.marketplace.constant.FraudType;
-import az.kapitalbank.marketplace.constant.SendLeadReason;
 import az.kapitalbank.marketplace.constant.SendLeadType;
 import az.kapitalbank.marketplace.constant.UmicoDecisionStatus;
 import az.kapitalbank.marketplace.entity.OperationEntity;
@@ -67,14 +65,13 @@ class LeadServiceTest {
         var createTelesalesOrderRequest = CreateTelesalesOrderRequest.builder().build();
         var createTelesalesOrderResponse = CreateTelesalesOrderResponse.builder()
                 .response(new CreateTelesalesOrderResponse.Response(code, message)).build();
-        when(telesalesMapper.toTelesalesOrder(any(OperationEntity.class),
-                eq(List.of(FraudType.PIN)))).thenReturn(createTelesalesOrderRequest);
+        when(telesalesMapper.toTelesalesOrder(any(OperationEntity.class))).thenReturn(
+                createTelesalesOrderRequest);
         when(telesalesClient.sendLead(any(CreateTelesalesOrderRequest.class))).thenReturn(
                 createTelesalesOrderResponse);
 
-        leadService.sendLead(getOperationEntity(), List.of(FraudType.PIN));
-        verify(telesalesMapper).toTelesalesOrder(any(OperationEntity.class),
-                eq(List.of(FraudType.PIN)));
+        leadService.sendLead(getOperationEntity());
+        verify(telesalesMapper).toTelesalesOrder(any(OperationEntity.class));
     }
 
     @Test
@@ -92,7 +89,7 @@ class LeadServiceTest {
     void retrySendLead_Fraud() {
         OperationEntity operationEntity =
                 OperationEntity.builder().id(UUID.fromString(TRACK_ID.getValue()))
-                        .sendLeadReason(SendLeadReason.FRAUD_LIST).build();
+                        .build();
 
         when(operationRepository.findByUmicoDecisionStatusAndIsSendLeadIsFalse(
                 UmicoDecisionStatus.PENDING)).thenReturn(List.of(operationEntity));
@@ -105,7 +102,7 @@ class LeadServiceTest {
     void retrySendLead_Success() {
         OperationEntity operationEntity =
                 OperationEntity.builder().id(UUID.fromString(TRACK_ID.getValue()))
-                        .sendLeadReason(SendLeadReason.OPTIMUS_FAIL_GET_PROCESS).build();
+                        .build();
 
         when(operationRepository.findByUmicoDecisionStatusAndIsSendLeadIsFalse(
                 UmicoDecisionStatus.PENDING)).thenReturn(
